@@ -1,30 +1,24 @@
-import { useState } from 'react'
 import { Content, RootLayout, Sidebar } from './components'
 import CMImageContextMenu from './components/CMImageContextMenu'
 import Editor from './components/myEditor'
 import { notesDirectoryPath } from '@shared/constants'
 import { FileExplorer } from './components/FileExplorer'
+import VirtualizedList from './components/VirrtualizedList'
+import TreePresenter from './components/VirrtualizedList'
+import { useFileExplorer } from './hooks/useFileExplorer'
 
 function App() {
-  const [text, setText] = useState('')
-
-  const openFile = async (filePath: string) => {
-    try {
-      const result = await window['api'].openFile(filePath);
-      setText(result);
-    } catch (err) {
-      console.error('Error opening file:', err);
-    }
-  }
+  const { text, setText, openFile, currentFilename } = useFileExplorer()
 
   return (
     <RootLayout>
       <CMImageContextMenu />
       <Sidebar>
         <FileExplorer directoryPath={notesDirectoryPath} onFileSelect={openFile} />
+        {/* <TreePresenter itemSize={30} directoryPath={notesDirectoryPath}/> */}
       </Sidebar>
       <Content>
-        <Editor text={text} setText={setText}/>
+        <Editor text={text} setText={setText} currentFilename={currentFilename} />
       </Content>
     </RootLayout>
   )

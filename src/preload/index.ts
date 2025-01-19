@@ -7,5 +7,6 @@ if (!process.contextIsolated) {
 contextBridge.exposeInMainWorld('api', {
   openFolderDialog: () => ipcRenderer.invoke('open-folder-dialog'),
   getFiles: (folderPath) => ipcRenderer.invoke('get-files', folderPath),
-  openFile: (filePath) => ipcRenderer.invoke('open-file', filePath)
+  openFile: (filePath) => ipcRenderer.invoke('open-file', filePath),
+  saveFile: (filePath, content) => ipcRenderer.invoke('save-file', filePath, content),
 })

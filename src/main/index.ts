@@ -2,9 +2,10 @@ import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import { BrowserWindow, app, dialog, ipcMain, shell } from 'electron'
 import path, { join } from 'path'
 import icon from '../../resources/icon.png?asset'
-import { readFile, readdir, stat } from 'fs/promises'
+import { readFile, readdir, stat, writeFile } from 'fs/promises'
 import { notesDirectoryPath } from '@shared/constants'
 import { FileItem } from '@shared/models'
+import { installExtension, REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer'
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -45,6 +46,10 @@ function createWindow(): void {
 
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.electron')
+
+  installExtension([REACT_DEVELOPER_TOOLS])
+      .then(([react]) => console.log(`Added Extensions: ${react.name}`))
+      .catch((err) => console.log('An error occurred: ', err));
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
@@ -110,3 +115,13 @@ ipcMain.handle('open-file', async (_, filePath: string) => {
   }
 });
 
+ipcMain.handle('save-file', async (_, filePath: string, content: string) => {
+  try {
+    const fullPath = path.resolve(notesDirectoryPath, filePath);
+    await writeFile(fullPath, content, 'utf-8');
+    return true;
+  } catch (err) {
+    console.error('Error saving file:', err);
+    return false;
+  }
+})
