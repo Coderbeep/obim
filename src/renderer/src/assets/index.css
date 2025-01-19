@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 html {
   overflow: hidden;
 }
@@ -27,4 +31,9 @@ html {
   ::-webkit-scrollbar-track {
     @apply bg-[transparent];
   }
+
+  ::-webkit-search-cancel-button {
+    /* webkit cancel button override*/ 
+  }
+
 }

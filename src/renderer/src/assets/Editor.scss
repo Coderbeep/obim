@@ -9,7 +9,6 @@
   display: flex;
   height: 100vh;
   font-size: 1rem;
-  font-family: Inter, ui-sans-serif, system-ui;
   overflow: hidden;
   margin: 0;
 }
@@ -80,7 +79,6 @@
 
     &.selected {
       background-color: $background-focus-line;
-
     }
 
     &:hover {
@@ -199,9 +197,7 @@
 }
 
 .cm-content {
-  font-family:
-    CascaydiaCode Nerd Font,
-    monospace;
+  font-family: "CaskaydiaMono Nerd Font Mono" !important;
   color: $font-color;
 }
 

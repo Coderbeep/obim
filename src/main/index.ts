@@ -48,8 +48,8 @@ app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.electron')
 
   installExtension([REACT_DEVELOPER_TOOLS])
-      .then(([react]) => console.log(`Added Extensions: ${react.name}`))
-      .catch((err) => console.log('An error occurred: ', err));
+    .then(([react]) => console.log(`Added Extensions: ${react.name}`))
+    .catch((err) => console.log('An error occurred: ', err));
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
@@ -124,4 +124,33 @@ ipcMain.handle('save-file', async (_, filePath: string, content: string) => {
     console.error('Error saving file:', err);
     return false;
   }
+})
+
+async function getFilesRecursive(directoryPath) {
+  const files: FileItem[] = [];
+  const filenames = await readdir(directoryPath);
+
+  for (const filename of filenames) {
+    const filePath = path.join(directoryPath, filename);
+    const fileStat = await stat(filePath);
+
+    if (fileStat.isDirectory()) {
+      console.debug('Getting files in:', filePath);
+      const children = await getFilesRecursive(filePath);
+      files.push(...children)
+    } else {
+      const fileItem: FileItem = {
+        filename: filename,
+        path: filePath,
+        isDirectory: fileStat.isDirectory(),
+      }
+      files.push(fileItem);
+    }
+  }
+  return files;
+}
+
+
+ipcMain.handle('get-files-recursive', async (_, directoryPath: string) => {
+  return getFilesRecursive(directoryPath);
 })

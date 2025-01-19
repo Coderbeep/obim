@@ -6,7 +6,8 @@ if (!process.contextIsolated) {
 
 contextBridge.exposeInMainWorld('api', {
   openFolderDialog: () => ipcRenderer.invoke('open-folder-dialog'),
-  getFiles: (folderPath) => ipcRenderer.invoke('get-files', folderPath),
+  getFiles: (directoryPath) => ipcRenderer.invoke('get-files', directoryPath),
   openFile: (filePath) => ipcRenderer.invoke('open-file', filePath),
   saveFile: (filePath, content) => ipcRenderer.invoke('save-file', filePath, content),
+  getFilesRecursive: (directoryPath) => ipcRenderer.invoke('get-files-recursive', directoryPath),
 })

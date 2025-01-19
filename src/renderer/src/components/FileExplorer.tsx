@@ -7,6 +7,7 @@ const MemoizedGoFileDirectory = memo(GoFileDirectory);
 interface FileExplorerProps {
     directoryPath: string;
     onFileSelect: (filePath: string) => void;
+    onSearchClick: () => void;
 }
 
 interface ListFileProps { 
@@ -66,7 +67,7 @@ const ListDirectory = ({ file, onDirectorySelect, onFileSelect, level, isOpen }:
     </div>
 );
 
-export const FileExplorer = memo(({ directoryPath, onFileSelect }: FileExplorerProps) => {
+export const FileExplorer = memo(({ directoryPath, onFileSelect, onSearchClick }: FileExplorerProps) => {
     const [files, setFiles] = useState<FileItem[]>([]);
     const folderCache = useRef<Map<string, FileItem[]>>(new Map());
     const expandedDirectories = useRef<Set<string>>(new Set());
@@ -133,7 +134,7 @@ export const FileExplorer = memo(({ directoryPath, onFileSelect }: FileExplorerP
                     <GoPlus />
                     <span> Add content </span>
                 </div>
-                <div className='file-explorer-button search-button'>
+                <div className='file-explorer-button search-button' onClick={onSearchClick}>
                     <GoSearch />
                 </div>
             </div>
