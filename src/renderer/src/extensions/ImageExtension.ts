@@ -1,6 +1,6 @@
 import { syntaxTree } from '@codemirror/language';
 import { RangeSetBuilder, StateEffect, StateField } from "@codemirror/state";
-import { Decoration, EditorView, WidgetType } from "@codemirror/view";
+import { Decoration, DecorationSet, EditorView, WidgetType } from "@codemirror/view";
 import contextMenuManager, { ContextMenuType } from '@renderer/components/ContextMenuManager';
 
 // TODO: Vertical scrolling does not work properly
@@ -9,7 +9,7 @@ import contextMenuManager, { ContextMenuType } from '@renderer/components/Contex
 // TODO: Image widgets styling
 // TODO: Local image handling
 
-const toggleImageEffect = StateEffect.define();
+const toggleImageEffect = StateEffect.define<DecorationSet>();
 
 const imageField = StateField.define({
     create() {
@@ -98,5 +98,6 @@ export const ImageExtension = [
         if (update.docChanged || update.selectionSet) {
             toggleImageVisibility(update.view);
         }
+        
     })
 ];

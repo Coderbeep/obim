@@ -50,6 +50,7 @@
 .file-explorer {
   color: $gray-4;
   margin-right: 0.5em;
+  width: 100%;
 
 
   .file-explorer-category {
@@ -62,6 +63,11 @@
 
 .file-explorer-list {
   margin-top: 0.5em;
+  user-select: none;
+
+  max-height: 90vh;
+  overflow-y: auto;
+
 
   .file-explorer-item {
     display: flex;
@@ -92,7 +98,6 @@
   }
 }
 
-
 .file-explorer-button {
   display: flex;
   align-items: center;
@@ -113,7 +118,7 @@
   }
 
   &.add-button {
-    flex-grow: 1;
+    flex-grow: 2;
   }
 
   &:hover {
@@ -197,6 +202,7 @@
   font-family:
     CascaydiaCode Nerd Font,
     monospace;
+  color: $font-color;
 }
 
 .cm-horizontal-rule-widget-container {

@@ -42,7 +42,8 @@ export const EmphasisExtension = ViewPlugin.fromClass(class {
 
       syntaxTree(view.state).iterate({
           enter: (node) => {
-            if (node.name === 'Emphasis') {    
+            if (node.name === 'Emphasis') { 
+              console.log(node.from, node.to, view.state.sliceDoc(node.from, node.to))   
               const isActive = from >= node.from && to <= node.to;
               if (!isActive) {
                 builder.add(node.from, node.from + 1, Decoration.widget({

@@ -1,7 +1,7 @@
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
 import { indentUnit } from '@codemirror/language'
 import { languages } from '@codemirror/language-data'
-import { Prec } from '@codemirror/state'
+import { Compartment, Prec } from '@codemirror/state'
 import { frontmatter } from '@extensions/FrontmatterExtension'
 import { Table } from '@lezer/markdown'
 import { DefaultExtensions } from '@renderer/extensions'
@@ -12,8 +12,10 @@ import CodeMirror, {
   keymap,
   ReactCodeMirrorRef
 } from '@uiw/react-codemirror'
-import { useEffect, useRef, useState } from 'react'
+import { useRef } from 'react'
 import '../assets/Editor.scss'
+import { history } from '@codemirror/commands'
+import { MathBlockParser } from '../extensions/MathExpression'
 
 
 const initText = `---
@@ -111,23 +113,29 @@ hello_world()
 \`\`\`
 `
 
-const Editor = ({ text, setText }) => {
+const Editor = ({ text, setText, currentFilename }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const cmRef = useRef<ReactCodeMirrorRef>(null)
+
+  let historyCompartment = new Compartment()
 
   const basicSetup = markdown({
     base: markdownLanguage,
     codeLanguages: languages,
-    extensions: [frontmatter, Table, customMarkdownConfig],
+    extensions: [MathBlockParser, frontmatter, Table, customMarkdownConfig],
   })
 
   return (
     <div ref={containerRef} className="h-screen flex">
       <div style={{ width: `${100}%` }} className="cm-window">
         <CodeMirror
+          key={currentFilename}
           value={text}
           onChange={(value) => setText(value)}
+          onCreateEditor={(editor) => { editor.dispatch({ selection: { anchor: 0 } }) }}
+          ref={cmRef}
           extensions={[
+            historyCompartment.of([history()]),
             basicSetup,
             EditorView.lineWrapping,
             DefaultExtensions,
@@ -137,7 +145,7 @@ const Editor = ({ text, setText }) => {
             }]))
           ]}
           className="h-full"
-          ref={cmRef}
+
         />
       </div>
     </div>

@@ -6,6 +6,7 @@ import { HeadingExtension } from "./HeadingExtension";
 import { HorizontalRuleExtension } from "./HorizontalRuleExtension";
 import { ImageExtension } from "./ImageExtension";
 import { ListsExtension } from "./ListsExtension";
+import { MathBlockExtension } from "./MathExpression";
 import { TableExtension } from "./TableExtension";
 import { MarkdocTableExtension } from "./TableMarkdocExtension";
 
@@ -20,4 +21,5 @@ export const DefaultExtensions = [
     ListsExtension,
     TableExtension,
     MarkdocTableExtension,
+    MathBlockExtension,
 ]

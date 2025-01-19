@@ -45,7 +45,6 @@ export const HeadingExtension = ViewPlugin.fromClass(class {
       syntaxTree(view.state).iterate({
           enter: (node) => {
               const level = headingLevels[node.name]; // Results in undefined if node.name is not a heading
-
               if (level) {
                   const headingRange = { start: node.from, end: node.to };
                   const isActive = from >= headingRange.start && to <= headingRange.end;
