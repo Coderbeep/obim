@@ -163,6 +163,12 @@
     height: auto;
     display: block;
   }
+
+  &.cm-image-error {
+    border-radius: 4px;
+    padding: 4px;
+    background-color: $background-color-secondary;
+  }
 }
 
 .cm-window {
@@ -198,6 +204,7 @@
 
 .cm-content {
   font-family: "CaskaydiaMono Nerd Font Mono" !important;
+  font-size: 14px;
   color: $font-color;
 }
 
