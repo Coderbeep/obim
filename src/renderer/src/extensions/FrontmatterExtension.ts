@@ -65,19 +65,15 @@ Frontmatter visibility logic.
   whenever it is not selected.
 */
 
-const toggleFrontmatterVisibilityEffect = StateEffect.define();
+const toggleFrontmatterEffect = StateEffect.define();
 
 const frontmatterVisibilityField = StateField.define({
 	create() {
 		return Decoration.none;
 	},
 	update(decorations, transaction) {
-		if (transaction.docChanged) {
-			return Decoration.none;
-		}
-
 		for (let effect of transaction.effects) {
-			if (effect.is(toggleFrontmatterVisibilityEffect)) {
+			if (effect.is(toggleFrontmatterEffect)) {
 				decorations = effect.value;
 			}
 		}
@@ -89,12 +85,10 @@ const frontmatterVisibilityField = StateField.define({
 function createFrontmatterDecorations(view) {
 	const builder = new RangeSetBuilder();
 	const { from, to } = view.state.selection.main;
-	let hasFrontmatter = false;
 
 	syntaxTree(view.state).iterate({
 		enter: (node) => {
 			if (node.name === 'Frontmatter') {
-				hasFrontmatter = true;
 				const isActive = from >= node.from && to <= node.to;
 				if (!isActive) {
 					builder.add(
@@ -111,22 +105,20 @@ function createFrontmatterDecorations(view) {
 		}
 	})
 
-	return hasFrontmatter ? builder.finish() : Decoration.none;
+	return builder.finish();
 }
 
-function toggleVisibility(view) {
+function toggleFrontmatterVisibility(view) {
 	view.dispatch({
-		effects: toggleFrontmatterVisibilityEffect.of(createFrontmatterDecorations(view)),
+		effects: toggleFrontmatterEffect.of(createFrontmatterDecorations(view)),
 	});
 }
 
 let cachedHeight = -1;
 
 class PropertiesWidget extends WidgetType {
-	constructor(start, end) {
+	constructor(private start, private end) {
 		super();
-		this.start = start;
-		this.end = end;
 	}
 
 	toDOM(view) {
@@ -219,7 +211,7 @@ export const FrontmatterExtension = [
 	frontmatterVisibilityField,
 	EditorView.updateListener.of(update => {
 		if (update.docChanged || update.selectionSet) {
-			toggleVisibility(update.view);
+			toggleFrontmatterVisibility(update.view);
 		}
 	}),
 ];
