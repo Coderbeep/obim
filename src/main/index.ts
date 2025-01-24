@@ -1,5 +1,5 @@
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
-import { BrowserWindow, app, dialog, ipcMain, shell } from 'electron'
+import { BrowserWindow, app, dialog, ipcMain, shell, protocol } from 'electron'
 import path, { join } from 'path'
 import icon from '../../resources/icon.png?asset'
 import { readFile, readdir, stat, writeFile } from 'fs/promises'
@@ -44,8 +44,28 @@ function createWindow(): void {
   }
 }
 
+const protocolName = "media";
+protocol.registerSchemesAsPrivileged([{
+  scheme: protocolName,
+  privileges: { standard: true, secure: true, supportFetchAPI: true }
+}])
+
+
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.electron')
+
+  protocol.handle(protocolName, async (request) => {
+    let url = request.url.replace(`${protocolName}:/`, '');
+    const filePath = decodeURIComponent(path.join(notesDirectoryPath, url));
+    try {
+      const data = await readFile(filePath);
+      return new Response(data, {
+        headers: { 'Content-Type': 'image/png' }
+      });
+    } catch (error) {
+      return new Response('File not found', { status: 404 });
+    }
+  });
 
   installExtension([REACT_DEVELOPER_TOOLS])
     .then(([react]) => console.log(`Added Extensions: ${react.name}`))
@@ -94,6 +114,7 @@ ipcMain.handle('get-files', async (_, directoryPath: string) => {
 
     const fileItem: FileItem = {
       filename: filename,
+      relativePath: filePath.replace(notesDirectoryPath, ''),
       path: filePath,
       isDirectory: fileStat.isDirectory(),
     }
@@ -141,6 +162,7 @@ async function getFilesRecursive(directoryPath) {
     } else {
       const fileItem: FileItem = {
         filename: filename,
+        relativePath: filePath.replace(notesDirectoryPath, ''),
         path: filePath,
         isDirectory: fileStat.isDirectory(),
       }
