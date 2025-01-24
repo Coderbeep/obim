@@ -1,5 +1,5 @@
-import { useState } from "react"
-import { storeFilesInDB, getFilesFromDB } from '../../utils/db'
+import { useEffect, useState } from "react"
+import { getFilesFromDB } from '../../utils/db'
 import { FileItem } from "@shared/models"
 
 
@@ -12,16 +12,30 @@ export const useSearchField = () => {
         setIsVisible((prev) => !prev)
     }
 
+    useEffect(() => {
+        if (isVisible) {
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    setIsVisible(false)
+            }})
+        } else {
+            window.removeEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    setIsVisible(false)
+                }
+            })
+        }
+
+    })
+
     const queryDB = async (query: string) => {
         const filesFromDB = await getFilesFromDB(query)
-        setResults(filesFromDB.slice(0, 10))
+        setResults(filesFromDB.slice(0, 30))
     }
 
     const onQueryChange = (newQuery: string) => {
         setQuery(newQuery)
         queryDB(newQuery)
-        console.log("new query")
-        console.log(results)
     }
 
     return {
