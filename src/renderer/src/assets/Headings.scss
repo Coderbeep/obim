@@ -1,21 +1,36 @@
+@import 'Colors';
+
+$sizes: (
+  1: 2rem,
+  2: 1.7rem,
+  3: 1.5rem,
+  4: 1.3rem,
+  5: 1.1rem,
+  6: 1rem,
+);
+
+.cm-formatting-heading-mark * {
+  color: $gray-1;
+}
+
 .cm-heading-widget {
-    display: inline-block;
-    white-space: normal;
-    font-weight: bold;
+  display: inline-block;
+  white-space: normal;
+  font-weight: bold;
+
+  @for $i from 1 through 6 {
+    .cm-formatting-heading-#{$i} {
+      font-size: map-get($sizes, $i);
+    }
   }
-  
-  .formatting-heading1 {
-    font-size: 1.75em;
+}
+
+@for $i from 1 through 6 {
+  .cm-formatting-heading-#{$i} {
+    font-size: map-get($sizes, $i);
+
+    & * {
+      text-decoration: none;
+    }
   }
-  
-  .formatting-heading2 {
-    font-size: 1.5em;
-  }
-  
-  .formatting-heading3 {
-    font-size: 1.25em;
-  }
-  
-  .formatting-heading4 {
-    font-size: 1em;
-  }
+}

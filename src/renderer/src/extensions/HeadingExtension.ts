@@ -8,12 +8,12 @@ import { RangeSetBuilder } from '@uiw/react-codemirror';
 
 const headingFormattingClasses = {
   HeadingWidget: 'cm-heading-widget',
-  Heading1: 'formatting-heading1',
-  Heading2: 'formatting-heading2',
-  Heading3: 'formatting-heading3',
-  Heading4: 'formatting-heading4',
-  Heading5: 'formatting-heading5',
-  Heading6: 'formatting-heading6',
+  Heading1: 'cm-formatting-heading-1',
+  Heading2: 'cm-formatting-heading-2',
+  Heading3: 'cm-formatting-heading-3',
+  Heading4: 'cm-formatting-heading-4',
+  Heading5: 'cm-formatting-heading-5',
+  Heading6: 'cm-formatting-heading-6',
 }
 
 const headingLevels = {
@@ -60,7 +60,17 @@ export const HeadingExtension = ViewPlugin.fromClass(class {
                           side: 1,
                           replace: true,
                       }));
+                  } else {
+                        builder.add(node.from, node.to, Decoration.mark({
+                            class: headingFormattingClasses[`Heading${level}`],
+                        }));    
                   }
+              }
+
+              if (node.name === 'HeaderMark') {
+                    builder.add(node.from, node.to, Decoration.mark({
+                        class: "cm-formatting-heading-mark",
+                    }));
               }
           }
       });
