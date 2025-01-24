@@ -117,11 +117,12 @@ function toggleFrontmatterVisibility(view) {
 let cachedHeight = -1;
 
 class PropertiesWidget extends WidgetType {
-	constructor(private start, private end) {
+	constructor(private readonly start, private readonly end) {
 		super();
 	}
 
 	toDOM(view) {
+		console.log("Rendering Frontmatter Widget");
 		const container = document.createElement('div');
 		container.className = 'cm-properties-widget';
 
@@ -199,6 +200,10 @@ class PropertiesWidget extends WidgetType {
 		}
 
 		return container;
+	}
+
+	eq(other: PropertiesWidget): boolean {
+		return other.start === this.start && other.end === this.end;
 	}
 
 	get estimatedHeight() {
