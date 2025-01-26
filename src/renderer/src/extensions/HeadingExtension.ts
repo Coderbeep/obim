@@ -1,19 +1,21 @@
 import { syntaxTree } from '@codemirror/language';
 import { Decoration, ViewPlugin, WidgetType } from '@codemirror/view';
-import { RangeSetBuilder } from '@uiw/react-codemirror';
+import type { Range } from '@codemirror/state';
 
 // TODO: Click on the widget should insert the selection at the heading position
 // TODO: bottom border for the widget container
 
-
-const headingFormattingClasses = {
-  HeadingWidget: 'cm-heading-widget',
-  Heading1: 'cm-formatting-heading-1',
-  Heading2: 'cm-formatting-heading-2',
-  Heading3: 'cm-formatting-heading-3',
-  Heading4: 'cm-formatting-heading-4',
-  Heading5: 'cm-formatting-heading-5',
-  Heading6: 'cm-formatting-heading-6',
+const tokenFormattingClasses = {
+  HeadingMarkHidden: Decoration.mark({ class: 'cm-mark-hidden' }),
+  HeadingMark: Decoration.mark({ class: 'cm-formatting-heading-mark' }),
+  headings: {
+    1: Decoration.mark({ class: 'cm-formatting-heading-1' }),
+    2: Decoration.mark({ class: 'cm-formatting-heading-2' }),
+    3: Decoration.mark({ class: 'cm-formatting-heading-3' }),
+    4: Decoration.mark({ class: 'cm-formatting-heading-4' }),
+    5: Decoration.mark({ class: 'cm-formatting-heading-5' }),
+    6: Decoration.mark({ class: 'cm-formatting-heading-6' })
+  }
 }
 
 const headingLevels = {
@@ -29,95 +31,40 @@ export const HeadingExtension = ViewPlugin.fromClass(class {
   decorations;
 
   constructor(view) {
-      this.decorations = this.computeDecorations(view);
+    this.decorations = this.computeDecorations(view);
   }
 
   update(update) {
-      if (update.docChanged || update.selectionSet) {
-          this.decorations = this.computeDecorations(update.view);
-      }
+    if (update.docChanged || update.selectionSet) {
+      this.decorations = this.computeDecorations(update.view);
+    }
   }
 
   computeDecorations(view) {
-      const builder = new RangeSetBuilder();
-      const { from, to } = view.state.selection.main;
+    const widgets: Range<Decoration>[] = [];
+    const { from, to } = view.state.selection.main;
 
-      syntaxTree(view.state).iterate({
-          enter: (node) => {
-              const level = headingLevels[node.name]; // Results in undefined if node.name is not a heading
-              if (level) {
-                  const headingRange = { start: node.from, end: node.to };
-                  const isActive = from >= headingRange.start && to <= headingRange.end;
+    syntaxTree(view.state).iterate({
+      enter: (node) => {
 
-                  if (!isActive) {
-                      let headingText = view.state.sliceDoc(node.from, node.to);
-                      if (node.to - node.from > 2) {
-                          headingText = view.state.sliceDoc(node.from + level + 1, node.to);
-                      }
-                      
-                      builder.add(node.from, node.to, Decoration.widget({
-                          widget: new HeadingWidget(headingText, level,() => this.activateHeading(view, headingRange.start)),
-                          side: 1,
-                          replace: true,
-                      }));
-                  } else {
-                        builder.add(node.from, node.to, Decoration.mark({
-                            class: headingFormattingClasses[`Heading${level}`],
-                        }));    
-                  }
-              }
+        if (node.name === "HeaderMark") {
+          widgets.push(tokenFormattingClasses.HeadingMarkHidden.range(node.from, node.to + 1))
+        }
 
-              if (node.name === 'HeaderMark') {
-                    builder.add(node.from, node.to, Decoration.mark({
-                        class: "cm-formatting-heading-mark",
-                    }));
-              }
+        if (headingLevels[node.name]) {
+          const level = headingLevels[node.name];
+          const isActive = from >= node.from && to <= node.to;
+          widgets.push(tokenFormattingClasses.headings[level].range(node.from, node.to))
+          widgets.push(tokenFormattingClasses.HeadingMark.range(node.from, node.from + level))
+          if (isActive) {
+            return false
           }
-      });
+        }
+      }
+    });
 
-      return builder.finish();
-  }
-
-  activateHeading(view, position) {
-      view.dispatch({
-          selection: { anchor: position }
-      });
-      view.focus();
-  }
-
-  get decorationss() {
-      return this.decorations;
+    return Decoration.set(widgets);
   }
 }, {
   decorations: v => v.decorations
 });
-
-
-class HeadingWidget extends WidgetType {
-  headingText;
-  onClick;
-  level: number ;
-
-  constructor(headingText, level, onClick) {
-      super();
-      this.headingText = headingText;
-      this.onClick = onClick;
-      this.level = level;
-  }
-
-  toDOM() {
-      const container = document.createElement('div');
-      container.className = headingFormattingClasses.HeadingWidget;
-
-      container.innerHTML = `<span class="${headingFormattingClasses[`Heading${this.level}`]}">${this.headingText}</span>`;
-      container.style.cursor = 'text';
-
-      container.addEventListener('click', this.onClick);
-
-      return container;
-  }
-
-  destroy(dom: HTMLElement): void {
-      dom.removeEventListener('click', this.onClick);
-  }
-}
