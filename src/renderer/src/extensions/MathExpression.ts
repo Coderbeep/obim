@@ -186,7 +186,6 @@ class MathInlineWidget extends WidgetType {
         } catch (error) {
             math = document.createElement("span");
             math.textContent = this.mathContent;
-            console.log(error)
         }
 
         return math;

@@ -12,7 +12,6 @@ class ContextMenuManager {
 
     registerMenu(type: ContextMenuType, callback: ContextMenuCallback) {
         this.menus[type] = callback;
-        console.log('Registered menu', type);
     }
 
     showMenu(type: ContextMenuType, data: any) {

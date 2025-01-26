@@ -122,7 +122,6 @@ class PropertiesWidget extends WidgetType {
 	}
 
 	toDOM(view) {
-		console.log("Rendering Frontmatter Widget");
 		const container = document.createElement('div');
 		container.className = 'cm-properties-widget';
 
