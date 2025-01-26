@@ -10,11 +10,9 @@ import { customMarkdownConfig } from '@renderer/extensions/TableMarkdocExtension
 import CodeMirror, {
   EditorView,
   keymap,
-  ReactCodeMirrorRef
 } from '@uiw/react-codemirror'
 import { useRef } from 'react'
 import '../assets/Editor.scss'
-import { history } from '@codemirror/commands'
 import { MathBlockParser } from '../extensions/MathExpression'
 
 
@@ -115,10 +113,6 @@ hello_world()
 
 const Editor = ({ text, setText, currentFilename }) => {
   const containerRef = useRef<HTMLDivElement>(null)
-  const cmRef = useRef<ReactCodeMirrorRef>(null)
-
-  let historyCompartment = new Compartment()
-
   const basicSetup = markdown({
     base: markdownLanguage,
     codeLanguages: languages,
@@ -127,15 +121,13 @@ const Editor = ({ text, setText, currentFilename }) => {
 
   return (
     <div ref={containerRef} className="h-screen flex">
-      <div style={{ width: `${100}%` }} className="cm-window">
+      <div style={{ width: `${100}%`, height: `${120}%` }} className="cm-window">
         <CodeMirror
+          autoFocus
           key={currentFilename}
           value={text}
-          onChange={(value) => setText(value)}
-          onCreateEditor={(editor) => { editor.dispatch({ selection: { anchor: 0 } }) }}
-          ref={cmRef}
+          // onChange={(value) => setText(value)}
           extensions={[
-            historyCompartment.of([history()]),
             basicSetup,
             EditorView.lineWrapping,
             DefaultExtensions,
