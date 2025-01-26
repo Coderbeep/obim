@@ -53,39 +53,34 @@ function toggleTableVisibility(view) {
 }
 
 
-class TableWidget extends WidgetType {
+export class TableWidget extends WidgetType {
+  private _height = 0;
+  private observer: MutationObserver | null = null;
+  private container: HTMLElement | null = null;
+
   constructor(public source: string) {
     super();
     this.source = source;
   }
 
   toDOM(view: EditorView) {
-    const container = document.createElement('div');
-    container.className = 'cm-table-widget';
+    this.container = document.createElement('div');
+    this.container.className = 'cm-table-widget';
 
     const doc = markdoc.parse(this.source);
     const transformed = markdoc.transform(doc);
     const rendered = markdoc.renderers.html(transformed);
 
-    container.innerHTML = rendered;
-
-    const table = container.querySelector('table');
-    const cells = table.querySelectorAll('td');
-
-
-    cells.forEach((cell) => {
-      cell.setAttribute('contenteditable', 'true');
-
-      cell.addEventListener('input', (e) => this.handleCellInput(e, cell, view));
-    })
-
-    return container;
+    this.container.innerHTML = rendered;
+    return this.container;
   }
 
-  handleCellInput(e, cell, view) {
-    const content = cell.innerText;
-    console.log(content);
+  get estimatedHeight() {
+    return 600;
+  }
 
+  eq(other: TableWidget) {
+    return this.source === other.source;
   }
 }
 

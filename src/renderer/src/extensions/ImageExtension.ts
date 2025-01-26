@@ -43,7 +43,7 @@ function createImageDecorations(view) {
       if (node.name === 'Image') {
         const isActive = from >= node.from && to <= node.to;
         const src = view.state.doc.sliceString(node.from + 3, node.to - 2);
-        
+
         if (!isActive) {
           builder.add(node.from, node.to, Decoration.replace({
             block: true,
@@ -69,8 +69,6 @@ function toggleImageVisibility(view) {
 }
 
 class ImageWidget extends WidgetType {
-  static cache = new Map();
-
   constructor(private readonly src: string) {
     super();
   }
@@ -110,7 +108,7 @@ class ImageWidget extends WidgetType {
   }
 
   get estimatedHeight() {
-    return 137;
+    return 50;
   }
 }
 
