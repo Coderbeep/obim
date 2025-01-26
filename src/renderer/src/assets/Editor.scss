@@ -172,8 +172,7 @@
 }
 
 .cm-window {
-  border: 2px solid $border-color;
-  background-color: $background-color-primary;
+
   height: 100%;
   min-height: 100vh;
   justify-content: center;
@@ -184,6 +183,7 @@
   padding: 20px 50px 0px 50px;
   outline-color: red;
   width: 50em;
+
 }
 
 .cm-editor {
@@ -195,7 +195,11 @@
 }
 
 .cm-scroller {
-  background-color: $background-color-primary;
+  flex: 1 1 auto;
+  display: flex !important;
+  overflow-x: visible;
+  align-items: flex-start;
+  padding-bottom: 600px;
 }
 
 .cm-gutters {
@@ -206,6 +210,10 @@
   font-family: "CaskaydiaMono Nerd Font Mono" !important;
   font-size: 14px;
   color: $font-color;
+}
+
+.cm-content.cm-lineWrapping {
+  padding-bottom: 600px;
 }
 
 .cm-horizontal-rule-widget-container {
