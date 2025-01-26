@@ -1,5 +1,5 @@
 import { syntaxTree } from '@codemirror/language';
-import { Decoration, ViewPlugin, WidgetType } from '@codemirror/view';
+import { Decoration, ViewPlugin } from '@codemirror/view';
 import type { Range } from '@codemirror/state';
 
 const tokenFormattingClasses = {
