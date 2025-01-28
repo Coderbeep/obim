@@ -34,7 +34,7 @@ function createTableDecorations(view) {
       if (node.name === 'Table') {
         const isActive = from >= node.from && to <= node.to;
         if (!isActive) {
-          builder.add(node.from, node.to, Decoration.widget({
+          builder.add(node.from, node.to, Decoration.replace({
             widget: new TableWidget(view.state.sliceDoc(node.from, node.to)),
             block: true,
             side: 1
@@ -54,8 +54,6 @@ function toggleTableVisibility(view) {
 
 
 export class TableWidget extends WidgetType {
-  private _height = 0;
-  private observer: MutationObserver | null = null;
   private container: HTMLElement | null = null;
 
   constructor(public source: string) {
@@ -72,11 +70,13 @@ export class TableWidget extends WidgetType {
     const rendered = markdoc.renderers.html(transformed);
 
     this.container.innerHTML = rendered;
+
+    view.requestMeasure()
     return this.container;
   }
 
   get estimatedHeight() {
-    return 600;
+    return 0;
   }
 
   eq(other: TableWidget) {

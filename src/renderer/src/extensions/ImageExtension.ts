@@ -45,9 +45,7 @@ function createImageDecorations(view) {
         const src = view.state.doc.sliceString(node.from + 3, node.to - 2);
 
         if (!isActive) {
-          builder.add(node.from, node.to, Decoration.replace({
-            block: true,
-          }));
+          builder.add(node.from, node.to, Decoration.mark({ class: 'cm-mark-hidden' }));
         }
 
         builder.add(node.to, node.to, Decoration.widget({
@@ -69,34 +67,28 @@ function toggleImageVisibility(view) {
 }
 
 class ImageWidget extends WidgetType {
+  private container = document.createElement('div');
+
   constructor(private readonly src: string) {
     super();
   }
 
-  toDOM(view) {
-    const container = document.createElement('div');
-    container.className = 'cm-image-widget cm-image-error';
-    container.innerHTML = `Image '${this.src}' not found`;
+  toDOM(view: EditorView) {
+    this.container = document.createElement('div');
+    this.container.className = 'cm-image-widget cm-image-error';
+    this.container.innerHTML = `Image '${this.src}' not found`;
 
     checkImageExists(this.src).then((exists) => {
       if (exists) {
-        container.innerHTML = '';
-        container.className = 'cm-image-widget';
+        this.container.innerHTML = '';
+        this.container.className = 'cm-image-widget';
         const img = document.createElement('img');
         img.src = `media://${this.src}`;
-        container.appendChild(img);
+        this.container.appendChild(img);
       }
     })
 
-    // container.addEventListener('contextmenu', (event) => {
-    //   event.preventDefault();
-    //   // TODO: Implement menu logic here
-    //   const { clientX: x, clientY: y } = event;
-    //   contextMenuManager.showMenu(ContextMenuType.Image, { x, y });
-    //   console.log('Right click on image widget');
-    // });
-
-    return container;
+    return this.container;
   }
 
   eq(other: ImageWidget) {
@@ -105,10 +97,6 @@ class ImageWidget extends WidgetType {
 
   destroy(dom) {
     dom.remove();
-  }
-
-  get estimatedHeight() {
-    return 50;
   }
 }
 
