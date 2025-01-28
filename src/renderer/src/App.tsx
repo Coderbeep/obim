@@ -3,16 +3,14 @@ import CMImageContextMenu from './components/CMImageContextMenu'
 import Editor from './components/myEditor'
 import { notesDirectoryPath } from '@shared/constants'
 import { FileExplorer } from './components/FileExplorer'
-import { useFileExplorer } from './hooks/useFileExplorer'
 import { useEffect } from 'react'
 import { storeFilesInDB } from '../utils/db'
 import SearchWindow from './components/SearchWindow'
 import useSearchField from './hooks/useSearchField'
 import './assets/index.css'
+import { Breadcrumbs } from './components/Breadcrumbs'
 
 function App() {
-  const { text, setText, openFile, currentFilename } = useFileExplorer()
-  const { toggleVisibility, onQueryChange, isVisible, setIsVisible, results } = useSearchField();
 
   useEffect(() => {
     const load = async () => {
@@ -24,14 +22,14 @@ function App() {
 
   return (
     <RootLayout>
-      <SearchWindow isVisible={isVisible} setIsVisible={setIsVisible} onQueryChange={onQueryChange} results={results} onFileSelect={openFile}/> 
+      <SearchWindow />
       <CMImageContextMenu />
       <Sidebar>
-        <FileExplorer directoryPath={notesDirectoryPath} onFileSelect={openFile} onSearchClick={toggleVisibility}/>
-        {/* <TreePresenter itemSize={30} directoryPath={notesDirectoryPath}/> */}
+        <FileExplorer directoryPath={notesDirectoryPath} />
       </Sidebar>
       <Content>
-        <Editor text={text} setText={setText} currentFilename={currentFilename} />
+        <Breadcrumbs />
+        <Editor />
       </Content>
     </RootLayout>
   )

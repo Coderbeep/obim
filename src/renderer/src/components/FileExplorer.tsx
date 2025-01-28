@@ -1,4 +1,7 @@
+import { useFileExplorer } from '@renderer/hooks/useFileExplorer';
+import { isVisibleAtom } from '@renderer/store/SearchWindowStore';
 import { FileItem } from '@shared/models';
+import { useSetAtom } from 'jotai';
 import { useState, useEffect, memo, useRef } from 'react';
 import { GoSearch, GoPlus, GoFile, GoFileDirectory } from 'react-icons/go';
 
@@ -6,36 +9,34 @@ const MemoizedGoFile = memo(GoFile);
 const MemoizedGoFileDirectory = memo(GoFileDirectory);
 interface FileExplorerProps {
     directoryPath: string;
-    onFileSelect: (filePath: string) => void;
-    onSearchClick: () => void;
 }
 
 interface ListFileProps { 
     file: FileItem; 
-    onFileSelect: (filePath: string) => void; 
+    openFile: (filePath: string) => void; 
     level: number; 
 }
 
 interface ListDirectoryProps { 
     file: FileItem; 
     onDirectorySelect: (directoryPath: string) => void; 
-    onFileSelect: (filePath: string) => void; 
+    openFile: (filePath: string) => void; 
     level: number; 
     isOpen: boolean | undefined;
 }
 
-const ListFile = ({ file, onFileSelect, level }: ListFileProps) => (
+const ListFile = ({ file, openFile, level }: ListFileProps) => (
     <div
         className='file-explorer-item'
         style={{ marginLeft: `${level}em` }}
-        onClick={() => onFileSelect(file.path)}
+        onClick={() => openFile(file.path)}
     >
         <MemoizedGoFile />
         <span> {file.filename} </span>
     </div>
 );
 
-const ListDirectory = ({ file, onDirectorySelect, onFileSelect, level, isOpen }: ListDirectoryProps) => (
+const ListDirectory = ({ file, onDirectorySelect, openFile, level, isOpen }: ListDirectoryProps) => (
     <div>
         <div
             className='file-explorer-item'
@@ -51,7 +52,7 @@ const ListDirectory = ({ file, onDirectorySelect, onFileSelect, level, isOpen }:
                     key={childFile.path}
                     file={childFile}
                     onDirectorySelect={onDirectorySelect}
-                    onFileSelect={onFileSelect}
+                    openFile={openFile}
                     level={level + 1}
                     isOpen={childFile.isOpen}
                 />
@@ -59,7 +60,7 @@ const ListDirectory = ({ file, onDirectorySelect, onFileSelect, level, isOpen }:
                 <ListFile
                     key={childFile.path}
                     file={childFile}
-                    onFileSelect={onFileSelect}
+                    openFile={openFile}
                     level={level + 1}
                 />
             )
@@ -67,11 +68,13 @@ const ListDirectory = ({ file, onDirectorySelect, onFileSelect, level, isOpen }:
     </div>
 );
 
-export const FileExplorer = memo(({ directoryPath, onFileSelect, onSearchClick }: FileExplorerProps) => {
+export const FileExplorer = memo(({ directoryPath }: FileExplorerProps) => {
     const [files, setFiles] = useState<FileItem[]>([]);
     const folderCache = useRef<Map<string, FileItem[]>>(new Map());
     const expandedDirectories = useRef<Set<string>>(new Set());
     const fileLookup = useRef<Map<string, FileItem>>(new Map());
+    const { openFile } = useFileExplorer();
+    const setIsVisible = useSetAtom(isVisibleAtom);
 
     const fetchFilesCache = async (directoryPath: string): Promise<FileItem[]> => {
         if (folderCache.current.has(directoryPath)) {
@@ -83,6 +86,9 @@ export const FileExplorer = memo(({ directoryPath, onFileSelect, onSearchClick }
         return data;
     };
     
+    const onSearchClick = () => {
+        setIsVisible((prev) => !prev);
+    }
 
     useEffect(() => {
         const loadFiles = async () => {
@@ -148,7 +154,7 @@ export const FileExplorer = memo(({ directoryPath, onFileSelect, onSearchClick }
                             key={file.path}
                             file={file}
                             onDirectorySelect={onDirectorySelect}
-                            onFileSelect={onFileSelect}
+                            openFile={openFile}
                             level={0}
                             isOpen={expandedDirectories.current.has(file.path)}
                         />
@@ -156,7 +162,7 @@ export const FileExplorer = memo(({ directoryPath, onFileSelect, onSearchClick }
                         <ListFile
                             key={file.path}
                             file={file}
-                            onFileSelect={onFileSelect}
+                            openFile={openFile}
                             level={0}
                         />
                     )

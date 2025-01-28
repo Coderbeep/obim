@@ -1,16 +1,12 @@
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { getFilesFromDB } from '../../utils/db'
-import { FileItem } from "@shared/models"
-
+import { isVisibleAtom, queryAtom, resultsAtom } from "@renderer/store/SearchWindowStore"
+import { useAtom, useSetAtom } from "jotai"
 
 export const useSearchField = () => {
-    const [isVisible, setIsVisible] = useState(false)
-    const [query, setQuery] = useState('')
-    const [results, setResults] = useState<FileItem[]>([])
-
-    const toggleVisibility = () => {
-        setIsVisible((prev) => !prev)
-    }
+    const [isVisible, setIsVisible] = useAtom(isVisibleAtom)
+    const [query, setQuery] = useAtom(queryAtom)
+    const setResults = useSetAtom(resultsAtom)
 
     useEffect(() => {
         if (isVisible) {
@@ -25,7 +21,6 @@ export const useSearchField = () => {
                 }
             })
         }
-
     })
 
     const queryDB = async (query: string) => {
@@ -35,11 +30,12 @@ export const useSearchField = () => {
 
     const onQueryChange = (newQuery: string) => {
         setQuery(newQuery)
-        queryDB(newQuery)
+        queryDB(query)
+        console.log('Query changed')
     }
 
     return {
-        toggleVisibility, onQueryChange, isVisible, setIsVisible, results
+        onQueryChange
     }
 }
 

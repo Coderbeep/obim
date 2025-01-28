@@ -1,32 +1,38 @@
-import { useState } from "react"
+import { currentFilePathAtom, editorNoteTextAtom, fileHistoryAtom, noteTextAtom } from "@renderer/store/notes"
+import { useAtom } from "jotai"
 
 export const useFileExplorer = () => {
-    const [text, setText] = useState('')
-    const [currentFilename, setCurrentFilename] = useState<string>('')
-    const [fileHistory, setFileHistory] = useState<string[]>([])
+    const [text, setText] = useAtom(noteTextAtom)
+    const [currentFilename, setCurrentFilename] = useAtom(currentFilePathAtom)
+    const [fileHistory, setFileHistory] = useAtom(fileHistoryAtom)
+    const [editorNoteText, setEditorNoteText] = useAtom(editorNoteTextAtom)
+
+    const saveCurrentFile = async () => {
+        if (currentFilename) {
+            try {
+                await window['api'].saveFile(currentFilename, editorNoteText)
+                setText(editorNoteText)
+            } catch (err) {
+                console.error('Error saving file:', err);
+            }
+        }
+    }
 
     const openFile = async (filePath: string) => {
-        console.log(currentFilename + ' is the current filename')
         try {
-            if (fileHistory) {
-                const lastFile = fileHistory[fileHistory.length - 1]
-                window['api'].saveFile(lastFile, text)
-            }
+            await saveCurrentFile();
             const result = await window['api'].openFile(filePath);
+
             setFileHistory([...fileHistory, filePath])
             setText(result);
-
+            setEditorNoteText(result);
+            setCurrentFilename(filePath)
         } catch (err) {
             console.error('Error opening file:', err);
         }
-        setCurrentFilename(filePath)
     }
 
     return {
-        text,
-        setText,
         openFile,
-        fileHistory,
-        currentFilename
     }
 }

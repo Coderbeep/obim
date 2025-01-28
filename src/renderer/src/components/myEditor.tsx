@@ -11,9 +11,14 @@ import CodeMirror, {
   EditorView,
   keymap,
 } from '@uiw/react-codemirror'
-import { useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import '../assets/Editor.scss'
 import { MathBlockParser } from '../extensions/MathExpression'
+import React from 'react'
+import { useAtom, useAtomValue, useSetAtom } from 'jotai'
+import { noteTextAtom, currentFilePathAtom, editorNoteTextAtom } from '../store/notes'
+import { saveFile } from '@renderer/services/fileService'
+import { IoHandLeft } from 'react-icons/io5'
 
 
 const initText = `---
@@ -111,8 +116,13 @@ hello_world()
 \`\`\`
 `
 
-const Editor = ({ text, setText, currentFilename }) => {
+
+const Editor = () => {
   const containerRef = useRef<HTMLDivElement>(null)
+  const [text, setText] = useAtom(noteTextAtom)
+  const [currentFilename, setCurrentFilename] = useAtom(currentFilePathAtom)
+  const setEditorNoteText = useSetAtom(editorNoteTextAtom)
+
   const basicSetup = markdown({
     base: markdownLanguage,
     codeLanguages: languages,
@@ -126,7 +136,8 @@ const Editor = ({ text, setText, currentFilename }) => {
           autoFocus
           key={currentFilename}
           value={text}
-          // onChange={(value) => setText(value)}
+          onChange={(value) => { setEditorNoteText(value) }}
+          onBlur={() => { console.log('blur') }}
           extensions={[
             basicSetup,
             EditorView.lineWrapping,
@@ -142,6 +153,6 @@ const Editor = ({ text, setText, currentFilename }) => {
       </div>
     </div>
   )
-}
+};
 
 export default Editor

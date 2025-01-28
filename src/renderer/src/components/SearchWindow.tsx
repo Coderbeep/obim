@@ -1,20 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { InputField } from './InputField';
-import { FileItem } from '@shared/models';
 import { useArrowKey } from '@renderer/hooks/useArrowKey';
+import { useFileExplorer } from '@renderer/hooks/useFileExplorer';
+import { useAtom, useAtomValue } from 'jotai';
+import { isVisibleAtom, resultsAtom } from '@renderer/store/SearchWindowStore';
+import useSearchField from '@renderer/hooks/useSearchField';
 
-interface SearchWindowProps {
-    isVisible: boolean;
-    results: FileItem[];
-    setIsVisible: (isVisible: boolean) => void;
-    onQueryChange: (newQuery: string) => void;
-    onFileSelect: (filePath: string) => void;
-}
-
-const SearchWindow = ({ isVisible, setIsVisible, onQueryChange, results, onFileSelect }: SearchWindowProps) => {
-    if (!isVisible) return null;
-    const [ navMode, setNavMode ] = useState(0); // 0: keyboard, 1: mouse
+const SearchWindow = () => {
+    const results = useAtomValue(resultsAtom);
+    const [isVisible, setIsVisible] = useAtom(isVisibleAtom);
     const { currentlySelected, setCurrentlySelected, handleKeyDown } = useArrowKey(results.length - 1);
+    const { openFile } = useFileExplorer();
+    const [ navMode, setNavMode ] = useState(0); // 0: keyboard, 1: mouse
+    const { onQueryChange }  = useSearchField();
+
     const listRefs = useRef<(HTMLDivElement | null)[]>([]);
 
     const handleQueryChange = (newQuery: string) => {
@@ -23,7 +22,7 @@ const SearchWindow = ({ isVisible, setIsVisible, onQueryChange, results, onFileS
     }
 
     const onResultClick = (path: string) => {
-        onFileSelect(path);
+        openFile(path);
         onQueryChange('');
         setIsVisible(false);
     }
@@ -46,6 +45,8 @@ const SearchWindow = ({ isVisible, setIsVisible, onQueryChange, results, onFileS
             listRefs.current[currentlySelected].scrollIntoView({ behavior: 'instant', block: 'nearest' });
         }
     }, [currentlySelected]);
+
+    if (!isVisible) return null;
 
     return (
         <div className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white border border-gray-300 rounded-lg shadow-md w-1/3 min-w-96 min-h-96 z-50 overflow-hidden'>
