@@ -36,6 +36,7 @@
     "debounce": "^2.2.0",
     "emoji-toolkit": "^9.0.1",
     "fs-extra": "^11.2.0",
+    "jotai": "^2.11.1",
     "js-yaml": "^4.1.0",
     "katex": "^0.16.21",
     "lodash": "^4.17.21",
