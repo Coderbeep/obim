@@ -137,7 +137,6 @@ const Editor = () => {
           key={currentFilename}
           value={text}
           onChange={(value) => { setEditorNoteText(value) }}
-          onBlur={() => { console.log('blur') }}
           extensions={[
             basicSetup,
             EditorView.lineWrapping,
@@ -147,8 +146,7 @@ const Editor = () => {
               key: 'Shift-Enter', run: insertNewlineContinueMarkup
             }]))
           ]}
-          className="h-full"
-
+          className="editor-comp"
         />
       </div>
     </div>

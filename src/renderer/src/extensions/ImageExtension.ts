@@ -1,7 +1,6 @@
 import { syntaxTree } from '@codemirror/language';
 import { RangeSetBuilder, StateEffect, StateField } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView, WidgetType } from "@codemirror/view";
-import contextMenuManager, { ContextMenuType } from '@renderer/components/ContextMenuManager';
 import { notesDirectoryPath } from '@shared/constants';
 import { doesPathExist } from '../../utils/db';
 
@@ -10,6 +9,8 @@ import { doesPathExist } from '../../utils/db';
 // TODO: Proper url handling
 // TODO: Image widgets styling
 // TODO: Local image handling
+
+const ACCEPTED_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif'];
 
 const toggleImageEffect = StateEffect.define<DecorationSet>();
 
@@ -28,7 +29,13 @@ const imageField = StateField.define({
   provide: field => EditorView.decorations.from(field)
 });
 
+const imageCache = new Map();
+
 function checkImageExists(src) {
+  if (!src.endsWith('.png')) {
+    return Promise.resolve(false);
+  }
+
   return doesPathExist(notesDirectoryPath + src).then((exists) => {
     return exists;
   })
@@ -78,15 +85,23 @@ class ImageWidget extends WidgetType {
     this.container.className = 'cm-image-widget cm-image-error';
     this.container.innerHTML = `Image '${this.src}' not found`;
 
-    checkImageExists(this.src).then((exists) => {
-      if (exists) {
-        this.container.innerHTML = '';
-        this.container.className = 'cm-image-widget';
-        const img = document.createElement('img');
-        img.src = `media://${this.src}`;
-        this.container.appendChild(img);
-      }
-    })
+    if (imageCache.has(this.src)) {
+      const cachedImage = imageCache.get(this.src);
+      this.container.innerHTML = '';
+      this.container.className = 'cm-image-widget';
+      this.container.appendChild(cachedImage.cloneNode(true));
+    } else {
+      checkImageExists(this.src).then((exists) => {
+        if (exists) {
+          this.container.innerHTML = '';
+          this.container.className = 'cm-image-widget';
+          const img = document.createElement('img');
+          img.src = `media://${this.src}`;
+          this.container.appendChild(img);
+          imageCache.set(this.src, img);
+        }
+      }); 
+    }
 
     return this.container;
   }
@@ -97,6 +112,10 @@ class ImageWidget extends WidgetType {
 
   destroy(dom) {
     dom.remove();
+  }
+
+  get estimatedHeight() {
+    return 100;
   }
 }
 
