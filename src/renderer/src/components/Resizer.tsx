@@ -32,9 +32,11 @@ export const Resizer = ({ width, setWidth }: ResizerProps) => {
   }, [width, setWidth]);
 
   return (
-    <div
-      className="resizer"
-      onMouseDown={startResize}
-    />
+    <div className="cursor-ew-resize w-[1px]">
+      <div
+        className="cursor-ew-resize h-full w-1 ml-2 bg-gray-300 transition-transform duration-300 ease-in-out hover:scale-x-[2] hover:bg-gray-400"
+        onMouseDown={startResize}
+      />
+    </div>
   );
 };
