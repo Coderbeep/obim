@@ -147,7 +147,7 @@ ipcMain.handle('save-file', async (_, filePath: string, content: string) => {
   }
 })
 
-async function getFilesRecursive(directoryPath) {
+async function getFilesRecursiveAsList(directoryPath) {
   const files: FileItem[] = [];
   const filenames = await readdir(directoryPath);
 
@@ -157,22 +157,48 @@ async function getFilesRecursive(directoryPath) {
 
     if (fileStat.isDirectory()) {
       console.debug('Getting files in:', filePath);
-      const children = await getFilesRecursive(filePath);
+      const children = await getFilesRecursiveAsList(filePath);
       files.push(...children)
-    } else {
-      const fileItem: FileItem = {
-        filename: filename,
-        relativePath: filePath.replace(notesDirectoryPath, ''),
-        path: filePath,
-        isDirectory: fileStat.isDirectory(),
-      }
-      files.push(fileItem);
     }
+    const fileItem: FileItem = {
+      filename: filename,
+      relativePath: filePath.replace(notesDirectoryPath, ''),
+      path: filePath,
+      isDirectory: fileStat.isDirectory(),
+    }
+    files.push(fileItem);
   }
   return files;
 }
 
+ipcMain.handle('get-files-recursive-as-list', async (_, directoryPath: string) => {
+  return getFilesRecursiveAsList(directoryPath);
+})
 
-ipcMain.handle('get-files-recursive', async (_, directoryPath: string) => {
-  return getFilesRecursive(directoryPath);
+async function getFilesRecursiveAsTree(directoryPath) {
+  const files: FileItem[] = [];
+  const filenames = await readdir(directoryPath);
+
+  for (const filename of filenames) {
+    const filePath = path.join(directoryPath, filename);
+    const fileStat = await stat(filePath);
+
+    const fileItem: FileItem = {
+      filename: filename,
+      relativePath: filePath.replace(notesDirectoryPath, ''),
+      path: filePath, 
+      isDirectory: fileStat.isDirectory(),
+    };
+
+    if (fileStat.isDirectory()) {
+      fileItem.children = await getFilesRecursiveAsTree(filePath);
+    }
+
+    files.push(fileItem);
+  }
+  return files
+}
+
+ipcMain.handle('get-files-recursive-as-tree', async (_, directoryPath: string) => {
+  return getFilesRecursiveAsTree(directoryPath);
 })

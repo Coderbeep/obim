@@ -9,5 +9,6 @@ contextBridge.exposeInMainWorld('api', {
   getFiles: (directoryPath) => ipcRenderer.invoke('get-files', directoryPath),
   openFile: (filePath) => ipcRenderer.invoke('open-file', filePath),
   saveFile: (filePath, content) => ipcRenderer.invoke('save-file', filePath, content),
-  getFilesRecursive: (directoryPath) => ipcRenderer.invoke('get-files-recursive', directoryPath),
+  getFilesRecursiveAsList: (directoryPath) => ipcRenderer.invoke('get-files-recursive-as-list', directoryPath),
+  getFilesRecursiveAsTree: (directoryPath) => ipcRenderer.invoke('get-files-recursive-as-tree', directoryPath),
 })

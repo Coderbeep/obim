@@ -6,16 +6,22 @@ import { FileExplorer } from './components/FileExplorer'
 import { useEffect } from 'react'
 import { storeFilesInDB } from '../utils/db'
 import SearchWindow from './components/SearchWindow'
-import useSearchField from './hooks/useSearchField'
 import './assets/index.css'
 import { Breadcrumbs } from './components/Breadcrumbs'
+import { useSetAtom } from 'jotai'
+import { filesAtom } from './store/notes'
 
 function App() {
+  const setMainDirectoryFilesAtom = useSetAtom(filesAtom)
 
   useEffect(() => {
     const load = async () => {
-      const files = await window['api'].getFilesRecursive(notesDirectoryPath);
+      const files = await window['api'].getFilesRecursiveAsList(notesDirectoryPath);
+      const mainDirectoryFiles = await window['api'].getFiles(notesDirectoryPath);
+      const directories = files.filter((file) => file.isDirectory)
+      setMainDirectoryFilesAtom(mainDirectoryFiles)
       storeFilesInDB(files)
+      console.log('Files loaded')
     }
     load()
   }, [])
