@@ -38,12 +38,13 @@
 }
 
 .resizer {
-  width: 5px;
+  width: 1px;
   cursor: ew-resize;
+  margin-left: 1em;
 
-  &:hover {
-    background-color: $gray-2;
-  }
+  // &:hover {
+  //   background-color: $gray-2;
+  // }
 }
 
 
@@ -180,11 +181,10 @@
   display: flex;
 }
 
-.h-full {
+.editor-comp {
   padding: 20px 50px 0px 50px;
   outline-color: red;
-  width: 50em;
-
+  width: 55em;
 }
 
 .cm-editor {
@@ -201,6 +201,7 @@
   overflow-x: visible;
   align-items: flex-start;
   padding-bottom: 600px;
+  // padding: 0 5em 0 5em;
 }
 
 .cm-gutters {
@@ -211,6 +212,7 @@
   font-family: "CaskaydiaMono Nerd Font Mono" !important;
   font-size: 14px;
   color: $font-color;
+  // width: 50em;
 }
 
 .cm-content.cm-lineWrapping {
