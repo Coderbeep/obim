@@ -9,7 +9,7 @@ import SearchWindow from './components/SearchWindow'
 import './assets/index.css'
 import { Breadcrumbs } from './components/Breadcrumbs'
 import { useSetAtom } from 'jotai'
-import { filesAtom } from './store/notes'
+import { filesAtom } from './store/NotesStore'
 
 function App() {
   const setMainDirectoryFilesAtom = useSetAtom(filesAtom)

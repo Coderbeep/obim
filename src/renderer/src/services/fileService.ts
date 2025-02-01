@@ -1,6 +1,3 @@
-import { noteTextAtom } from "@renderer/store/notes";
-import { useAtom } from "jotai";
-
 export const saveFile = async (filaname: string, content: string): Promise<void> => {
     try {
         await window['api'].saveFile(filaname, content);

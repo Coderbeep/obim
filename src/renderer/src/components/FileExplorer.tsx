@@ -1,5 +1,5 @@
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { expandedDirectoriesAtom, selectedBreadcrumbAtom, fileTreeAtom } from '../store/notes';
+import { expandedDirectoriesAtom, selectedBreadcrumbAtom, fileTreeAtom } from '../store/NotesStore';
 import { useFileExplorer } from '../hooks/useFileExplorer';
 import { isVisibleAtom } from '../store/SearchWindowStore';
 import { useEffect, memo } from 'react';

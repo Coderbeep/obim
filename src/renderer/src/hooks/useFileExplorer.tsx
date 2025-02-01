@@ -1,4 +1,4 @@
-import { currentFilePathAtom, editorNoteTextAtom, fileHistoryAtom, filesAtom, noteTextAtom } from "@renderer/store/notes"
+import { currentFilePathAtom, editorNoteTextAtom, fileHistoryAtom, filesAtom, noteTextAtom } from "../store/NotesStore"
 import { notesDirectoryPath } from "@shared/constants"
 import { FileItem } from "@shared/models"
 import { useAtom } from "jotai"

@@ -16,7 +16,7 @@ import '../assets/Editor.scss'
 import { MathBlockParser } from '../extensions/MathExpression'
 import React from 'react'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
-import { noteTextAtom, currentFilePathAtom, editorNoteTextAtom } from '../store/notes'
+import { noteTextAtom, currentFilePathAtom, editorNoteTextAtom } from '../store/NotesStore'
 import { saveFile } from '@renderer/services/fileService'
 import { IoHandLeft } from 'react-icons/io5'
 

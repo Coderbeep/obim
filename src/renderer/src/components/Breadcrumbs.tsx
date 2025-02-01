@@ -1,4 +1,4 @@
-import { currentRelativeFilePathAtom, selectedBreadcrumbAtom } from "@renderer/store/notes"
+import { currentRelativeFilePathAtom, selectedBreadcrumbAtom } from "../store/NotesStore"
 import { useAtomValue, useSetAtom } from "jotai"
 import { Fragment, useRef } from "react"
 
@@ -40,7 +40,7 @@ export const Breadcrumbs = () => {
             <Fragment key={`${part}-${index}`}>
                 <BreadcrumbItem
                     className={index === parts.length - 1 ? "text-normal"
-                            : "text-muted hover:bg-gray-200 hover:text-normal"}
+                        : "text-muted hover:bg-gray-200 hover:text-normal"}
                     onClick={() => index < parts.length - 1 && handleClick(index)}>
                     {part}
                 </BreadcrumbItem>
