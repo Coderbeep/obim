@@ -14,11 +14,11 @@ export const useFileExplorer = () => {
         const untitledFiles = files.filter(file => file.filename.startsWith('Untitled') && file.isDirectory === false);
 
         let untitlednum = 1;
-        while (untitledFiles.some(file => file.filename === `Untitled ${untitlednum}`)) {
+        while (untitledFiles.some(file => file.filename === `Untitled ${untitlednum}.md`)) {
             untitlednum++;
         }
 
-        const filename = `Untitled ${untitlednum}`;
+        const filename = `Untitled ${untitlednum}.md`;
         try {
             await window['api'].saveFile(filename, '');
             console.log(`File '${filename}' created successfully.`);
