@@ -2,7 +2,7 @@ import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import { BrowserWindow, app, dialog, ipcMain, shell, protocol } from 'electron'
 import path, { join } from 'path'
 import icon from '../../resources/icon.png?asset'
-import { readFile, readdir, stat, writeFile } from 'fs/promises'
+import { readFile, readdir, stat, writeFile, rename } from 'fs/promises'
 import { notesDirectoryPath } from '@shared/constants'
 import { FileItem } from '@shared/models'
 import { installExtension, REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer'
@@ -201,4 +201,15 @@ async function getFilesRecursiveAsTree(directoryPath) {
 
 ipcMain.handle('get-files-recursive-as-tree', async (_, directoryPath: string) => {
   return getFilesRecursiveAsTree(directoryPath);
+})
+
+ipcMain.handle('rename-file', async (_, oldPath: string, newPath: string) => {
+  try {
+
+    await rename(oldPath, newPath);
+    return true;
+  } catch (err) {
+    console.error('Error renaming file:', err);
+    return false;
+  }
 })
