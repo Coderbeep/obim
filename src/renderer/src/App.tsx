@@ -37,7 +37,8 @@ function App() {
         <Breadcrumbs />
         <Editor />
       </Content>
-    </RootLayout>
+      <div id="image-overlay" className="absolute bg-black/80 w-10 h-10 text-white text-xs p-2 rounded-md z-50"></div>
+      </RootLayout>
   )
 }
 

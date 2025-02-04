@@ -56,7 +56,7 @@ function createImageDecorations(view) {
         }
 
         builder.add(node.to, node.to, Decoration.widget({
-          widget: new ImageWidget(src),
+          widget: new ImageWidget(src, [node.from + 3, node.to - 2]),
           block: true,
           side: 1
         }));
@@ -75,8 +75,9 @@ function toggleImageVisibility(view) {
 
 class ImageWidget extends WidgetType {
   private container = document.createElement('div');
+  private overlayUpdater: number | null = null; // Store animation frame
 
-  constructor(private readonly src: string) {
+  constructor(private readonly src: string, private readonly pos) {
     super();
   }
 
@@ -85,6 +86,8 @@ class ImageWidget extends WidgetType {
     this.container.className = 'cm-image-widget cm-image-error';
     this.container.innerHTML = `Image '${this.src}' not found`;
 
+    requestAnimationFrame(() => this.updateOverlayWindowPosition(view, this.container, this.src, this.pos));
+    
     if (imageCache.has(this.src)) {
       const cachedImage = imageCache.get(this.src);
       this.container.innerHTML = '';
@@ -100,24 +103,51 @@ class ImageWidget extends WidgetType {
           this.container.appendChild(img);
           imageCache.set(this.src, img);
         }
-      }); 
+      });
+    }
+    
+    this.startOverlayTracking(view, this.container, this.src, this.pos);
+    return this.container;
+  }
+
+  updateOverlayWindowPosition(view: EditorView, widgetNode: HTMLElement, src: string, pos) {
+    const overlay = document.getElementById('image-overlay');
+    if (!overlay) return;
+
+    const rect = widgetNode.getBoundingClientRect();
+    overlay.style.left = `${rect.left}px`;
+    overlay.style.top = `${rect.top}px`;
+  }
+
+  startOverlayTracking(view: EditorView, widgetNode: HTMLElement, src: string, pos) {
+    if (this.overlayUpdater !== null) {
+      cancelAnimationFrame(this.overlayUpdater);
     }
 
-    return this.container;
+    const updatePosition = () => {
+      this.updateOverlayWindowPosition(view, widgetNode, src, pos);
+      this.overlayUpdater = requestAnimationFrame(updatePosition); 
+    };
+
+    this.overlayUpdater = requestAnimationFrame(updatePosition);
+  }
+
+  destroy(dom) {
+    dom.remove();
+    if (this.overlayUpdater !== null) {
+      cancelAnimationFrame(this.overlayUpdater);
+    }
   }
 
   eq(other: ImageWidget) {
     return this.src === other.src;
   }
 
-  destroy(dom) {
-    dom.remove();
-  }
-
   get estimatedHeight() {
     return 100;
   }
 }
+
 
 export const ImageExtension = [
   imageField,
