@@ -75,7 +75,10 @@ function toggleImageVisibility(view) {
 
 class ImageWidget extends WidgetType {
   private container = document.createElement('div');
-  private overlayUpdater: number | null = null; // Store animation frame
+  private overlayUpdater: number | null = null;
+  private overlayListenerAdded: boolean = false;
+  private overlay: null | HTMLElement = null;
+  private handleImageSelected: ((e: CustomEvent) => void) | null = null;
 
   constructor(private readonly src: string, private readonly pos) {
     super();
@@ -105,18 +108,31 @@ class ImageWidget extends WidgetType {
         }
       });
     }
-    
     this.startOverlayTracking(view, this.container, this.src, this.pos);
     return this.container;
   }
 
   updateOverlayWindowPosition(view: EditorView, widgetNode: HTMLElement, src: string, pos) {
     const overlay = document.getElementById('image-overlay');
+    this.overlay = overlay;
     if (!overlay) return;
 
     const rect = widgetNode.getBoundingClientRect();
     overlay.style.left = `${rect.left}px`;
     overlay.style.top = `${rect.top}px`;
+    
+    const onImageSelected = (e: CustomEvent) => {
+      if (e.detail.path === src) return;
+      view.dispatch({
+        changes: { from: pos[0], to: pos[1], insert: `${e.detail.path}` }
+      })
+    }
+
+    if (!this.overlayListenerAdded) {
+      this.handleImageSelected = (e) => onImageSelected(e as CustomEvent);
+      overlay.addEventListener('image-selected', this.handleImageSelected);
+      this.overlayListenerAdded = true;
+    }
   }
 
   startOverlayTracking(view: EditorView, widgetNode: HTMLElement, src: string, pos) {
@@ -136,6 +152,10 @@ class ImageWidget extends WidgetType {
     dom.remove();
     if (this.overlayUpdater !== null) {
       cancelAnimationFrame(this.overlayUpdater);
+    }
+
+    if (this.overlay && this.handleImageSelected) {
+      this.overlay.removeEventListener('image-selected', this.handleImageSelected);
     }
   }
 

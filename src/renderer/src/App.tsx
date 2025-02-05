@@ -10,6 +10,7 @@ import './assets/index.css'
 import { Breadcrumbs } from './components/Breadcrumbs'
 import { useSetAtom } from 'jotai'
 import { filesAtom } from './store/NotesStore'
+import ImageSearchOverlay from './components/ImageSearchOverlay'
 
 function App() {
   const setMainDirectoryFilesAtom = useSetAtom(filesAtom)
@@ -37,7 +38,7 @@ function App() {
         <Breadcrumbs />
         <Editor />
       </Content>
-      <div id="image-overlay" className="absolute bg-black/80 w-10 h-10 text-white text-xs p-2 rounded-md z-50"></div>
+      <ImageSearchOverlay id="image-overlay"/>  
       </RootLayout>
   )
 }
