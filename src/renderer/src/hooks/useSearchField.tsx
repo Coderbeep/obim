@@ -1,6 +1,6 @@
 import { useEffect } from "react"
 import { getFilesFromDB } from '../../utils/db'
-import { isVisibleAtom, queryAtom, resultsAtom } from "@renderer/store/SearchWindowStore"
+import { isVisibleAtom, queryAtom, resultsAtom } from "../store/SearchWindowStore"
 import { useAtom, useSetAtom } from "jotai"
 
 export const useSearchField = () => {
@@ -30,8 +30,7 @@ export const useSearchField = () => {
 
     const onQueryChange = (newQuery: string) => {
         setQuery(newQuery)
-        queryDB(query)
-        console.log('Query changed')
+        queryDB(newQuery)
     }
 
     return {

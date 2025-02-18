@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { InputField } from './InputField';
-import { useArrowKey } from '@renderer/hooks/useArrowKey';
+import { useKeyboardHotkey } from '../hooks/useKeyboardHotkey';
 import { useFileExplorer } from '@renderer/hooks/useFileExplorer';
 import { useAtom, useAtomValue } from 'jotai';
 import { isVisibleAtom, resultsAtom } from '@renderer/store/SearchWindowStore';
@@ -9,10 +9,10 @@ import useSearchField from '@renderer/hooks/useSearchField';
 const SearchWindow = () => {
     const results = useAtomValue(resultsAtom);
     const [isVisible, setIsVisible] = useAtom(isVisibleAtom);
-    const { currentlySelected, setCurrentlySelected, handleKeyDown } = useArrowKey(results.length - 1);
+    const { currentlySelected, setCurrentlySelected, handleKeyDown } = useKeyboardHotkey(results.length - 1);
     const { openFile } = useFileExplorer();
-    const [ navMode, setNavMode ] = useState(0); // 0: keyboard, 1: mouse
-    const { onQueryChange }  = useSearchField();
+    const [navMode, setNavMode] = useState(0); // 0: keyboard, 1: mouse
+    const { onQueryChange } = useSearchField();
 
     const listRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -52,7 +52,7 @@ const SearchWindow = () => {
         <div className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white border border-gray-300 rounded-lg shadow-md w-1/3 min-w-96 min-h-96 z-50 overflow-hidden'>
             <div className='sticky top-0 p-2'>
                 <InputField onQueryChange={handleQueryChange}
-                    onKeyDown={handleKeyboardNavigation}/>
+                    onKeyDown={handleKeyboardNavigation} />
             </div>
             <div className='max-h-80 overflow-y-auto'>
                 <div className='p-2'>
