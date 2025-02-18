@@ -1,7 +1,7 @@
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
 import { indentUnit } from '@codemirror/language'
 import { languages } from '@codemirror/language-data'
-import { Compartment, Prec } from '@codemirror/state'
+import { Prec } from '@codemirror/state'
 import { frontmatter } from '@extensions/FrontmatterExtension'
 import { Table } from '@lezer/markdown'
 import { DefaultExtensions } from '@renderer/extensions'
@@ -11,14 +11,11 @@ import CodeMirror, {
   EditorView,
   keymap,
 } from '@uiw/react-codemirror'
-import { useCallback, useEffect, useRef } from 'react'
+import { useRef } from 'react'
 import '../assets/Editor.scss'
 import { MathBlockParser } from '../extensions/MathExpression'
-import React from 'react'
-import { useAtom, useAtomValue, useSetAtom } from 'jotai'
+import { useAtom, useSetAtom } from 'jotai'
 import { noteTextAtom, currentFilePathAtom, editorNoteTextAtom } from '../store/NotesStore'
-import { saveFile } from '@renderer/services/fileService'
-import { IoHandLeft } from 'react-icons/io5'
 
 
 const initText = `---
@@ -142,9 +139,9 @@ const Editor = () => {
             EditorView.lineWrapping,
             DefaultExtensions,
             indentUnit.of('    '),
-            Prec.highest(keymap.of([{
-              key: 'Shift-Enter', run: insertNewlineContinueMarkup
-            }]))
+            Prec.highest(keymap.of([
+              { key: 'Shift-Enter', run: insertNewlineContinueMarkup },
+            ])),
           ]}
           className="editor-comp"
         />

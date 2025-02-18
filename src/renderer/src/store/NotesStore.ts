@@ -23,3 +23,4 @@ export const fileLookupAtom = atom<Map<string, FileItem>>(new Map());
 // Breadcrumbs related atoms
 
 export const selectedBreadcrumbAtom = atom<string>('');
+export const overlayVisibleAtom = atom(false);

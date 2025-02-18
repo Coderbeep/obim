@@ -19,7 +19,6 @@ function App() {
     const load = async () => {
       const files = await window['api'].getFilesRecursiveAsList(notesDirectoryPath);
       const mainDirectoryFiles = await window['api'].getFiles(notesDirectoryPath);
-      const directories = files.filter((file) => file.isDirectory)
       setMainDirectoryFilesAtom(mainDirectoryFiles)
       storeFilesInDB(files)
       console.log('Files loaded')
