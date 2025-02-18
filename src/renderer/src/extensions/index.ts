@@ -5,6 +5,7 @@ import { FrontmatterExtension } from "./FrontmatterExtension";
 import { HeadingExtension } from "./HeadingExtension";
 import { HorizontalRuleExtension } from "./HorizontalRuleExtension";
 import { ImageExtension } from "./ImageExtension";
+import { ImageExtensionOverlay } from "./ImageExtensionOverlay";
 import { ListsExtension } from "./ListsExtension";
 import { MathBlockExtension } from "./MathExpression";
 import { TableExtension } from "./TableExtension";
@@ -15,6 +16,7 @@ export const DefaultExtensions = [
     CodeBlockExtension,
     EmphasisExtension,
     ImageExtension,
+    ImageExtensionOverlay,
     FrontmatterExtension,
     HeadingExtension,
     HorizontalRuleExtension,
