@@ -1,4 +1,4 @@
-import { currentFilePathAtom, editorNoteTextAtom, fileHistoryAtom, filesAtom, noteTextAtom } from "../store/NotesStore"
+import { currentFilePathAtom, editorNoteTextAtom, fileHistoryAtom, fileTreeAtom, noteTextAtom } from "../store/NotesStore"
 import { notesDirectoryPath } from "@shared/constants"
 import { FileItem } from "@shared/models"
 import { useAtom } from "jotai"
@@ -8,7 +8,7 @@ export const useFileExplorer = () => {
     const [currentFilename, setCurrentFilename] = useAtom(currentFilePathAtom)
     const [fileHistory, setFileHistory] = useAtom(fileHistoryAtom)
     const [editorNoteText, setEditorNoteText] = useAtom(editorNoteTextAtom)
-    const [files, setFiles] = useAtom(filesAtom)
+    const [files, setFiles] = useAtom(fileTreeAtom)
 
     const createNewFile = async () => {
         const untitledFiles = files.filter(file => file.filename.startsWith('Untitled') && file.isDirectory === false);
@@ -29,7 +29,6 @@ export const useFileExplorer = () => {
                 isDirectory: false,
             }
             setFiles([...files, fileItem])
-            console.log(files)
         } catch (err) {
             console.error('Error creating file:', err);
         }

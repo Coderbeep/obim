@@ -13,4 +13,5 @@ contextBridge.exposeInMainWorld('api', {
   getFilesRecursiveAsTree: (directoryPath) => ipcRenderer.invoke('get-files-recursive-as-tree', directoryPath),
   createFile: (filePath) => ipcRenderer.invoke('create-file', filePath),
   renameFile: (oldPath, newPath) => ipcRenderer.invoke('rename-file', oldPath, newPath),
+  moveFile: (sourcePath, destinationPath) => ipcRenderer.invoke('move-file', sourcePath, destinationPath),
 })

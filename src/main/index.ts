@@ -6,6 +6,7 @@ import { readFile, readdir, stat, writeFile, rename } from 'fs/promises'
 import { notesDirectoryPath } from '@shared/constants'
 import { FileItem } from '@shared/models'
 import { installExtension, REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer'
+import { exists, existsSync } from 'fs'
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -186,7 +187,7 @@ async function getFilesRecursiveAsTree(directoryPath) {
     const fileItem: FileItem = {
       filename: filename,
       relativePath: filePath.replace(notesDirectoryPath, ''),
-      path: filePath, 
+      path: filePath,
       isDirectory: fileStat.isDirectory(),
     };
 
@@ -196,6 +197,14 @@ async function getFilesRecursiveAsTree(directoryPath) {
 
     files.push(fileItem);
   }
+
+  files.sort((a, b) => {
+    if (a.isDirectory !== b.isDirectory) {
+      return a.isDirectory ? -1 : 1;
+    }
+    return a.filename.localeCompare(b.filename);
+  });
+
   return files
 }
 
@@ -213,3 +222,23 @@ ipcMain.handle('rename-file', async (_, oldPath: string, newPath: string) => {
     return false;
   }
 })
+
+
+ipcMain.handle("move-file", async (_, movingFilePath: string, destinationDirectoryPath: string) => {
+  const destinationPath = path.join(destinationDirectoryPath, path.basename(movingFilePath));
+
+  try {
+    const fullSourcePath = path.resolve(notesDirectoryPath, movingFilePath);
+    const fullDestinationPath = path.resolve(notesDirectoryPath, destinationPath);
+
+    if (existsSync(fullDestinationPath)) {
+      return { success: false, error: "Destination file already exists" }
+    }
+
+    await rename(fullSourcePath, fullDestinationPath);
+    return { success: true, error: null }
+  } catch (error) {
+    console.error('Error moving file:', error);
+    return { success: false, error: error }
+  }
+});

@@ -8,18 +8,14 @@ import { storeFilesInDB } from '../utils/db'
 import SearchWindow from './components/SearchWindow'
 import './assets/index.css'
 import { Breadcrumbs } from './components/Breadcrumbs'
-import { useSetAtom } from 'jotai'
-import { filesAtom } from './store/NotesStore'
 import ImageSearchOverlay from './components/ImageSearchOverlay'
+import { ContextMenu } from './components/ContextMenu'
 
 function App() {
-  const setMainDirectoryFilesAtom = useSetAtom(filesAtom)
 
   useEffect(() => {
     const load = async () => {
       const files = await window['api'].getFilesRecursiveAsList(notesDirectoryPath);
-      const mainDirectoryFiles = await window['api'].getFiles(notesDirectoryPath);
-      setMainDirectoryFilesAtom(mainDirectoryFiles)
       storeFilesInDB(files)
       console.log('Files loaded')
     }
@@ -38,6 +34,7 @@ function App() {
         <Editor />
       </Content>
       <ImageSearchOverlay id="image-overlay"/>  
+      <ContextMenu id="context-menu" type="FILE"/>
       </RootLayout>
   )
 }
