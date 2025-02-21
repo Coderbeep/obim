@@ -6,6 +6,8 @@ import {
     reloadFlagAtom,
     contextMenuVisibleAtom,
     contextMenuPositionAtom,
+    contextMenuTargetAtom,
+    contextMenuTypeAtom,
 } from "../store/NotesStore";
 import { useFileExplorer } from "../hooks/useFileExplorer";
 import { isVisibleAtom } from "../store/SearchWindowStore";
@@ -15,6 +17,7 @@ import { FileItem } from "@shared/models";
 import { notesDirectoryPath } from "@shared/constants";
 import { useFileExplorerDragAndDrop } from "@renderer/hooks/useFileExplorerDragAndDrop";
 import { moveFile } from "@renderer/services/fileService";
+import { ContextMenuTypes } from "./ContextMenu";
 
 const MemoizedGoFile = memo(GoFile);
 const MemoizedGoFileDirectory = memo(GoFileDirectory);
@@ -38,6 +41,8 @@ interface ListDirectoryProps {
 
 const ListFile = ({ file, openFile, level }: ListFileProps) => {
     const setContextMenuVisible = useSetAtom(contextMenuVisibleAtom)
+    const setContextMenuTarget = useSetAtom(contextMenuTargetAtom)
+    const [contextMenuType, setContextMenuType] = useAtom(contextMenuTypeAtom);
     const [contextMenuPosition, setContextMenuPosition] = useAtom(contextMenuPositionAtom);
 
     const onDragStart = (event: React.DragEvent<HTMLDivElement>) => {
@@ -49,7 +54,8 @@ const ListFile = ({ file, openFile, level }: ListFileProps) => {
         event.preventDefault();
         setContextMenuVisible(true);
         setContextMenuPosition([event.clientX, event.clientY]);
-        console.log(event.clientX, event.clientY)
+        setContextMenuTarget(file);
+        setContextMenuType(ContextMenuTypes.FILE);
     }
 
     return (
@@ -92,6 +98,10 @@ const ListDirectory = ({
     const expandedDirectories = useAtomValue(expandedDirectoriesAtom);
     const selectedBreadcrumb = useAtomValue(selectedBreadcrumbAtom);
     const isOpen = expandedDirectories.has(file.relativePath);
+    const setContextMenuVisible = useSetAtom(contextMenuVisibleAtom)
+    const setContextMenuTarget = useSetAtom(contextMenuTargetAtom)
+    const [contextMenuType, setContextMenuType] = useAtom(contextMenuTypeAtom);
+    const [contextMenuPosition, setContextMenuPosition] = useAtom(contextMenuPositionAtom);
 
     const { dragCounter, onDragEnter, onDragOver, onDragLeave, onDrop } =
         useFileExplorerDragAndDrop({
@@ -103,6 +113,15 @@ const ListDirectory = ({
     const onDragStart = (event: React.DragEvent<HTMLDivElement>) => {
         event.dataTransfer.setData("application/json", JSON.stringify(file));
         console.log("Started dragging directory: ", `'${file.path}'`);
+    }
+
+    const onContextMenu = (event: React.MouseEvent<HTMLDivElement>) => {
+        event.preventDefault();
+        setContextMenuVisible(true);
+        setContextMenuPosition([event.clientX, event.clientY]);
+        setContextMenuTarget(file);
+        setContextMenuType(ContextMenuTypes
+            .DIRECTORY);
     }
 
     return (
@@ -120,8 +139,9 @@ const ListDirectory = ({
                 onClick={() => onDirectorySelect(file.relativePath)}
                 draggable={true}
                 onDragStart={onDragStart}
+                onContextMenu={onContextMenu}
             >
-                <MemoizedGoFileDirectory />
+                <MemoizedGoFileDirectory size={16}/>
                 <span> {file.filename} </span>
             </div>
             <div className={`file-explorer-children ${isOpen ? "open" : ""}`}>
