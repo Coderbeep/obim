@@ -8,19 +8,20 @@ import {
     contextMenuPositionAtom,
     contextMenuTargetAtom,
     contextMenuTypeAtom,
-    renameCallbackAtom,
-    currentFilePathAtom,
+    startRenamingAtom,
+
 } from "../store/NotesStore";
 import { useFileExplorer } from "../hooks/useFileExplorer";
 import { isVisibleAtom } from "../store/SearchWindowStore";
-import { useEffect, memo, useState, useRef } from "react";
+import { useEffect, memo, useRef } from "react";
 import { GoSearch, GoPlus, GoFile, GoFileDirectory } from "react-icons/go";
 import { FileItem } from "@shared/models";
 import { notesDirectoryPath } from "@shared/constants";
 import { useFileExplorerDragAndDrop } from "@renderer/hooks/useFileExplorerDragAndDrop";
-import { moveFile, renameFile } from "@renderer/services/fileService";
+import { moveFile } from "@renderer/services/fileService";
 import { ContextMenuTypes } from "./ContextMenu";
-import { set } from "lodash";
+import { useRenameFile } from "@renderer/hooks/file-actions-hooks/useRenameFile";
+import { RenameableText } from "@renderer/ui/common/RenameableText";
 
 const MemoizedGoFile = memo(GoFile);
 const MemoizedGoFileDirectory = memo(GoFileDirectory);
@@ -47,12 +48,11 @@ const ListFile = ({ file, openFile, level }: ListFileProps) => {
     const setContextMenuTarget = useSetAtom(contextMenuTargetAtom)
     const [contextMenuType, setContextMenuType] = useAtom(contextMenuTypeAtom);
     const [contextMenuPosition, setContextMenuPosition] = useAtom(contextMenuPositionAtom);
-    const setRenameCallback = useSetAtom(renameCallbackAtom);
-    const [isEditing, setIsEditing] = useState(false);
-    const nameRef = useRef(null);
-    const [ reloadFlag, setReloadFlag ] = useAtom(reloadFlagAtom);
-    const [ currentFilePath, setCurrentFilePath ] = useAtom(currentFilePathAtom);
-    
+    const setStartRenaming = useSetAtom(startRenamingAtom);
+    const editableRef = useRef(null);
+
+    const { isEditing, saveRename, startRenaming } = useRenameFile({ file, editableRef });
+
     const onDragStart = (event: React.DragEvent<HTMLDivElement>) => {
         console.log("Started dragging file: ", `'${file.path}'`);
         event.dataTransfer.setData("application/json", JSON.stringify(file));
@@ -60,51 +60,13 @@ const ListFile = ({ file, openFile, level }: ListFileProps) => {
 
     const onContextMenu = (event: React.MouseEvent<HTMLDivElement>) => {
         event.preventDefault();
-        
-        const renameCallback = () => {
-            console.log("Setting new name");
-            setIsEditing(true); 
-            setTimeout(() => {
-                nameRef.current?.focus();
-    
-                const range = document.createRange();
-                const selection = window.getSelection();
-                if (selection && nameRef.current) {
-                    range.selectNodeContents(nameRef.current);
-                    range.collapse(false);
-                    selection.removeAllRanges();
-                    selection.addRange(range);
-                }
-            }, 0);
-        }
-        
+
         setContextMenuVisible(true);
         setContextMenuPosition([event.clientX, event.clientY]);
         setContextMenuTarget(file);
         setContextMenuType(ContextMenuTypes.FILE);
-        setRenameCallback(() => renameCallback)
+        setStartRenaming(() => startRenaming)
     }
-
-    const handleRename = async () => {
-        setIsEditing(false);
-        const newName = nameRef.current?.innerText.trim();
-    
-        if (newName && newName !== file.filename) {
-            const result = await renameFile(file.path, newName);
-            console.log("RESULT: ", result)
-            if (!result.success) {
-                nameRef.current.innerText = file.filename;
-            } else {
-                setReloadFlag((prev) => !prev);
-                if (currentFilePath === file.path) {
-                    setCurrentFilePath(result.output);
-                }
-            }
-        } else {
-            nameRef.current.innerText = file.filename;
-        }
-    };
-    
 
     return (
         <div
@@ -116,17 +78,13 @@ const ListFile = ({ file, openFile, level }: ListFileProps) => {
             onContextMenu={onContextMenu}
         >
             <MemoizedGoFile />
-            <div
-                ref={nameRef}
-                className={`truncate ${isEditing ? "bg-blue-100 focus:outline-none" : ""}`}
-                contentEditable={isEditing}
-                spellCheck={false}
-                suppressContentEditableWarning={true}
-                onBlur={handleRename}
-                onKeyDown={(event) => {event.key === "Enter" && nameRef.current?.blur()}}
-                > 
-                {file.filename} 
-            </div>
+            <RenameableText
+                editableRef={editableRef}
+                isEditing={isEditing}
+                saveRename={saveRename}
+                startRenaming={startRenaming}
+                filename={file.filename}
+            />
         </div>
     );
 };
@@ -199,7 +157,7 @@ const ListDirectory = ({
                 onDragStart={onDragStart}
                 onContextMenu={onContextMenu}
             >
-                <MemoizedGoFileDirectory size={16}/>
+                <MemoizedGoFileDirectory size={16} />
                 <span> {file.filename} </span>
             </div>
             <div className={`file-explorer-children ${isOpen ? "open" : ""}`}>

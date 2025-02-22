@@ -31,4 +31,4 @@ export const contextMenuVisibleAtom = atom(false);
 export const contextMenuTypeAtom = atom(ContextMenuTypes.FILE);
 export const contextMenuPositionAtom = atom<[number, number]>([0, 0]);
 export const contextMenuTargetAtom = atom<FileItem | null>(null);
-export const renameCallbackAtom = atom<null | (() => void)>(null);
+export const startRenamingAtom = atom<null | (() => void)>(null);
