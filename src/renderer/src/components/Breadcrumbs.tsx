@@ -3,8 +3,6 @@ import { useAtomValue, useSetAtom } from "jotai"
 import { Fragment, useRef } from "react"
 
 const BreadcrumbItem = ({ children, className, onClick }) => {
-
-
     return <div className={`px-1 rounded-md select-none ${className}`} onClick={onClick}>
         {children}
     </div>

@@ -212,17 +212,25 @@ ipcMain.handle('get-files-recursive-as-tree', async (_, directoryPath: string) =
   return getFilesRecursiveAsTree(directoryPath);
 })
 
-ipcMain.handle('rename-file', async (_, oldPath: string, newPath: string) => {
+
+ipcMain.handle("rename-file", async (_, currentFilePath: string, newFileName: string) => {
+  const newFilePath = path.join(path.dirname(currentFilePath), newFileName);
+
   try {
+    const fullSourcePath = path.resolve(notesDirectoryPath, currentFilePath);
+    const fullDestinationPath = path.resolve(notesDirectoryPath, newFilePath);
 
-    await rename(oldPath, newPath);
-    return true;
-  } catch (err) {
-    console.error('Error renaming file:', err);
-    return false;
+    if (existsSync(fullDestinationPath)) {
+      return { success: false, error: "Destination file already exists" }
+    }
+
+    await rename(fullSourcePath, fullDestinationPath);
+    return { success: true, error: null, return: newFilePath }
+  } catch (error) {
+    console.error('Error moving file:', error);
+    return { success: false, error: error }
   }
-})
-
+});
 
 ipcMain.handle("move-file", async (_, movingFilePath: string, destinationDirectoryPath: string) => {
   const destinationPath = path.join(destinationDirectoryPath, path.basename(movingFilePath));

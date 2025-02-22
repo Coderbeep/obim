@@ -1,5 +1,5 @@
 import { useFileExplorer } from "@renderer/hooks/useFileExplorer";
-import { contextMenuPositionAtom, contextMenuTargetAtom, contextMenuTypeAtom, contextMenuVisibleAtom } from "@renderer/store/NotesStore";
+import { contextMenuPositionAtom, contextMenuTargetAtom, contextMenuTypeAtom, contextMenuVisibleAtom, renameCallbackAtom } from "@renderer/store/NotesStore";
 import { useAtom } from "jotai";
 import { useEffect, useRef } from "react";
 import { GoPencil, GoTrash } from "react-icons/go";
@@ -35,11 +35,15 @@ const ContextMenuDirectory = ({ target }) => {
 
 const ContextMenuFile = ({ target }) => {
     const [contextMenuVisible, setContextMenuVisible] = useAtom(contextMenuVisibleAtom);
+    const [renameCallback, setRenameCallback] = useAtom(renameCallbackAtom);    
     const { openFile } = useFileExplorer();
 
     const actions = [
         { label: "Open", icon: PiFilePlusLight, action: () => openFile(target.path) },
-        { label: "Rename", icon: GoPencil, action: () => console.log("Rename") },
+        { label: "Rename", icon: GoPencil, action: () => {
+            console.log("Rename Action");
+            renameCallback();
+        } },
         { label: "Delete", icon: GoTrash, action: () => console.log("Delete"), className: "text-red-500 hover:bg-red-50" }
     ];
 
@@ -59,7 +63,7 @@ const contextMenuComponents = {
     [ContextMenuTypes.DIRECTORY]: ContextMenuDirectory
 }
 
-export const ContextMenu = ({ id, type }) => {
+export const ContextMenu = ({ id }) => {
     const [contextMenuVisible, setContextMenuVisible] = useAtom(contextMenuVisibleAtom);
     const [contextMenuType, setContextMenuType] = useAtom(contextMenuTypeAtom);
     const [contextMenuPosition, setContextMenuPosition] = useAtom(contextMenuPositionAtom);
@@ -90,7 +94,7 @@ export const ContextMenu = ({ id, type }) => {
             className="absolute bg-white border border-gray-300 shadow-md rounded-md w-40 py-2 text-sm z-50"
             style={{ top: contextMenuPosition[1], left: contextMenuPosition[0] }}
         >
-            <MenuComponent target={contextMenuTarget} />
+            <MenuComponent target={contextMenuTarget}/>
         </div>
     );
 };

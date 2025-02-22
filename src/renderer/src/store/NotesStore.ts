@@ -18,7 +18,6 @@ export const folderCacheAtom = atom<Map<string, FileItem[]>>(new Map());
 
 export const expandedDirectoriesAtom = atom<Set<string>>(new Set<string>());
 
-export const fileLookupAtom = atom<Map<string, FileItem>>(new Map());
 export const reloadFlagAtom = atom(false);
 
 // Breadcrumbs related atoms
@@ -32,3 +31,4 @@ export const contextMenuVisibleAtom = atom(false);
 export const contextMenuTypeAtom = atom(ContextMenuTypes.FILE);
 export const contextMenuPositionAtom = atom<[number, number]>([0, 0]);
 export const contextMenuTargetAtom = atom<FileItem | null>(null);
+export const renameCallbackAtom = atom<null | (() => void)>(null);
