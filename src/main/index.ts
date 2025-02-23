@@ -2,11 +2,11 @@ import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import { BrowserWindow, app, dialog, ipcMain, shell, protocol } from 'electron'
 import path, { join } from 'path'
 import icon from '../../resources/icon.png?asset'
-import { readFile, readdir, stat, writeFile, rename } from 'fs/promises'
+import { readFile, readdir, stat, writeFile, rename, unlink } from 'fs/promises'
 import { notesDirectoryPath } from '@shared/constants'
 import { FileItem } from '@shared/models'
 import { installExtension, REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer'
-import { exists, existsSync } from 'fs'
+import { existsSync } from 'fs'
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -250,3 +250,14 @@ ipcMain.handle("move-file", async (_, movingFilePath: string, destinationDirecto
     return { success: false, error: error }
   }
 });
+
+ipcMain.handle("delete-file", async (_, filePath: string) => {
+  try {
+    const fullPath = path.resolve(notesDirectoryPath, filePath);
+    await unlink(fullPath);
+    return { success: true, error: null }
+  } catch (error) {
+    console.error('Error deleting file:', error);
+    return { success: false, error: error }
+  }
+})

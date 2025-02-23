@@ -50,3 +50,24 @@ export const moveFile = async (sourceFilePath: string, targetDirectoryPath: stri
         console.error('Error moving file:', err);
     }
 }
+
+interface RemoveFileResult {
+    success: boolean;
+    error?: string; 
+}
+
+export const deleteFile = async (filePath: string): Promise<RemoveFileResult> => {
+    try {
+        const result = await window['api'].deleteFile(filePath);
+        if (result.success) {
+            console.log(`File '${filePath}' deleted successfully.`);
+            return { success: true };
+        } else {
+            console.error(`Error deleting file: ${result.error}`);
+            return { success: false, error: result.error }
+        }
+    } catch (err) {
+        console.error('Error deleting file:', err);
+        return { success: false, error: String(err) };
+    }
+}

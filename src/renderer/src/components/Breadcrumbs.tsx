@@ -1,5 +1,5 @@
 import { currentRelativeFilePathAtom, selectedBreadcrumbAtom } from "../store/NotesStore"
-import { useAtomValue, useSetAtom } from "jotai"
+import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { Fragment, useRef } from "react"
 
 const BreadcrumbItem = ({ children, className, onClick }) => {
@@ -15,7 +15,7 @@ const BreadcrumbSeparator = () => {
 }
 
 export const Breadcrumbs = () => {
-    const path = useAtomValue(currentRelativeFilePathAtom)
+    const [path, setPath] = useAtom(currentRelativeFilePathAtom)
     const parts = path.split('/').filter(part => part !== '')
     const setSelectedBreadcrumb = useSetAtom(selectedBreadcrumbAtom)
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
