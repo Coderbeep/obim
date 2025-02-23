@@ -2,6 +2,20 @@ import { deleteFile, openFile, renameFile } from "@renderer/services/fileService
 import { currentFilePathAtom, editorNoteTextAtom, fileHistoryAtom, isRenamingAtom, noteTextAtom, reloadFlagAtom, renamingFilePathAtom, selectedBreadcrumbAtom } from "@renderer/store/NotesStore"
 import { useAtom, useSetAtom } from "jotai"
 
+interface UseFileRemoveResult {
+    remove: (path: string) => void;
+}
+interface UseFileOpenResult {
+    open: (filePath: string) => void;
+}
+
+interface UseFileRenameResult {
+    isRenaming: boolean;
+    startRenaming: (filePath: string) => void;
+    saveRename: (oldFilePath: string, newName: string) => void;
+}
+
+
 export const useFileRemove = () => {
     const setReloadFlag = useSetAtom(reloadFlagAtom)
     const setSelectedBreadcrumb = useSetAtom(selectedBreadcrumbAtom)
@@ -59,11 +73,14 @@ export const useFileOpen = () => {
     return { open }
 }
 
-interface UseFileRenameResult {
-    isRenaming: boolean;
-    startRenaming: (filePath: string) => void;
-    saveRename: (oldFilePath: string, newName: string) => void;
-}
+/**
+ * Custom hook to handle file renaming.
+ * 
+ * @returns {UseFileRenameResult} - Provides functions for renaming a file:
+ *   - `startRenaming`: Begins the renaming process for a file.
+ *   - `saveRename`: Saves the renamed file and updates the state.
+ *  - `isRenaming`: A boolean value indicating whether the renaming process is active.
+ */
 
 export const useFileRename = (): UseFileRenameResult => {
     const [isRenaming, setIsRenaming] = useAtom(isRenamingAtom);
