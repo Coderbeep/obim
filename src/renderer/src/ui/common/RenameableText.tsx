@@ -1,5 +1,5 @@
 import { useFileRename } from "@renderer/hooks/file-actions-hooks/useFileActions";
-import { renamingFilePathAtom } from "@renderer/store/NotesStore";
+import { renamingFilePathAtom } from "../../store/NotesStore";
 import { FileItem } from "@shared/models";
 import { useAtom } from "jotai";
 import { useEffect, useRef } from "react";
@@ -13,9 +13,9 @@ export const RenameableText = ({ file, onRenamingStateChange }: RenameableTextPr
     const [renamingFile, setRenamingFile] = useAtom(renamingFilePathAtom);
     const editableRef = useRef<HTMLDivElement>(null);
     const { isRenaming, startRenaming, saveRename } = useFileRename();
-    
+
     const isEditing = isRenaming && renamingFile === file.path;
-    
+
     const focusOnEnd = () => {
         setTimeout(() => {
             if (editableRef.current) {
@@ -30,7 +30,7 @@ export const RenameableText = ({ file, onRenamingStateChange }: RenameableTextPr
             }
         }, 0);
     }
-    
+
     const handleStartRenaming = () => {
         startRenaming(file.path);
         focusOnEnd();
@@ -47,7 +47,7 @@ export const RenameableText = ({ file, onRenamingStateChange }: RenameableTextPr
         contentEditable={isEditing}
         spellCheck={false}
         suppressContentEditableWarning={true}
-        onBlur={() => saveRename(file.path, editableRef.current?.innerText)}
+        onBlur={() => saveRename(file.path, editableRef.current?.innerText || "")}
         onKeyDown={(event) => {
             if (event.key === "Enter") editableRef.current?.blur();
         }}

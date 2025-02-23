@@ -1,15 +1,10 @@
 import { useFileOpen, useFileRemove, useFileRename } from "@renderer/hooks/file-actions-hooks/useFileActions";
-import { contextMenuPositionAtom, contextMenuTargetAtom, contextMenuTypeAtom, contextMenuVisibleAtom } from "@renderer/store/NotesStore";
+import { contextMenuPositionAtom, contextMenuTargetAtom, contextMenuTypeAtom, contextMenuVisibleAtom } from "../store/ContextMenuStore";
 import { useAtom } from "jotai";
 import { useEffect, useRef } from "react";
 import { GoPencil, GoTrash } from "react-icons/go";
 import { PiFilePlusLight } from "react-icons/pi";
-import { start } from "repl";
-
-export enum ContextMenuTypes {
-    FILE,
-    DIRECTORY
-}
+import { ContextMenuTypes } from "@shared/constants";
 
 const ContextMenuItem = ({ icon: Icon, label, onClick, className }) => (
     <div
@@ -22,7 +17,7 @@ const ContextMenuItem = ({ icon: Icon, label, onClick, className }) => (
 );
 
 const ContextMenuDirectory = ({ target }) => {
-    const [contextMenuVisible, setContextMenuVisible] = useAtom(contextMenuVisibleAtom);  
+    const [contextMenuVisible, setContextMenuVisible] = useAtom(contextMenuVisibleAtom);
 
     const { startRenaming } = useFileRename();
     const { remove } = useFileRemove();
@@ -40,19 +35,19 @@ const ContextMenuDirectory = ({ target }) => {
     }
 
     return actions.map(({ label, icon, action, className = "" }) => (
-        <ContextMenuItem key={label} icon={icon} label={label} onClick={() => handleOnClick(action)} className={className}/>
+        <ContextMenuItem key={label} icon={icon} label={label} onClick={() => handleOnClick(action)} className={className} />
     ));
 }
 
 const ContextMenuFile = ({ target }) => {
-    const [contextMenuVisible, setContextMenuVisible] = useAtom(contextMenuVisibleAtom);  
+    const [contextMenuVisible, setContextMenuVisible] = useAtom(contextMenuVisibleAtom);
     const { open } = useFileOpen();
     const { remove } = useFileRemove();
     const { startRenaming } = useFileRename();
 
     const actions = [
         { label: "Open", icon: PiFilePlusLight, action: () => open(target.path) },
-        { label: "Rename", icon: GoPencil, action: () => startRenaming(target.path)},
+        { label: "Rename", icon: GoPencil, action: () => startRenaming(target.path) },
         { label: "Delete", icon: GoTrash, action: () => remove(target.path), className: "text-red-500 hover:bg-red-50" }
     ];
 
@@ -103,7 +98,7 @@ export const ContextMenu = ({ id }) => {
             className="absolute bg-white border border-gray-300 shadow-md rounded-md w-40 py-2 text-sm z-50"
             style={{ top: contextMenuPosition[1], left: contextMenuPosition[0] }}
         >
-            <MenuComponent target={contextMenuTarget}/>
+            <MenuComponent target={contextMenuTarget} />
         </div>
     );
 };

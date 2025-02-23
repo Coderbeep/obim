@@ -4,22 +4,18 @@ import {
     selectedBreadcrumbAtom,
     fileTreeAtom,
     reloadFlagAtom,
-    contextMenuVisibleAtom,
-    contextMenuPositionAtom,
-    contextMenuTargetAtom,
-    contextMenuTypeAtom,
 } from "../store/NotesStore";
 import { useFileExplorer } from "../hooks/useFileExplorer";
 import { isVisibleAtom } from "../store/SearchWindowStore";
-import { useEffect, memo, useRef, useState } from "react";
+import { useEffect, memo, useState } from "react";
 import { GoSearch, GoPlus, GoFile, GoFileDirectory } from "react-icons/go";
 import { FileItem } from "@shared/models";
 import { notesDirectoryPath } from "@shared/constants";
 import { useFileExplorerDragAndDrop } from "@renderer/hooks/useFileExplorerDragAndDrop";
 import { moveFile } from "@renderer/services/fileService";
-import { ContextMenuTypes } from "./ContextMenu";
 import { RenameableText } from "@renderer/ui/common/RenameableText";
 import { useFileOpen } from "@renderer/hooks/file-actions-hooks/useFileActions";
+import { useFileContextMenu } from "@renderer/hooks/file-actions-hooks/useFileContextMenu";
 
 const MemoizedGoFile = memo(GoFile);
 const MemoizedGoFileDirectory = memo(GoFileDirectory);
@@ -42,26 +38,13 @@ interface ListDirectoryProps {
 }
 
 const ListFile = ({ file, openFile, level }: ListFileProps) => {
-    const setContextMenuVisible = useSetAtom(contextMenuVisibleAtom)
-    const setContextMenuTarget = useSetAtom(contextMenuTargetAtom)
-    const [contextMenuType, setContextMenuType] = useAtom(contextMenuTypeAtom);
-    const [contextMenuPosition, setContextMenuPosition] = useAtom(contextMenuPositionAtom);
     const [isRenaming, setIsRenaming] = useState(false);
-
+    const { onContextMenu } = useFileContextMenu(file)
 
     const onDragStart = (event: React.DragEvent<HTMLDivElement>) => {
         console.log("Started dragging file: ", `'${file.path}'`);
         event.dataTransfer.setData("application/json", JSON.stringify(file));
     };
-
-    const onContextMenu = (event: React.MouseEvent<HTMLDivElement>) => {
-        event.preventDefault();
-
-        setContextMenuVisible(true);
-        setContextMenuPosition([event.clientX, event.clientY]);
-        setContextMenuTarget(file);
-        setContextMenuType(ContextMenuTypes.FILE);
-    }
 
     return (
         <div
@@ -72,7 +55,7 @@ const ListFile = ({ file, openFile, level }: ListFileProps) => {
             onClick={() => !isRenaming && openFile(file.path)}
             onContextMenu={onContextMenu}
         >
-            <MemoizedGoFile size={16}/>
+            <MemoizedGoFile size={16} />
             <RenameableText
                 file={file}
                 onRenamingStateChange={setIsRenaming}
@@ -107,11 +90,9 @@ const ListDirectory = ({
     const expandedDirectories = useAtomValue(expandedDirectoriesAtom);
     const selectedBreadcrumb = useAtomValue(selectedBreadcrumbAtom);
     const isOpen = expandedDirectories.has(file.relativePath);
-    const setContextMenuVisible = useSetAtom(contextMenuVisibleAtom)
-    const setContextMenuTarget = useSetAtom(contextMenuTargetAtom)
-    const [contextMenuType, setContextMenuType] = useAtom(contextMenuTypeAtom);
-    const [contextMenuPosition, setContextMenuPosition] = useAtom(contextMenuPositionAtom);
     const [isRenaming, setIsRenaming] = useState(false);
+
+    const { onContextMenu } = useFileContextMenu(file)
 
     const { dragCounter, onDragEnter, onDragOver, onDragLeave, onDrop } =
         useFileExplorerDragAndDrop({
@@ -123,15 +104,6 @@ const ListDirectory = ({
     const onDragStart = (event: React.DragEvent<HTMLDivElement>) => {
         event.dataTransfer.setData("application/json", JSON.stringify(file));
         console.log("Started dragging directory: ", `'${file.path}'`);
-    }
-
-    const onContextMenu = (event: React.MouseEvent<HTMLDivElement>) => {
-        event.preventDefault();
-        setContextMenuVisible(true);
-        setContextMenuPosition([event.clientX, event.clientY]);
-        setContextMenuTarget(file);
-        setContextMenuType(ContextMenuTypes
-            .DIRECTORY);
     }
 
     return (
@@ -153,8 +125,8 @@ const ListDirectory = ({
             >
                 <MemoizedGoFileDirectory size={16} />
                 <RenameableText
-                    file={file} 
-                    onRenamingStateChange={setIsRenaming}/>
+                    file={file}
+                    onRenamingStateChange={setIsRenaming} />
             </div>
             <div className={`file-explorer-children ${isOpen ? "open" : ""}`}>
                 {isOpen &&

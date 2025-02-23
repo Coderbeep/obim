@@ -1,5 +1,5 @@
 import { deleteFile, openFile, renameFile } from "@renderer/services/fileService"
-import { currentFilePathAtom, editorNoteTextAtom, fileHistoryAtom, isRenamingAtom, noteTextAtom, reloadFlagAtom, renamingFilePathAtom, selectedBreadcrumbAtom } from "@renderer/store/NotesStore"
+import { currentFilePathAtom, editorNoteTextAtom, fileHistoryAtom, isRenamingAtom, noteTextAtom, reloadFlagAtom, renamingFilePathAtom, selectedBreadcrumbAtom } from "../../store/NotesStore"
 import { useAtom, useSetAtom } from "jotai"
 
 interface UseFileRemoveResult {
@@ -15,31 +15,7 @@ interface UseFileRenameResult {
     saveRename: (oldFilePath: string, newName: string) => void;
 }
 
-
-export const useFileRemove = () => {
-    const setReloadFlag = useSetAtom(reloadFlagAtom)
-    const setSelectedBreadcrumb = useSetAtom(selectedBreadcrumbAtom)
-    const [noteText, setNoteText] = useAtom(noteTextAtom)
-    const [editorNoteText, setEditorNoteText] = useAtom(editorNoteTextAtom)
-    const setCurrentFilePath = useSetAtom(currentFilePathAtom)
-
-    const remove = async (path: string) => {
-        const result = await deleteFile(path)
-        console.log(result)
-        if (result.success) {
-            setReloadFlag((prev) => !prev)
-            setSelectedBreadcrumb('')
-            setNoteText('')
-            setEditorNoteText('')
-            setCurrentFilePath('')
-        }
-    }
-
-    return { remove }
-}
-
-
-export const useFileOpen = () => {
+export const useFileOpen = (): UseFileOpenResult => {
     const [noteText, setNoteText] = useAtom(noteTextAtom)
     const [fileHistory, setFileHistory] = useAtom(fileHistoryAtom)
     const [currentFilename, setCurrentFilename] = useAtom(currentFilePathAtom)
@@ -71,6 +47,28 @@ export const useFileOpen = () => {
     }
 
     return { open }
+}
+
+export const useFileRemove = (): UseFileRemoveResult => {
+    const setReloadFlag = useSetAtom(reloadFlagAtom)
+    const setSelectedBreadcrumb = useSetAtom(selectedBreadcrumbAtom)
+    const [noteText, setNoteText] = useAtom(noteTextAtom)
+    const [editorNoteText, setEditorNoteText] = useAtom(editorNoteTextAtom)
+    const setCurrentFilePath = useSetAtom(currentFilePathAtom)
+
+    const remove = async (path: string) => {
+        const result = await deleteFile(path)
+        console.log(result)
+        if (result.success) {
+            setReloadFlag((prev) => !prev)
+            setSelectedBreadcrumb('')
+            setNoteText('')
+            setEditorNoteText('')
+            setCurrentFilePath('')
+        }
+    }
+
+    return { remove }
 }
 
 /**
@@ -105,7 +103,7 @@ export const useFileRename = (): UseFileRenameResult => {
         } else {
             setReloadFlag((prev) => !prev);
             if (currentFilePath === oldFilePath) {
-                setCurrentFilePath(result.output);
+                setCurrentFilePath(result.output || oldFilePath);
             }
         }
     };

@@ -13,7 +13,8 @@ export const useSearchField = () => {
             window.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') {
                     setIsVisible(false)
-            }})
+                }
+            })
         } else {
             window.removeEventListener('keydown', (e) => {
                 if (e.key === 'Escape') {

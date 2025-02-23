@@ -1,7 +1,7 @@
 import { notesDirectoryPath } from '@shared/constants'
 import { FileItem } from '@shared/models'
 import { atom } from 'jotai'
-import { ContextMenuTypes } from '@renderer/components/ContextMenu'
+import { ContextMenuTypes } from '@shared/constants'
 
 export const noteTextAtom = atom('')
 export const currentFilePathAtom = atom('')
@@ -26,11 +26,6 @@ export const selectedBreadcrumbAtom = atom<string>('');
 export const overlayVisibleAtom = atom(false);
 
 // Context menu related atoms
-
-export const contextMenuVisibleAtom = atom(false);
-export const contextMenuTypeAtom = atom(ContextMenuTypes.FILE);
-export const contextMenuPositionAtom = atom<[number, number]>([0, 0]);
-export const contextMenuTargetAtom = atom<FileItem | null>(null);
 
 
 export const isRenamingAtom = atom(false);

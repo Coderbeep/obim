@@ -3,7 +3,7 @@ import { InputField } from './InputField';
 import { useKeyboardHotkey } from '../hooks/useKeyboardHotkey';
 import { useFileExplorer } from '@renderer/hooks/useFileExplorer';
 import { useAtom, useAtomValue } from 'jotai';
-import { isVisibleAtom, resultsAtom } from '@renderer/store/SearchWindowStore';
+import { isVisibleAtom, resultsAtom } from '../store/SearchWindowStore';
 import useSearchField from '@renderer/hooks/useSearchField';
 
 const SearchWindow = () => {

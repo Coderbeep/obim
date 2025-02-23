@@ -1,4 +1,4 @@
-import { reloadFlagAtom } from "@renderer/store/NotesStore";
+import { reloadFlagAtom } from "../store/NotesStore";
 import { FileItem } from "@shared/models";
 import { useAtom } from "jotai";
 import { useState } from "react";

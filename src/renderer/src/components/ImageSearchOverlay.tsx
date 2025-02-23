@@ -2,7 +2,7 @@ import useSearchField from '@renderer/hooks/useSearchField';
 import { useKeyboardHotkey } from '@renderer/hooks/useKeyboardHotkey';
 import { useEffect, useRef, useState } from 'react';
 import { useAtom, useAtomValue } from 'jotai';
-import { resultsAtom } from '@renderer/store/SearchWindowStore';
+import { resultsAtom } from '../store/SearchWindowStore';
 import { overlayVisibleAtom } from '../store/NotesStore';
 import { EventBus, EventTypes } from '@renderer/services/EventBus';
 
@@ -59,7 +59,7 @@ const ImageSearchOverlay = ({ id }: { id: string }) => {
             }
             handleQueryChange(payload.src)
             setOverlayVisible(true);
-            if (payload.src === '') 
+            if (payload.src === '')
                 setOverlayVisible(false);
         }
 
