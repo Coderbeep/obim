@@ -1,4 +1,4 @@
-import { useFileOpen, useFileRemove, useFileRename } from "@renderer/hooks/file-actions-hooks/useFileActions";
+import { useDirectoryCreate, useFileCreate, useFileOpen, useFileRemove, useFileRename } from "@renderer/hooks/file-actions-hooks/useFileActions";
 import { contextMenuPositionAtom, contextMenuTargetAtom, contextMenuTypeAtom, contextMenuVisibleAtom } from "../store/ContextMenuStore";
 import { useAtom } from "jotai";
 import { useEffect, useRef } from "react";
@@ -19,12 +19,14 @@ const ContextMenuItem = ({ icon: Icon, label, onClick, className }) => (
 const ContextMenuDirectory = ({ target }) => {
     const [contextMenuVisible, setContextMenuVisible] = useAtom(contextMenuVisibleAtom);
 
+    const { createNewFile } = useFileCreate();
+    const { createDirectory } = useDirectoryCreate(); 
     const { startRenaming } = useFileRename();
     const { remove } = useFileRemove();
 
     const actions = [
-        { label: "New note", icon: PiFilePlusLight, action: () => console.log("New File") },
-        { label: "New directory", icon: PiFilePlusLight, action: () => console.log("New Folder") },
+        { label: "New note", icon: PiFilePlusLight, action: () =>  createNewFile(target.path) },
+        { label: "New directory", icon: PiFilePlusLight, action: () => createDirectory(target.path) },
         { label: "Rename", icon: GoPencil, action: () => startRenaming(target.path) },
         { label: "Delete", icon: GoTrash, action: () => remove(target.path), className: "text-red-500 hover:bg-red-50" }
     ]

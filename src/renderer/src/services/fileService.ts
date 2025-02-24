@@ -71,3 +71,12 @@ export const deleteFile = async (filePath: string): Promise<RemoveFileResult> =>
         return { success: false, error: String(err) };
     }
 }
+
+export const createDirectory = async (directoryPath: string): Promise<void> => {
+    try {
+        await window['api'].createDirectory(directoryPath);
+        console.log(`Directory '${directoryPath}' created successfully.`);
+    } catch (err) {
+        console.error('Error creating directory:', err);
+    }
+}
