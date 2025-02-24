@@ -2,7 +2,7 @@ import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import { BrowserWindow, app, dialog, ipcMain, shell, protocol } from 'electron'
 import path, { join } from 'path'
 import icon from '../../resources/icon.png?asset'
-import { readFile, readdir, stat, writeFile, rename, unlink } from 'fs/promises'
+import { readFile, readdir, stat, writeFile, rename, unlink, mkdir } from 'fs/promises'
 import { notesDirectoryPath } from '@shared/constants'
 import { FileItem } from '@shared/models'
 import { installExtension, REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer'
@@ -144,6 +144,17 @@ ipcMain.handle('save-file', async (_, filePath: string, content: string) => {
     return true;
   } catch (err) {
     console.error('Error saving file:', err);
+    return false;
+  }
+})
+
+ipcMain.handle('create-directory', async (_, directoryPath: string) => {
+  try {
+    const fullPath = path.resolve(notesDirectoryPath, directoryPath);
+    await mkdir(fullPath)
+    return true;
+  } catch (error) {
+    console.error('Error creating directory:', error);
     return false;
   }
 })
