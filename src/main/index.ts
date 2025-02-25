@@ -236,7 +236,7 @@ ipcMain.handle("rename-file", async (_, currentFilePath: string, newFileName: st
     }
 
     await rename(fullSourcePath, fullDestinationPath);
-    return { success: true, error: null, return: newFilePath }
+    return { success: true, error: null, output: newFilePath }
   } catch (error) {
     console.error('Error moving file:', error);
     return { success: false, error: error }
@@ -255,7 +255,7 @@ ipcMain.handle("move-file", async (_, movingFilePath: string, destinationDirecto
     }
 
     await rename(fullSourcePath, fullDestinationPath);
-    return { success: true, error: null }
+    return { success: true, error: null, output: destinationPath }
   } catch (error) {
     console.error('Error moving file:', error);
     return { success: false, error: error }

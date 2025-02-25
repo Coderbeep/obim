@@ -24,3 +24,11 @@ export const overlayVisibleAtom = atom(false);
 
 export const isRenamingAtom = atom(false);
 export const renamingFilePathAtom = atom<string>('');
+
+// open new note related atoms
+export const openNoteAtom = atom(null, (get, set, filePath: string) => {
+    set(currentFilePathAtom, filePath)
+    set(fileHistoryAtom, [...get(fileHistoryAtom), filePath])
+    set(editorNoteTextAtom, '')
+    set(noteTextAtom, '')
+})

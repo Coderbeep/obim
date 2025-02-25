@@ -4,9 +4,9 @@ import { Element, MarkdownExtension } from '@lezer/markdown';
 import { RangeSetBuilder, StateEffect, StateField } from '@uiw/react-codemirror';
 import React from 'react';
 import ReactDOMServer from 'react-dom/server';
-import { IoSettingsOutline } from "react-icons/io5";
 import { parseYAML } from '../hooks/YAMLutils';
 import { syntaxTree } from '@codemirror/language';
+import { Settings } from 'lucide-react'
 
 /*
 Parsing YAML frontmatter in markdown files.
@@ -145,7 +145,7 @@ class PropertiesWidget extends WidgetType {
 			valuesContainer.className = 'cm-value-container';
 			const value = parsedYAML[key]
 
-			const iconElement = React.createElement(IoSettingsOutline, { size: 18 });
+			const iconElement = React.createElement(Settings, { size: 18 });
 			const icon = ReactDOMServer.renderToString(iconElement);
 
 			const iconContainer = document.createElement('div');

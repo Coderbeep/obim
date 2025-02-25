@@ -1,15 +1,21 @@
-import { reloadFlagAtom } from "../store/NotesStore";
-import { FileItem } from "@shared/models";
-import { useAtom } from "jotai";
+import { moveFile, saveFile } from "@renderer/services/fileService";
+import { currentFilePathAtom, editorNoteTextAtom, noteTextAtom, openNoteAtom, reloadFlagAtom } from "../store/NotesStore";
+import { useAtom, useAtomValue } from "jotai";
 import { useState } from "react";
+import { useFileOpen } from "./file-actions-hooks/useFileActions";
 
 interface useFileExplorerDragAndDropProps {
-    onDropCallback: (file: FileItem) => void;
+    targetDirectoryPath: string;
 }
 
-export const useFileExplorerDragAndDrop = ({ onDropCallback }: useFileExplorerDragAndDropProps) => {
+export const useFileExplorerDragAndDrop = ({ targetDirectoryPath }: useFileExplorerDragAndDropProps) => {
     const [dragCounter, setDragCounter] = useState(0);
+    const noteText = useAtomValue(noteTextAtom)
+    const currentFilePath = useAtomValue(currentFilePathAtom)
+    const editorNoteText = useAtomValue(editorNoteTextAtom)
+    const openNote = useAtomValue(openNoteAtom)
     const [reloadFlag, setReloadFlag] = useAtom(reloadFlagAtom);
+    const { open } = useFileOpen();
 
     const onDragEnter = (event: React.DragEvent<HTMLDivElement>) => {
         event.preventDefault();
@@ -32,14 +38,21 @@ export const useFileExplorerDragAndDrop = ({ onDropCallback }: useFileExplorerDr
         });
     }
 
-    const onDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    // save the file and then move it (callback)
+    const onDrop = async (event: React.DragEvent<HTMLDivElement>) => {
         event.preventDefault();
         event.stopPropagation();
 
         setDragCounter(0);
+        const fileJSON = JSON.parse(event.dataTransfer.getData('application/json'));
+        if (fileJSON.path === currentFilePath) { 
+            await saveFile(fileJSON.path, editorNoteText);
+            const result = await moveFile(fileJSON.path, targetDirectoryPath);
+            if (result.output) open(result.output);
+        } else {
+            await moveFile(fileJSON.path, targetDirectoryPath);
+        }
 
-        const fileJSON = event.dataTransfer.getData('application/json');
-        onDropCallback(JSON.parse(fileJSON));
         setReloadFlag(prev => !prev);
     }
 

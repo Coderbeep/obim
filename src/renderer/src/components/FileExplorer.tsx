@@ -6,9 +6,7 @@ import {
     reloadFlagAtom,
 } from "../store/NotesStore";
 import { useFileExplorer } from "../hooks/useFileExplorer";
-import { isVisibleAtom } from "../store/SearchWindowStore";
 import { useEffect, memo, useState } from "react";
-import { GoSearch, GoPlus, GoFile, GoFileDirectory } from "react-icons/go";
 import { FileItem } from "@shared/models";
 import { ContextMenuTypes, notesDirectoryPath } from "@shared/constants";
 import { useFileExplorerDragAndDrop } from "@renderer/hooks/useFileExplorerDragAndDrop";
@@ -98,11 +96,7 @@ const ListDirectory = ({
     const { onContextMenu } = useFileContextMenu(file, ContextMenuTypes.DIRECTORY)
 
     const { dragCounter, onDragEnter, onDragOver, onDragLeave, onDrop } =
-        useFileExplorerDragAndDrop({
-            onDropCallback: (droppedFile) => {
-                moveFile(droppedFile.path, file.path)
-            },
-        });
+        useFileExplorerDragAndDrop({ targetDirectoryPath: file.path })
 
     const onDragStart = (event: React.DragEvent<HTMLDivElement>) => {
         event.dataTransfer.setData("application/json", JSON.stringify(file));
@@ -197,11 +191,7 @@ export const FileExplorer = memo(({ directoryPath }: FileExplorerProps) => {
     };
 
     const { dragCounter, onDragEnter, onDragOver, onDragLeave, onDrop } =
-        useFileExplorerDragAndDrop({
-            onDropCallback: (droppedFile) => {
-                moveFile(droppedFile.path, notesDirectoryPath)
-            },
-        });
+        useFileExplorerDragAndDrop({ targetDirectoryPath: notesDirectoryPath })
 
 
     return (

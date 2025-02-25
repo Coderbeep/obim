@@ -27,7 +27,7 @@ export const renameFile = async (filePath: string, newFilename: string): Promise
         const result = await window['api'].renameFile(filePath, newFilename);
         if (result.success) {
             console.log(`File '${filePath}' renamed to '${newFilename}' successfully.`);
-            return { success: true, output: result.return };
+            return { success: true, output: result.output };
         } else {
             console.error(`Error renaming file: ${result.error}`);
             return { success: false, error: result.error };
@@ -38,16 +38,25 @@ export const renameFile = async (filePath: string, newFilename: string): Promise
     }
 };
 
-export const moveFile = async (sourceFilePath: string, targetDirectoryPath: string): Promise<void> => {
+interface MoveFileResult {
+    success: boolean;
+    output?: string;
+    error?: string;
+}
+
+export const moveFile = async (sourceFilePath: string, targetDirectoryPath: string): Promise<MoveFileResult> => {
     try {
         const result = await window['api'].moveFile(sourceFilePath, targetDirectoryPath);
         if (result.success) {
-            console.log(`File '${sourceFilePath}' moved to '${targetDirectoryPath}' successfully.`);   
+            console.log(`File '${sourceFilePath}' moved to '${targetDirectoryPath}' successfully.`);
+            return { success: true, output: result.output };
         } else {
             console.error(`Error moving file: ${result.error}`);
+            return { success: false, error: result.error };
         }
     } catch (err) {
         console.error('Error moving file:', err);
+        return { success: false, error: String(err) };
     }
 }
 
