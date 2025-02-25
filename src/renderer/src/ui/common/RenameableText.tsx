@@ -49,9 +49,9 @@ export const RenameableText = ({ file, onRenamingStateChange }: RenameableTextPr
         suppressContentEditableWarning={true}
         onBlur={() => saveRename(file.path, editableRef.current?.innerText || "")}
         onKeyDown={(event) => {
-            if (event.key === "Enter") editableRef.current?.blur();
+            if (event.key === "Enter" || event.key === "Escape") editableRef.current?.blur();
         }}
-        onDoubleClick={() => handleStartRenaming()}
+        // onDoubleClick={() => handleStartRenaming()}
     >
         {file.filename}
     </div>

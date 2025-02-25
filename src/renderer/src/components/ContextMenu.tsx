@@ -2,17 +2,20 @@ import { useDirectoryCreate, useFileCreate, useFileOpen, useFileRemove, useFileR
 import { contextMenuPositionAtom, contextMenuTargetAtom, contextMenuTypeAtom, contextMenuVisibleAtom } from "../store/ContextMenuStore";
 import { useAtom } from "jotai";
 import { useEffect, useRef } from "react";
-import { GoPencil, GoTrash } from "react-icons/go";
-import { PiFilePlusLight } from "react-icons/pi";
 import { ContextMenuTypes } from "@shared/constants";
+import { FilePlus, FolderPlus, PenLine, Trash2, FileText } from "lucide-react"
 
-const ContextMenuItem = ({ icon: Icon, label, onClick, className }) => (
+const ContextMenuSeparator = () => (
+    <div className="border-t border-gray-200 my-1 mx-2" />
+);
+
+const ContextMenuItem = ({ icon: Icon, label, onClick, className = "" }) => (
     <div
-        className={`flex items-center gap-2 px-2 mx-2 rounded-md py-[2px] cursor-pointer hover:bg-gray-100 ${className}`}
+        className={`flex items-center gap-2 px-2 mx-2 rounded-md py-[0.5px] cursor-pointer hover:bg-gray-100 ${className}`}
         onClick={onClick}
     >
-        <Icon className={`w-[14px] h-[14px] text-gray-600 ${className}`} />
-        <span className={`text-gray-800 ${className}`}> {label} </span>
+        <Icon className={`w-[16px] h-[16px] text-gray-600 ${className}`} />
+        <span className={`text-gray-800 text-[13px] ${className || ""}`}> {label} </span>
     </div>
 );
 
@@ -25,10 +28,11 @@ const ContextMenuDirectory = ({ target }) => {
     const { remove } = useFileRemove();
 
     const actions = [
-        { label: "New note", icon: PiFilePlusLight, action: () =>  createNewFile(target.path) },
-        { label: "New directory", icon: PiFilePlusLight, action: () => createDirectory(target.path) },
-        { label: "Rename", icon: GoPencil, action: () => startRenaming(target.path) },
-        { label: "Delete", icon: GoTrash, action: () => remove(target.path), className: "text-red-500 hover:bg-red-50" }
+        { label: "New note", icon: FilePlus, action: () =>  createNewFile(target.path) },
+        { label: "New directory", icon: FolderPlus, action: () => createDirectory(target.path) },
+        { separator: true }, 
+        { label: "Rename", icon: PenLine, action: () => startRenaming(target.path) },
+        { label: "Delete", icon: Trash2, action: () => remove(target.path), className: "text-red-500 hover:bg-red-50" }
     ]
 
     const handleOnClick = (action) => {
@@ -36,9 +40,13 @@ const ContextMenuDirectory = ({ target }) => {
         setContextMenuVisible(false);
     }
 
-    return actions.map(({ label, icon, action, className = "" }) => (
-        <ContextMenuItem key={label} icon={icon} label={label} onClick={() => handleOnClick(action)} className={className} />
-    ));
+    return actions.map((item, index) => 
+        item.separator ? (
+            <ContextMenuSeparator key={`separator-${index}`} />
+        ) : (
+            <ContextMenuItem key={item.label} icon={item.icon} label={item.label} onClick={() => handleOnClick(item.action)} className={item.className} />
+        )
+    );
 }
 
 const ContextMenuFile = ({ target }) => {
@@ -48,9 +56,9 @@ const ContextMenuFile = ({ target }) => {
     const { startRenaming } = useFileRename();
 
     const actions = [
-        { label: "Open", icon: PiFilePlusLight, action: () => open(target.path) },
-        { label: "Rename", icon: GoPencil, action: () => startRenaming(target.path) },
-        { label: "Delete", icon: GoTrash, action: () => remove(target.path), className: "text-red-500 hover:bg-red-50" }
+        { label: "Open", icon: FileText, action: () => open(target.path) },
+        { label: "Rename", icon: PenLine, action: () => startRenaming(target.path) },
+        { label: "Delete", icon: Trash2, action: () => remove(target.path), className: "text-red-500 hover:bg-red-50" }
     ];
 
     const handleOnClick = (action) => {
@@ -63,10 +71,30 @@ const ContextMenuFile = ({ target }) => {
     ));
 };
 
+const ContextMenuFileExplorer = () => {
+    const [contextMenuVisible, setContextMenuVisible] = useAtom(contextMenuVisibleAtom)
+    const { createNewFile } = useFileCreate()
+    const { createDirectory } = useDirectoryCreate()
+
+    const actions = [
+        { label: "New note", icon: FilePlus, action: () =>  createNewFile() },
+        { label: "New directory", icon: FolderPlus, action: () => createDirectory() },
+    ]
+
+    const handleOnClick = (action) => {
+        action();
+        setContextMenuVisible(false)
+    }
+
+    return actions.map(({label, icon, action}) => (
+        <ContextMenuItem key={label} icon={icon} label={label} onClick={() => handleOnClick(action)}/>
+    ))
+}
 
 const contextMenuComponents = {
     [ContextMenuTypes.FILE]: ContextMenuFile,
-    [ContextMenuTypes.DIRECTORY]: ContextMenuDirectory
+    [ContextMenuTypes.DIRECTORY]: ContextMenuDirectory,
+    [ContextMenuTypes.FILEEXPLORER]: ContextMenuFileExplorer
 }
 
 export const ContextMenu = ({ id }) => {

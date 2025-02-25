@@ -30,7 +30,6 @@
     "@electron-toolkit/utils": "^2.0.0",
     "@markdoc/markdoc": "^0.4.0",
     "@replit/codemirror-indentation-markers": "^6.5.3",
-    "@shadcn/ui": "^0.0.4",
     "@uiw/react-codemirror": "^4.23.0",
     "codemirror": "^5.65.17",
     "debounce": "^2.2.0",
@@ -40,11 +39,8 @@
     "js-yaml": "^4.1.0",
     "katex": "^0.16.21",
     "lodash": "^4.17.21",
-    "markdown-it": "^14.1.0",
-    "react-icons": "^5.4.0",
-    "react-virtualized": "^9.22.5",
-    "react-virtualized-auto-sizer": "^1.0.25",
-    "react-window": "^1.8.11"
+    "lucide-react": "^0.475.0",
+    "markdown-it": "^14.1.0"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^1.0.1",

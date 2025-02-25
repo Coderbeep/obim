@@ -10,15 +10,18 @@ import { isVisibleAtom } from "../store/SearchWindowStore";
 import { useEffect, memo, useState } from "react";
 import { GoSearch, GoPlus, GoFile, GoFileDirectory } from "react-icons/go";
 import { FileItem } from "@shared/models";
-import { notesDirectoryPath } from "@shared/constants";
+import { ContextMenuTypes, notesDirectoryPath } from "@shared/constants";
 import { useFileExplorerDragAndDrop } from "@renderer/hooks/useFileExplorerDragAndDrop";
 import { moveFile } from "@renderer/services/fileService";
 import { RenameableText } from "@renderer/ui/common/RenameableText";
 import { useFileOpen } from "@renderer/hooks/file-actions-hooks/useFileActions";
 import { useFileContextMenu } from "@renderer/hooks/file-actions-hooks/useFileContextMenu";
+import { Folder, File, FolderOpen } from "lucide-react";
+import { FileExplorerHeader } from "./FileExplorerHeader";
 
-const MemoizedGoFile = memo(GoFile);
-const MemoizedGoFileDirectory = memo(GoFileDirectory);
+const MemoizedFile = memo(File);
+const MemoizedFileDirectory = memo(Folder);
+const MemoizedOpenFileDirectory = memo(FolderOpen)
 
 interface FileExplorerProps {
     directoryPath: string;
@@ -39,7 +42,7 @@ interface ListDirectoryProps {
 
 const ListFile = ({ file, openFile, level }: ListFileProps) => {
     const [isRenaming, setIsRenaming] = useState(false);
-    const { onContextMenu } = useFileContextMenu(file)
+    const { onContextMenu } = useFileContextMenu(file, ContextMenuTypes.FILE)
 
     const onDragStart = (event: React.DragEvent<HTMLDivElement>) => {
         console.log("Started dragging file: ", `'${file.path}'`);
@@ -55,7 +58,7 @@ const ListFile = ({ file, openFile, level }: ListFileProps) => {
             onClick={() => !isRenaming && openFile(file.path)}
             onContextMenu={onContextMenu}
         >
-            <MemoizedGoFile size={16} />
+            <MemoizedFile size={16} />
             <RenameableText
                 file={file}
                 onRenamingStateChange={setIsRenaming}
@@ -92,7 +95,7 @@ const ListDirectory = ({
     const isOpen = expandedDirectories.has(file.relativePath);
     const [isRenaming, setIsRenaming] = useState(false);
 
-    const { onContextMenu } = useFileContextMenu(file)
+    const { onContextMenu } = useFileContextMenu(file, ContextMenuTypes.DIRECTORY)
 
     const { dragCounter, onDragEnter, onDragOver, onDragLeave, onDrop } =
         useFileExplorerDragAndDrop({
@@ -122,8 +125,8 @@ const ListDirectory = ({
                 draggable={true}
                 onDragStart={onDragStart}
                 onContextMenu={onContextMenu}
-            >
-                <MemoizedGoFileDirectory size={16} />
+            >   
+                {isOpen ? <MemoizedOpenFileDirectory size={16} /> : <MemoizedFileDirectory size={16} />}
                 <RenameableText
                     file={file}
                     onRenamingStateChange={setIsRenaming} />
@@ -160,8 +163,9 @@ export const FileExplorer = memo(({ directoryPath }: FileExplorerProps) => {
     const selectedBreadcrumb = useAtomValue(selectedBreadcrumbAtom);
     const [fileTree, setFileTree] = useAtom(fileTreeAtom);
     const setExpandedDirectories = useSetAtom(expandedDirectoriesAtom);
-    const setIsVisible = useSetAtom(isVisibleAtom);
     const reloadFlag = useAtomValue(reloadFlagAtom);
+
+    const { onContextMenu } = useFileContextMenu(null, ContextMenuTypes.FILEEXPLORER)
 
 
     useEffect(() => {
@@ -206,27 +210,11 @@ export const FileExplorer = memo(({ directoryPath }: FileExplorerProps) => {
             onDragLeave={onDragLeave}
             onDragOver={onDragOver}
             onDrop={onDrop}>
-            <div className="file-explorer-header">
-                <div
-                    className="file-explorer-button add-button"
-                    onClick={createNewFile}
-                >
-                    <GoPlus />
-                    <span> Add content </span>
-                </div>
-                <div
-                    className="file-explorer-button search-button"
-                    onClick={() => {
-                        setIsVisible((prev) => !prev);
-                    }}
-                >
-                    <GoSearch />
-                </div>
-            </div>
+            <FileExplorerHeader />
             <div className="file-explorer-category">
                 <span>Notes</span>
             </div>
-            <div className="file-explorer-list pr-4">
+            <div className="file-explorer-list pr-4" onContextMenu={onContextMenu}>
                 {fileTree.map((file) =>
                     file.isDirectory ? (
                         <ListDirectory

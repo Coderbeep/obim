@@ -9,12 +9,12 @@ export const contextMenuTargetAtom = atom<FileItem | null>(null);
 
 export const openContextMenuAtom = atom(
     null,
-    (get, set, event: React.MouseEvent<HTMLDivElement>, file: FileItem) => {
+    (get, set, event: React.MouseEvent<HTMLDivElement>, file: FileItem | null, type: ContextMenuTypes) => {
       event.preventDefault();
       set(contextMenuVisibleAtom, true);
       set(contextMenuPositionAtom, [event.clientX, event.clientY]);
       set(contextMenuTargetAtom, file);
-      set(contextMenuTypeAtom, file.isDirectory ? ContextMenuTypes.DIRECTORY : ContextMenuTypes.FILE);
+      set(contextMenuTypeAtom, type);
     }
   );
   

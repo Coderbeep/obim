@@ -1,16 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { InputField } from './InputField';
 import { useKeyboardHotkey } from '../hooks/useKeyboardHotkey';
-import { useFileExplorer } from '@renderer/hooks/useFileExplorer';
 import { useAtom, useAtomValue } from 'jotai';
 import { isVisibleAtom, resultsAtom } from '../store/SearchWindowStore';
 import useSearchField from '@renderer/hooks/useSearchField';
+import { useFileOpen } from '@renderer/hooks/file-actions-hooks/useFileActions';
 
 const SearchWindow = () => {
     const results = useAtomValue(resultsAtom);
     const [isVisible, setIsVisible] = useAtom(isVisibleAtom);
-    const { currentlySelected, setCurrentlySelected, handleKeyDown } = useKeyboardHotkey(results.length - 1);
-    const { openFile } = useFileExplorer();
+    const { currentlySelected, setCurrentlySelected, handleKeyDown, setMaxIndex } = useKeyboardHotkey();
+    const { open } = useFileOpen();
     const [navMode, setNavMode] = useState(0); // 0: keyboard, 1: mouse
     const { onQueryChange } = useSearchField();
 
@@ -22,7 +22,8 @@ const SearchWindow = () => {
     }
 
     const onResultClick = (path: string) => {
-        openFile(path);
+        open(path);
+        console.log('Opening file:', path);
         onQueryChange('');
         setIsVisible(false);
     }
@@ -39,6 +40,10 @@ const SearchWindow = () => {
         setNavMode(1);
         setCurrentlySelected(index);
     }
+
+    useEffect(() => {
+        setMaxIndex(results.length - 1);
+    }, [results])
 
     useEffect(() => {
         if (listRefs.current[currentlySelected] && !navMode) {
