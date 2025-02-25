@@ -1,5 +1,5 @@
 import { deleteFile, openFile, renameFile } from "@renderer/services/fileService"
-import { currentFilePathAtom, editorNoteTextAtom, fileHistoryAtom, fileTreeAtom, isRenamingAtom, noteTextAtom, openNoteAtom, reloadFlagAtom, renamingFilePathAtom, selectedBreadcrumbAtom } from "../../store/NotesStore"
+import { currentFilePathAtom, editorNoteTextAtom, fileHistoryAtom, fileTreeAtom, isRenamingAtom, newlyCreatedFileAtom, noteTextAtom, openNoteAtom, reloadFlagAtom, renamingFilePathAtom, selectedBreadcrumbAtom } from "../../store/NotesStore"
 import { useAtom, useSetAtom } from "jotai"
 import { FileItem } from "@shared/models";
 import { notesDirectoryPath } from "@shared/constants";
@@ -117,6 +117,7 @@ export const useFileRename = (): UseFileRenameResult => {
 export const useFileCreate = () => {
     const [files, setFiles] = useAtom(fileTreeAtom);
     const setOpenNote = useSetAtom(openNoteAtom);
+    const setNewlyCreatedFile = useSetAtom(newlyCreatedFileAtom);
 
     const createNewFile = async (folderPath: string = notesDirectoryPath) => {
         let filename: string = '';
@@ -153,6 +154,7 @@ export const useFileCreate = () => {
             }
 
             setOpenNote(fullFilePath);
+            setNewlyCreatedFile(fullFilePath);
         } catch (err) {
             console.error('Error creating file:', err);
         }

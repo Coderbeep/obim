@@ -4,13 +4,13 @@ import {
     selectedBreadcrumbAtom,
     fileTreeAtom,
     reloadFlagAtom,
+    newlyCreatedFileAtom,
 } from "../store/NotesStore";
 import { useFileExplorer } from "../hooks/useFileExplorer";
-import { useEffect, memo, useState } from "react";
+import { useEffect, memo, useState, useRef } from "react";
 import { FileItem } from "@shared/models";
 import { ContextMenuTypes, notesDirectoryPath } from "@shared/constants";
 import { useFileExplorerDragAndDrop } from "@renderer/hooks/useFileExplorerDragAndDrop";
-import { moveFile } from "@renderer/services/fileService";
 import { RenameableText } from "@renderer/ui/common/RenameableText";
 import { useFileOpen } from "@renderer/hooks/file-actions-hooks/useFileActions";
 import { useFileContextMenu } from "@renderer/hooks/file-actions-hooks/useFileContextMenu";
@@ -41,6 +41,16 @@ interface ListDirectoryProps {
 const ListFile = ({ file, openFile, level }: ListFileProps) => {
     const [isRenaming, setIsRenaming] = useState(false);
     const { onContextMenu } = useFileContextMenu(file, ContextMenuTypes.FILE)
+    const fileRef = useRef<HTMLDivElement>(null);
+    const [newlyCreatedFile, setNewlyCreatedFile] = useAtom(newlyCreatedFileAtom);
+
+    useEffect(() => {
+        if (fileRef.current && file.path === newlyCreatedFile) {
+            console.log("Scrolling to newly created file: ", `'${file.path}'`);
+            fileRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+            setNewlyCreatedFile("");
+        }
+    }, [newlyCreatedFile]);
 
     const onDragStart = (event: React.DragEvent<HTMLDivElement>) => {
         console.log("Started dragging file: ", `'${file.path}'`);
@@ -49,6 +59,7 @@ const ListFile = ({ file, openFile, level }: ListFileProps) => {
 
     return (
         <div
+            ref={fileRef}
             draggable
             onDragStart={onDragStart}
             className="file-explorer-item flex"

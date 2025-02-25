@@ -16,6 +16,7 @@ export const fileTreeAtom = atom<FileItem[]>([]);
 export const folderCacheAtom = atom<Map<string, FileItem[]>>(new Map());
 export const expandedDirectoriesAtom = atom<Set<string>>(new Set<string>());
 export const reloadFlagAtom = atom(false);
+export const newlyCreatedFileAtom = atom<string>(''); // path to newly created atom
 
 // Breadcrumbs related atoms
 
