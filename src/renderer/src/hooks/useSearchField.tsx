@@ -1,5 +1,5 @@
 import { useEffect } from "react"
-import { getFilesFromDB } from '../../utils/db'
+import { getFilesFromDB } from '../../utils/filesDB'
 import { isVisibleAtom, queryAtom, resultsAtom } from "../store/SearchWindowStore"
 import { useAtom, useSetAtom } from "jotai"
 

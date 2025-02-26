@@ -1,10 +1,9 @@
 import { Content, RootLayout, Sidebar } from './components'
-import CMImageContextMenu from './components/CMImageContextMenu'
 import Editor from './components/myEditor'
 import { notesDirectoryPath } from '@shared/constants'
 import { FileExplorer } from './components/FileExplorer'
 import { useEffect } from 'react'
-import { storeFilesInDB } from '../utils/db'
+import { storeFilesInDB } from '../utils/filesDB'
 import SearchWindow from './components/SearchWindow'
 import './assets/index.css'
 import { Breadcrumbs } from './components/Breadcrumbs'
@@ -25,7 +24,6 @@ function App() {
   return (
     <RootLayout>
       <SearchWindow />
-      <CMImageContextMenu />
       <Sidebar>
         <FileExplorer directoryPath={notesDirectoryPath} />
       </Sidebar>
@@ -33,9 +31,9 @@ function App() {
         <Breadcrumbs />
         <Editor />
       </Content>
-      <ImageSearchOverlay id="image-overlay"/>  
-      <ContextMenu id="context-menu" type="FILE"/>
-      </RootLayout>
+      <ImageSearchOverlay id="image-overlay" />
+      <ContextMenu id="context-menu" />
+    </RootLayout>
   )
 }
 

@@ -1,9 +1,10 @@
 import { deleteFile, openFile, renameFile } from "@renderer/services/fileService"
-import { currentFilePathAtom, editorNoteTextAtom, fileHistoryAtom, fileTreeAtom, isRenamingAtom, newlyCreatedFileAtom, noteTextAtom, openNoteAtom, reloadFlagAtom, renamingFilePathAtom, selectedBreadcrumbAtom } from "../../store/NotesStore"
+import { bookmarksAtom, currentFilePathAtom, editorNoteTextAtom, fileHistoryAtom, fileTreeAtom, isRenamingAtom, newlyCreatedFileAtom, noteTextAtom, openNoteAtom, reloadFlagAtom, renamingAppSectionAtom, renamingFilePathAtom, selectedBreadcrumbAtom } from "../../store/NotesStore"
 import { useAtom, useSetAtom } from "jotai"
 import { FileItem } from "@shared/models";
-import { notesDirectoryPath } from "@shared/constants";
+import { AppSections, notesDirectoryPath } from "@shared/constants";
 import { addItemToTree, findFolderNode, generateUniqueName } from "@renderer/services/fileTreeService";
+import { addBookmarkToDB, removeBookmarkFromDB } from "../../../utils/bookmarksDB";
 
 interface UseFileRemoveResult {
     remove: (path: string) => void;
@@ -14,7 +15,7 @@ interface UseFileOpenResult {
 
 interface UseFileRenameResult {
     isRenaming: boolean;
-    startRenaming: (filePath: string) => void;
+    startRenaming: (filePath: string, section: AppSections) => void;
     saveRename: (oldFilePath: string, newName: string) => void;
 }
 
@@ -68,6 +69,7 @@ export const useFileRemove = (): UseFileRemoveResult => {
             setNoteText('')
             setEditorNoteText('')
             setCurrentFilePath('')
+
         }
     }
 
@@ -80,18 +82,19 @@ export const useFileRemove = (): UseFileRemoveResult => {
  * @returns {UseFileRenameResult} - Provides functions for renaming a file:
  *   - `startRenaming`: Begins the renaming process for a file.
  *   - `saveRename`: Saves the renamed file and updates the state.
- *  - `isRenaming`: A boolean value indicating whether the renaming process is active.
+ *   - `isRenaming`: A boolean value indicating whether the renaming process is active.
  */
-
 export const useFileRename = (): UseFileRenameResult => {
     const [isRenaming, setIsRenaming] = useAtom(isRenamingAtom);
     const [renamingFile, setRenamingFile] = useAtom(renamingFilePathAtom);
     const [reloadFlag, setReloadFlag] = useAtom(reloadFlagAtom);
     const [currentFilePath, setCurrentFilePath] = useAtom(currentFilePathAtom);
+    const setRenameAppSection = useSetAtom(renamingAppSectionAtom);
 
-    const startRenaming = (filePath: string) => {
+    const startRenaming = (filePath: string, section: AppSections) => {
         if (!filePath) return;
         setRenamingFile(filePath);
+        setRenameAppSection(section)
         setIsRenaming(true);
     };
 
@@ -146,7 +149,7 @@ export const useFileCreate = () => {
                 relativePath: fullFilePath.replace(`${notesDirectoryPath}/`, ''),
                 path: fullFilePath,
                 isDirectory: false,
-            }; 
+            };
             if (folderPath === notesDirectoryPath) {
                 setFiles(prevFiles => [...prevFiles, fileItem]);
             } else {
@@ -178,7 +181,7 @@ export const useDirectoryCreate = () => {
                 console.error(`Folder not found: ${folderPath}`);
                 return;
             }
-    
+
             foldername = generateUniqueName(targetFolder.children || [], 'New directory');
             fullFolderPath = `${folderPath}/${foldername}`;
         }
@@ -206,3 +209,22 @@ export const useDirectoryCreate = () => {
 
     return { createDirectory };
 };
+
+export const useManageFileBookmark = () => {
+    const [bookmarks, setBookmarks] = useAtom(bookmarksAtom);
+
+    const addBookmark = (file) => {
+        console.log("Hook to add bookmark", file);
+        addBookmarkToDB(file);
+        setBookmarks([...bookmarks, file]);
+    }
+
+    const removeBookmark = (file) => {
+        console.log("Hook to remove bookmark", file);
+        removeBookmarkFromDB(file);
+        setBookmarks(bookmarks.filter(bookmark => bookmark.path !== file.path));
+    }
+
+    return { addBookmark, removeBookmark };
+}
+

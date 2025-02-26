@@ -7,6 +7,7 @@ import { notesDirectoryPath } from '@shared/constants'
 import { FileItem } from '@shared/models'
 import { installExtension, REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer'
 import { existsSync } from 'fs'
+import { randomUUID } from 'crypto'
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({

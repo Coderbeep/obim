@@ -2,7 +2,7 @@ import { RangeSetBuilder } from "@codemirror/state";
 import { Decoration, EditorView, WidgetType } from "@codemirror/view";
 import { syntaxTree } from '@codemirror/language';
 import { notesDirectoryPath } from '@shared/constants';
-import { doesPathExist } from '../../utils/db';
+import { doesPathExist } from '../../utils/filesDB';
 import { activeImageWidgetPositionEffect, imageField, isCaretInsideImageEffect, toggleImageEffect } from "./ImageExtensionState";
 import { OverlayManager } from "./ImageExtensionOverlay";
 
@@ -28,7 +28,7 @@ function createImageDecorations(view) {
         const src = view.state.doc.sliceString(node.from + 3, node.to - 2);
 
         if (!isCaretInsideGlobal && isCaretInside) isCaretInsideGlobal = true;
-        
+
         if (!isActive) {
           builder.add(node.from, node.to, Decoration.mark({ class: 'cm-mark-hidden' }));
         }
@@ -46,7 +46,7 @@ function createImageDecorations(view) {
       }
     }
   });
-  
+
   view.dispatch({
     effects: isCaretInsideImageEffect.of(isCaretInsideGlobal)
   })
@@ -82,7 +82,7 @@ class ImageWidget extends WidgetType {
     }
 
     if (this.reactive) {
-      requestAnimationFrame(() => { 
+      requestAnimationFrame(() => {
         OverlayManager.updatePosition(container, this.src);
         OverlayManager.registerSelectionHandler(view);
       })
@@ -96,8 +96,8 @@ class ImageWidget extends WidgetType {
     OverlayManager.unregisterSelectionHandler();
   }
 
-  eq(other: ImageWidget) { 
-    return this.src === other.src 
+  eq(other: ImageWidget) {
+    return this.src === other.src
   }
 
   get estimatedHeight() { return 100; }

@@ -5,6 +5,11 @@ request.onupgradeneeded = (event) => {
   const db = event.target.result;
   const store = db.createObjectStore('files', { keyPath: 'path' });
   store.createIndex('files', 'filename', { unique: false });
+
+  if (!db.objectStoreNames.contains('bookmarks')) {
+    const bookmarkStore = db.createObjectStore('bookmarks', { keyPath: 'path' });
+    bookmarkStore.createIndex('bookmarks', 'filename', { unique: false });
+}
 };
 
 request.onerror = (event) => {

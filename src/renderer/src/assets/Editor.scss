@@ -77,7 +77,6 @@
     padding: 0.2em;
     border-radius: 8px;
     cursor: pointer;
-    transition: background-color 0.2s ease, color 0.2s ease;
 
     &.selected {
       background-color: $background-focus-line;
@@ -86,7 +85,6 @@
     &:hover {
       background-color: $gray-3;
       color: $gray-5;
-      transition: background-color 0.2s ease, color 0.2s ease;
     }
 
     span {
@@ -130,10 +128,25 @@
 
 .file-explorer-group {
   border-radius: 8px;
+  position: relative; // Ensure positioning for absolute child elements
 }
 
+// file-explorer-children should have a vertical line indicating the indentation
+@for $i from 0 through 10 {
+  .file-explorer-children-#{$i} {
+    position: relative;
 
-
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: #{0.75em + $i * 1.5em}; // Increases by 1.5em per level
+      width: 1px;
+      height: 100%;
+      background-color: #e5e7eb;
+    }
+  }
+}
 
 
 

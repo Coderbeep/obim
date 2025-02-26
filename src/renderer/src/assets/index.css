@@ -6,6 +6,7 @@ html {
   overflow: hidden;
 }
 
+
 @layer base {
   #root {
     @apply h-full;

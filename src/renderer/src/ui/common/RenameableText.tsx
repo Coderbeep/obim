@@ -1,20 +1,26 @@
 import { useFileRename } from "@renderer/hooks/file-actions-hooks/useFileActions";
-import { renamingFilePathAtom } from "../../store/NotesStore";
+import { renamingAppSectionAtom, renamingFilePathAtom } from "../../store/NotesStore";
 import { FileItem } from "@shared/models";
 import { useAtom } from "jotai";
 import { useEffect, useRef } from "react";
+import { AppSections } from "@shared/constants";
 
 interface RenameableTextProps {
     file: FileItem;
     onRenamingStateChange: (isRenaming: boolean) => void;
+    section?: AppSections;
 }
 
-export const RenameableText = ({ file, onRenamingStateChange }: RenameableTextProps) => {
+export const RenameableText = ({ file, onRenamingStateChange, section }: RenameableTextProps) => {
     const [renamingFile, setRenamingFile] = useAtom(renamingFilePathAtom);
     const editableRef = useRef<HTMLDivElement>(null);
-    const { isRenaming, startRenaming, saveRename } = useFileRename();
+    const { isRenaming, saveRename } = useFileRename();
+    const [ isRenamingSection, setIsRenamingSection ] = useAtom(renamingAppSectionAtom);
+    const currentSection = section || AppSections.UNSPECIFIED;
 
-    const isEditing = isRenaming && renamingFile === file.path;
+    const isEditing = isRenaming && 
+                      renamingFile === file.path && 
+                      isRenamingSection === currentSection;
 
     const focusOnEnd = () => {
         setTimeout(() => {
@@ -31,19 +37,15 @@ export const RenameableText = ({ file, onRenamingStateChange }: RenameableTextPr
         }, 0);
     }
 
-    const handleStartRenaming = () => {
-        startRenaming(file.path);
-        focusOnEnd();
-    }
-
     useEffect(() => {
         focusOnEnd();
         onRenamingStateChange(isEditing);
+        console.log("Renaming state changed: ", isEditing, currentSection);
     }, [isEditing]);
 
     return <div
         ref={editableRef}
-        className={`whitespace-nowrap overflow-hidden text-ellipsis flex-1 truncate ${isEditing ? "bg-blue-100 focus:outline-none" : ""}`}
+        className={`whitespace-nowrap overflow-hidden text-sm text-ellipsis flex-1 truncate ${isEditing ? "bg-blue-100 focus:outline-none" : ""}`}
         contentEditable={isEditing}
         spellCheck={false}
         suppressContentEditableWarning={true}
@@ -51,7 +53,6 @@ export const RenameableText = ({ file, onRenamingStateChange }: RenameableTextPr
         onKeyDown={(event) => {
             if (event.key === "Enter" || event.key === "Escape") editableRef.current?.blur();
         }}
-        // onDoubleClick={() => handleStartRenaming()}
     >
         {file.filename}
     </div>

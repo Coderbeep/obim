@@ -16,6 +16,7 @@ import { useFileOpen } from "@renderer/hooks/file-actions-hooks/useFileActions";
 import { useFileContextMenu } from "@renderer/hooks/file-actions-hooks/useFileContextMenu";
 import { Folder, File, FolderOpen } from "lucide-react";
 import { FileExplorerHeader } from "./FileExplorerHeader";
+import { FileExplorerBookmarks } from "./FileExplorerBookmarks";
 
 const MemoizedFile = memo(File);
 const MemoizedFileDirectory = memo(Folder);
@@ -38,17 +39,23 @@ interface ListDirectoryProps {
     level: number;
 }
 
-const ListFile = ({ file, openFile, level }: ListFileProps) => {
+export const ListFile = ({ file, openFile, level }: ListFileProps) => {
     const [isRenaming, setIsRenaming] = useState(false);
     const { onContextMenu } = useFileContextMenu(file, ContextMenuTypes.FILE)
     const fileRef = useRef<HTMLDivElement>(null);
     const [newlyCreatedFile, setNewlyCreatedFile] = useAtom(newlyCreatedFileAtom);
+    const [isHighlighted, setIsHighlighted] = useState(false);
 
     useEffect(() => {
         if (fileRef.current && file.path === newlyCreatedFile) {
             console.log("Scrolling to newly created file: ", `'${file.path}'`);
             fileRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
             setNewlyCreatedFile("");
+
+            setIsHighlighted(true);
+            setTimeout(() => {
+                setIsHighlighted(false);
+            }, 3000);
         }
     }, [newlyCreatedFile]);
 
@@ -62,12 +69,14 @@ const ListFile = ({ file, openFile, level }: ListFileProps) => {
             ref={fileRef}
             draggable
             onDragStart={onDragStart}
-            className="file-explorer-item flex"
-            style={{ marginLeft: `${level}em` }}
+            className={`file-explorer-item flex ${isHighlighted ? "bg-blue-200" : ""}`}
+            style={{ marginLeft: `${level * 1.5}em`,  }}
             onClick={() => !isRenaming && openFile(file.path)}
             onContextMenu={onContextMenu}
-        >
-            <MemoizedFile size={16} />
+        >   
+            <div className="bg-gray-100 p-[0.15rem] rounded-md">
+                <MemoizedFile size={14} />
+            </div>
             <RenameableText
                 file={file}
                 onRenamingStateChange={setIsRenaming}
@@ -120,23 +129,21 @@ const ListDirectory = ({
             onDragEnter={onDragEnter}
             onDragLeave={onDragLeave}
             onDragOver={onDragOver}
-            onDrop={onDrop}
-
-        >
+            onDrop={onDrop}>
             <div
                 className={`file-explorer-item transition-colors duration-75 border ${selectedBreadcrumb === file.relativePath ? "bg-blue-200 border-blue-400" : "border-transparent"}`}
-                style={{ marginLeft: `${level}em` }}
+                style={{ marginLeft: `${level * 1.5}em` }}
                 onClick={() => onDirectorySelect(file.relativePath)}
                 draggable={true}
                 onDragStart={onDragStart}
                 onContextMenu={onContextMenu}
-            >   
-                {isOpen ? <MemoizedOpenFileDirectory size={16} /> : <MemoizedFileDirectory size={16} />}
-                <RenameableText
-                    file={file}
-                    onRenamingStateChange={setIsRenaming} />
+            >
+                <div className="bg-blue-100 p-[0.15rem] rounded-md">
+                    {isOpen ? <MemoizedOpenFileDirectory color="#00459f" size={14} /> : <MemoizedFileDirectory color="#00459f" size={14} />}
+                </div>
+                <RenameableText file={file} onRenamingStateChange={setIsRenaming}/>
             </div>
-            <div className={`file-explorer-children ${isOpen ? "open" : ""}`}>
+            <div className={`file-explorer-children-${level} ${isOpen ? "open" : ""}`}>
                 {isOpen &&
                     file.children &&
                     file.children.map((childFile) =>
@@ -212,6 +219,7 @@ export const FileExplorer = memo(({ directoryPath }: FileExplorerProps) => {
             onDragOver={onDragOver}
             onDrop={onDrop}>
             <FileExplorerHeader />
+            <FileExplorerBookmarks />
             <div className="file-explorer-category">
                 <span>Notes</span>
             </div>
