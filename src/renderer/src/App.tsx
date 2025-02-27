@@ -1,7 +1,7 @@
 import { Content, RootLayout, Sidebar } from './components'
-import Editor from './components/myEditor'
+import ObimEditor from './components/obimEditor'
 import { notesDirectoryPath } from '@shared/constants'
-import { FileExplorer } from './components/FileExplorer'
+import { FileExplorer } from './components/FileExplorer/FileExplorer'
 import { useEffect } from 'react'
 import { storeFilesInDB } from '../utils/filesDB'
 import SearchWindow from './components/SearchWindow'
@@ -29,7 +29,7 @@ function App() {
       </Sidebar>
       <Content>
         <Breadcrumbs />
-        <Editor />
+        <ObimEditor />
       </Content>
       <ImageSearchOverlay id="image-overlay" />
       <ContextMenu id="context-menu" />

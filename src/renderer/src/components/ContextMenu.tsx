@@ -1,7 +1,9 @@
-import { useManageFileBookmark, useDirectoryCreate, useFileCreate, useFileOpen, useFileRemove, useFileRename } from "@renderer/hooks/file-actions-hooks/useFileActions";
-import { contextMenuPositionAtom, contextMenuTargetAtom, contextMenuTypeAtom, contextMenuVisibleAtom } from "../store/ContextMenuStore";
 import { useAtom } from "jotai";
 import { useEffect, useRef } from "react";
+
+import { useManageFileBookmark, useDirectoryCreate, useFileCreate, useFileOpen, useFileRemove, useFileRename } from "@hooks/file-actions-hooks/useFileActions";
+import { contextMenuPositionAtom, contextMenuTargetAtom, contextMenuTypeAtom, contextMenuVisibleAtom } from "@store/ContextMenuStore";
+
 import { ContextMenuTypes } from "@shared/constants";
 import { FilePlus, FolderPlus, PenLine, Trash2, FileText, Bookmark, BookmarkX } from "lucide-react"
 

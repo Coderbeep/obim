@@ -5,7 +5,7 @@ import { FileItem } from "@shared/models";
 import { notesDirectoryPath } from "@shared/constants";
 import { addItemToTree, findFolderNode, generateUniqueName } from "@renderer/services/fileTreeService";
 import { addBookmarkToDB, removeBookmarkFromDB } from "../../../utils/bookmarksDB";
-import { contextMenuTypeAtom } from "@renderer/store/ContextMenuStore";
+import { contextMenuTypeAtom } from "../../store/ContextMenuStore";
 
 interface UseFileRemoveResult {
     remove: (path: string) => void;
@@ -79,6 +79,7 @@ export const useFileRemove = (): UseFileRemoveResult => {
 
 /**
  * Custom hook to handle file renaming.
+ * Differs from other file hooks, as it influences the UI state directly.
  * 
  * @returns {UseFileRenameResult} - Provides functions for renaming a file:
  *   - `startRenaming`: Begins the renaming process for a file.
@@ -93,7 +94,6 @@ export const useFileRename = (): UseFileRenameResult => {
     const contextMenuType = useAtomValue(contextMenuTypeAtom);
 
     const startRenaming = (filePath: string) => {
-        console.log("WHAT: ", contextMenuType);
         if (!filePath) return;
         setRenamingFile(filePath);
         setIsRenaming(true);

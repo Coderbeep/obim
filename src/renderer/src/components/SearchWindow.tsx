@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { InputField } from './InputField';
-import { useKeyboardHotkey } from '../hooks/useKeyboardHotkey';
+import { InputField } from '@components/InputField';
+import { useKeyboardHotkey } from '@hooks/useKeyboardHotkey';
 import { useAtom, useAtomValue } from 'jotai';
-import { isVisibleAtom, resultsAtom } from '../store/SearchWindowStore';
-import useSearchField from '@renderer/hooks/useSearchField';
-import { useFileOpen } from '@renderer/hooks/file-actions-hooks/useFileActions';
+import { isVisibleAtom, resultsAtom } from '@store/SearchWindowStore';
+import useSearchField from '@hooks/useSearchField';
+import { useFileOpen } from '@hooks/file-actions-hooks/useFileActions';
 
 const SearchWindow = () => {
     const results = useAtomValue(resultsAtom);

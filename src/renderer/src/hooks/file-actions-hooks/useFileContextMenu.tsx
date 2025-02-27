@@ -1,6 +1,6 @@
 import { FileItem } from "@shared/models";
 import { useSetAtom } from "jotai";
-import { openContextMenuAtom } from "@renderer/store/ContextMenuStore";
+import { openContextMenuAtom } from "../../store/ContextMenuStore";
 import { ContextMenuTypes } from "@shared/constants";
 
 interface UseFileContextMenu {

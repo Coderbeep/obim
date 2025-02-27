@@ -1,4 +1,4 @@
-import { isVisibleAtom } from "@renderer/store/SearchWindowStore";
+import { isVisibleAtom } from "../store/SearchWindowStore";
 import { useAtom } from "jotai"
 
 export const useSearchWindow = () => {

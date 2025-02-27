@@ -1,22 +1,22 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { useEffect, memo, useState, useRef } from "react";
+import { Folder, File, FolderOpen } from "lucide-react";
 import {
     expandedDirectoriesAtom,
     selectedBreadcrumbAtom,
     fileTreeAtom,
     reloadFlagAtom,
     newlyCreatedFileAtom,
-} from "../store/NotesStore";
-import { useFileExplorer } from "../hooks/useFileExplorer";
-import { useEffect, memo, useState, useRef } from "react";
+} from "@store/NotesStore";
 import { FileItem } from "@shared/models";
 import { ContextMenuTypes, notesDirectoryPath } from "@shared/constants";
-import { useFileExplorerDragAndDrop } from "@renderer/hooks/useFileExplorerDragAndDrop";
-import { RenameableFilename } from "../ui/common/RenameableFilename";
-import { useFileOpen } from "@renderer/hooks/file-actions-hooks/useFileActions";
-import { useFileContextMenu } from "@renderer/hooks/file-actions-hooks/useFileContextMenu";
-import { Folder, File, FolderOpen } from "lucide-react";
-import { FileExplorerHeader } from "./FileExplorerHeader";
-import { FileExplorerBookmarks } from "./FileExplorerBookmarks";
+
+import { useFileExplorer } from "@hooks/useFileExplorer";
+import { useFileExplorerDragAndDrop } from "@hooks/useFileExplorerDragAndDrop";
+import { useFileOpen } from "@hooks/file-actions-hooks/useFileActions";
+import { useFileContextMenu } from "@hooks/file-actions-hooks/useFileContextMenu";
+
+import { FileExplorerHeader, FileExplorerBookmarks, RenameableFilename } from "@components/FileExplorer/.";
 
 const MemoizedFile = memo(File);
 const MemoizedFileDirectory = memo(Folder);

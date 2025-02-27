@@ -4,7 +4,7 @@ import { FileItem } from "@shared/models";
 import { useAtom } from "jotai";
 import { useEffect, useRef } from "react";
 import { ContextMenuTypes } from "@shared/constants";
-import { contextMenuTypeAtom } from "@renderer/store/ContextMenuStore";
+import { contextMenuTypeAtom } from "../../store/ContextMenuStore";
 
 interface RenameableTextProps {
     file: FileItem;

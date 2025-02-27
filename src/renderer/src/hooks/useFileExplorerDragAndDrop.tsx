@@ -45,7 +45,7 @@ export const useFileExplorerDragAndDrop = ({ targetDirectoryPath }: useFileExplo
 
         setDragCounter(0);
         const fileJSON = JSON.parse(event.dataTransfer.getData('application/json'));
-        if (fileJSON.path === currentFilePath) { 
+        if (fileJSON.path === currentFilePath) {
             await saveFile(fileJSON.path, editorNoteText);
             const result = await moveFile(fileJSON.path, targetDirectoryPath);
             if (result.output) open(result.output);

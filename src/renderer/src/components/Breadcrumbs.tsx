@@ -1,6 +1,7 @@
-import { currentRelativeFilePathAtom, selectedBreadcrumbAtom } from "../store/NotesStore"
-import { useAtom, useAtomValue, useSetAtom } from "jotai"
+import { useAtom, useSetAtom } from "jotai"
 import { Fragment, useRef } from "react"
+import { currentRelativeFilePathAtom, selectedBreadcrumbAtom } from "@store/NotesStore"
+
 
 const BreadcrumbItem = ({ children, className, onClick }) => {
     return <div className={`px-1 rounded-md select-none ${className}`} onClick={onClick}>

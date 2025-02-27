@@ -23,8 +23,23 @@
         "src/renderer/src/*"
       ],
       "@extensions/*": [
-        "src/renderer/src/extensions/*"
-      ]
+        "src/renderer/src/cm-extensions/*"
+      ],
+      "@store/*": [
+        "src/renderer/src/store/*"
+      ],
+      "@components/*": [
+        "src/renderer/src/components/*"
+      ],
+      "@hooks/*": [
+        "src/renderer/src/hooks/*"
+      ],
+      "@utils/*": [
+        "src/renderer/src/utils/*"
+      ],
+      "@services/*": [
+        "src/renderer/src/services/*"
+      ],
     }
   }
 }

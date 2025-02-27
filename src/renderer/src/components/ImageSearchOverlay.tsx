@@ -1,10 +1,12 @@
-import useSearchField from '@renderer/hooks/useSearchField';
-import { useKeyboardHotkey } from '@renderer/hooks/useKeyboardHotkey';
 import { useEffect, useRef, useState } from 'react';
 import { useAtom, useAtomValue } from 'jotai';
-import { resultsAtom } from '../store/SearchWindowStore';
-import { overlayVisibleAtom } from '../store/NotesStore';
-import { EventBus, EventTypes } from '@renderer/services/EventBus';
+
+import useSearchField from '@hooks/useSearchField';
+import { useKeyboardHotkey } from '@hooks/useKeyboardHotkey';
+
+import { resultsAtom } from '@store/SearchWindowStore';
+import { overlayVisibleAtom } from '@store/NotesStore';
+import { EventBus, EventTypes } from '@services/EventBus';
 
 const ImageSearchOverlay = ({ id }: { id: string }) => {
     const results = useAtomValue(resultsAtom);

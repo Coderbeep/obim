@@ -2,18 +2,18 @@ import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
 import { indentUnit } from '@codemirror/language'
 import { languages } from '@codemirror/language-data'
 import { Prec } from '@codemirror/state'
-import { frontmatter } from '@extensions/FrontmatterExtension'
+import { frontmatter } from '../cm-extensions/FrontmatterExtension'
 import { Table } from '@lezer/markdown'
-import { DefaultExtensions } from '@renderer/extensions'
-import { insertNewlineContinueMarkup } from '@renderer/extensions/commands'
-import { customMarkdownConfig } from '@renderer/extensions/TableMarkdocExtension'
+import { DefaultExtensions } from '../cm-extensions'
+import { insertNewlineContinueMarkup } from '../cm-extensions/commands'
+import { customMarkdownConfig } from '../cm-extensions/TableMarkdocExtension'
 import CodeMirror, {
   EditorView,
   keymap,
 } from '@uiw/react-codemirror'
 import { useRef } from 'react'
 import '../assets/Editor.scss'
-import { MathBlockParser } from '../extensions/MathExpression'
+import { MathBlockParser } from '../cm-extensions/MathExpression'
 import { useAtom, useSetAtom } from 'jotai'
 import { noteTextAtom, currentFilePathAtom, editorNoteTextAtom } from '../store/NotesStore'
 
@@ -114,7 +114,7 @@ hello_world()
 `
 
 
-const Editor = () => {
+const ObimEditor = () => {
   const containerRef = useRef<HTMLDivElement>(null)
   const [text, setText] = useAtom(noteTextAtom)
   const [currentFilename, setCurrentFilename] = useAtom(currentFilePathAtom)
@@ -150,4 +150,4 @@ const Editor = () => {
   )
 };
 
-export default Editor
+export default ObimEditor

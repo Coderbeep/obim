@@ -1,12 +1,12 @@
 import { memo, useEffect, useRef, useState } from "react";
-import { getBookmarksFromDB } from "../../utils/bookmarksDB";
+import { getBookmarksFromDB } from "../../../utils/bookmarksDB";
 import { useFileOpen } from "@renderer/hooks/file-actions-hooks/useFileActions";
 import { File } from "lucide-react";
-import { RenameableFilename } from "../ui/common/RenameableFilename";
+import { RenameableFilename } from "./RenameableFilename";
 import { useFileContextMenu } from "@renderer/hooks/file-actions-hooks/useFileContextMenu";
 import { ContextMenuTypes } from "@shared/constants";
 import { useAtom } from "jotai";
-import { bookmarksAtom, reloadFlagAtom } from "@renderer/store/NotesStore";
+import { bookmarksAtom, reloadFlagAtom } from "../../store/NotesStore";
 
 const MemoizedFile = memo(File);
 
