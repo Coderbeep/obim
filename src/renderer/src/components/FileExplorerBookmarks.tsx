@@ -2,9 +2,9 @@ import { memo, useEffect, useRef, useState } from "react";
 import { getBookmarksFromDB } from "../../utils/bookmarksDB";
 import { useFileOpen } from "@renderer/hooks/file-actions-hooks/useFileActions";
 import { File } from "lucide-react";
-import { RenameableText } from "@renderer/ui/common/RenameableText";
+import { RenameableFilename } from "../ui/common/RenameableFilename";
 import { useFileContextMenu } from "@renderer/hooks/file-actions-hooks/useFileContextMenu";
-import { AppSections, ContextMenuTypes } from "@shared/constants";
+import { ContextMenuTypes } from "@shared/constants";
 import { useAtom } from "jotai";
 import { bookmarksAtom, reloadFlagAtom } from "@renderer/store/NotesStore";
 
@@ -22,14 +22,14 @@ const ListFile = ({ file, openFile }) => {
             className={`file-explorer-item flex ${isHighlighted ? "bg-blue-200" : ""}`}
             onClick={() => !isRenaming && openFile(file.path)}
             onContextMenu={onContextMenu}
-        >   
+        >
             <div className="bg-gray-100 p-[0.15rem] rounded-md">
                 <MemoizedFile size={14} />
             </div>
-            <RenameableText
+            <RenameableFilename
                 file={file}
                 onRenamingStateChange={setIsRenaming}
-                section={AppSections.FILE_EXPLORER_BOOKMARKS}
+                section={ContextMenuTypes.FILEBOOKMARKS}
             />
         </div>
     );
@@ -39,7 +39,7 @@ export const FileExplorerBookmarks = () => {
     const [bookmarks, setBookmarks] = useAtom(bookmarksAtom);
     const { open } = useFileOpen();
     const [reloadFlag, setReloadFlag] = useAtom(reloadFlagAtom);
-    
+
     useEffect(() => {
         const fetchBookmarks = async () => {
             const result = await getBookmarksFromDB();

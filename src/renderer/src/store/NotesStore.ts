@@ -1,4 +1,4 @@
-import { AppSections, notesDirectoryPath } from '@shared/constants'
+import { notesDirectoryPath } from '@shared/constants'
 import { FileItem } from '@shared/models'
 import { atom } from 'jotai'
 
@@ -23,7 +23,6 @@ export const overlayVisibleAtom = atom(false);
 
 export const isRenamingAtom = atom(false);
 export const renamingFilePathAtom = atom<string | null>(null);
-export const renamingAppSectionAtom = atom<AppSections | null>(null);
 
 // Opening newly created note
 export const openNoteAtom = atom(null, (get, set, filePath: string) => {

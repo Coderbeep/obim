@@ -11,7 +11,7 @@ import { useEffect, memo, useState, useRef } from "react";
 import { FileItem } from "@shared/models";
 import { ContextMenuTypes, notesDirectoryPath } from "@shared/constants";
 import { useFileExplorerDragAndDrop } from "@renderer/hooks/useFileExplorerDragAndDrop";
-import { RenameableText } from "@renderer/ui/common/RenameableText";
+import { RenameableFilename } from "../ui/common/RenameableFilename";
 import { useFileOpen } from "@renderer/hooks/file-actions-hooks/useFileActions";
 import { useFileContextMenu } from "@renderer/hooks/file-actions-hooks/useFileContextMenu";
 import { Folder, File, FolderOpen } from "lucide-react";
@@ -70,14 +70,14 @@ export const ListFile = ({ file, openFile, level }: ListFileProps) => {
             draggable
             onDragStart={onDragStart}
             className={`file-explorer-item flex ${isHighlighted ? "bg-blue-200" : ""}`}
-            style={{ marginLeft: `${level * 1.5}em`,  }}
+            style={{ marginLeft: `${level * 1.5}em`, }}
             onClick={() => !isRenaming && openFile(file.path)}
             onContextMenu={onContextMenu}
-        >   
+        >
             <div className="bg-gray-100 p-[0.15rem] rounded-md">
                 <MemoizedFile size={14} />
             </div>
-            <RenameableText
+            <RenameableFilename
                 file={file}
                 onRenamingStateChange={setIsRenaming}
             />
@@ -141,7 +141,7 @@ const ListDirectory = ({
                 <div className="bg-blue-100 p-[0.15rem] rounded-md">
                     {isOpen ? <MemoizedOpenFileDirectory color="#00459f" size={14} /> : <MemoizedFileDirectory color="#00459f" size={14} />}
                 </div>
-                <RenameableText file={file} onRenamingStateChange={setIsRenaming}/>
+                <RenameableFilename file={file} onRenamingStateChange={setIsRenaming} />
             </div>
             <div className={`file-explorer-children-${level} ${isOpen ? "open" : ""}`}>
                 {isOpen &&

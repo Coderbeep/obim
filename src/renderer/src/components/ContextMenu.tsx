@@ -2,7 +2,7 @@ import { useManageFileBookmark, useDirectoryCreate, useFileCreate, useFileOpen, 
 import { contextMenuPositionAtom, contextMenuTargetAtom, contextMenuTypeAtom, contextMenuVisibleAtom } from "../store/ContextMenuStore";
 import { useAtom } from "jotai";
 import { useEffect, useRef } from "react";
-import { AppSections, ContextMenuTypes } from "@shared/constants";
+import { ContextMenuTypes } from "@shared/constants";
 import { FilePlus, FolderPlus, PenLine, Trash2, FileText, Bookmark, BookmarkX } from "lucide-react"
 
 const ContextMenuSeparator = () => (
@@ -28,7 +28,7 @@ const ContextMenuFile = ({ target }) => {
 
     const actions = [
         { label: "Open", icon: FileText, action: () => open(target.path) },
-        { label: "Rename", icon: PenLine, action: () => startRenaming(target.path, AppSections.FILE_EXPLORER_FILES) },
+        { label: "Rename", icon: PenLine, action: () => startRenaming(target.path) },
         { separator: true },
         { label: "Add bookmark", icon: Bookmark, action: () => addBookmark(target) },
         { separator: true },
@@ -61,7 +61,7 @@ const ContextMenuDirectory = ({ target }) => {
         { label: "New note", icon: FilePlus, action: () => createNewFile(target.path) },
         { label: "New directory", icon: FolderPlus, action: () => createDirectory(target.path) },
         { separator: true },
-        { label: "Rename", icon: PenLine, action: () => startRenaming(target.path, AppSections.FILE_EXPLORER_FILES) },
+        { label: "Rename", icon: PenLine, action: () => startRenaming(target.path) },
         { label: "Delete", icon: Trash2, action: () => remove(target.path), className: "text-red-500 hover:bg-red-50" }
     ]
 
@@ -108,7 +108,7 @@ const ContextMenuFileBookmarks = ({ target }) => {
 
     const actions = [
         { label: "Open", icon: FileText, action: () => open(target.path) },
-        { label: "Rename", icon: PenLine, action: () => startRenaming(target.path, AppSections.FILE_EXPLORER_BOOKMARKS) },
+        { label: "Rename", icon: PenLine, action: () => startRenaming(target.path) },
         { separator: true },
         { label: "Clear bookmark", icon: BookmarkX, action: () => removeBookmark(target) },
         { separator: true },

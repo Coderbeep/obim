@@ -9,7 +9,7 @@ export const contextMenuTargetAtom = atom<FileItem | null>(null);
 
 export const openContextMenuAtom = atom(
     null,
-    (get, set, event: React.MouseEvent<HTMLDivElement>, file: FileItem | null, type: ContextMenuTypes) => {
+    (_, set, event: React.MouseEvent<HTMLDivElement>, file: FileItem | null, type: ContextMenuTypes) => {
       event.preventDefault();
       set(contextMenuVisibleAtom, true);
       set(contextMenuPositionAtom, [event.clientX, event.clientY]);

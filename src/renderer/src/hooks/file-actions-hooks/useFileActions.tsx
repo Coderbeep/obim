@@ -1,10 +1,11 @@
 import { deleteFile, openFile, renameFile } from "@renderer/services/fileService"
-import { bookmarksAtom, currentFilePathAtom, editorNoteTextAtom, fileHistoryAtom, fileTreeAtom, isRenamingAtom, newlyCreatedFileAtom, noteTextAtom, openNoteAtom, reloadFlagAtom, renamingAppSectionAtom, renamingFilePathAtom, selectedBreadcrumbAtom } from "../../store/NotesStore"
-import { useAtom, useSetAtom } from "jotai"
+import { bookmarksAtom, currentFilePathAtom, editorNoteTextAtom, fileHistoryAtom, fileTreeAtom, isRenamingAtom, newlyCreatedFileAtom, noteTextAtom, openNoteAtom, reloadFlagAtom, renamingFilePathAtom, selectedBreadcrumbAtom } from "../../store/NotesStore"
+import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { FileItem } from "@shared/models";
-import { AppSections, notesDirectoryPath } from "@shared/constants";
+import { notesDirectoryPath } from "@shared/constants";
 import { addItemToTree, findFolderNode, generateUniqueName } from "@renderer/services/fileTreeService";
 import { addBookmarkToDB, removeBookmarkFromDB } from "../../../utils/bookmarksDB";
+import { contextMenuTypeAtom } from "@renderer/store/ContextMenuStore";
 
 interface UseFileRemoveResult {
     remove: (path: string) => void;
@@ -15,7 +16,7 @@ interface UseFileOpenResult {
 
 interface UseFileRenameResult {
     isRenaming: boolean;
-    startRenaming: (filePath: string, section: AppSections) => void;
+    startRenaming: (filePath: string) => void;
     saveRename: (oldFilePath: string, newName: string) => void;
 }
 
@@ -89,12 +90,12 @@ export const useFileRename = (): UseFileRenameResult => {
     const [renamingFile, setRenamingFile] = useAtom(renamingFilePathAtom);
     const [reloadFlag, setReloadFlag] = useAtom(reloadFlagAtom);
     const [currentFilePath, setCurrentFilePath] = useAtom(currentFilePathAtom);
-    const setRenameAppSection = useSetAtom(renamingAppSectionAtom);
+    const contextMenuType = useAtomValue(contextMenuTypeAtom);
 
-    const startRenaming = (filePath: string, section: AppSections) => {
+    const startRenaming = (filePath: string) => {
+        console.log("WHAT: ", contextMenuType);
         if (!filePath) return;
         setRenamingFile(filePath);
-        setRenameAppSection(section)
         setIsRenaming(true);
     };
 

@@ -13,7 +13,6 @@ export const useFileContextMenu = (file: FileItem | null, type: ContextMenuTypes
   const onContextMenu = (event: React.MouseEvent<HTMLDivElement>) => {
     event.stopPropagation()
     openContextMenu(event, file, type)
-    console.log(event)
   }
 
   return { onContextMenu };

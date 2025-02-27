@@ -1,26 +1,27 @@
 import { useFileRename } from "@renderer/hooks/file-actions-hooks/useFileActions";
-import { renamingAppSectionAtom, renamingFilePathAtom } from "../../store/NotesStore";
+import { renamingFilePathAtom } from "../../store/NotesStore";
 import { FileItem } from "@shared/models";
 import { useAtom } from "jotai";
 import { useEffect, useRef } from "react";
-import { AppSections } from "@shared/constants";
+import { ContextMenuTypes } from "@shared/constants";
+import { contextMenuTypeAtom } from "@renderer/store/ContextMenuStore";
 
 interface RenameableTextProps {
     file: FileItem;
     onRenamingStateChange: (isRenaming: boolean) => void;
-    section?: AppSections;
+    section?: ContextMenuTypes;
 }
 
-export const RenameableText = ({ file, onRenamingStateChange, section }: RenameableTextProps) => {
-    const [renamingFile, setRenamingFile] = useAtom(renamingFilePathAtom);
+export const RenameableFilename = ({ file, onRenamingStateChange, section }: RenameableTextProps) => {
+    const [renamingFilePath, setRenamingFilePath] = useAtom(renamingFilePathAtom);
     const editableRef = useRef<HTMLDivElement>(null);
     const { isRenaming, saveRename } = useFileRename();
-    const [ isRenamingSection, setIsRenamingSection ] = useAtom(renamingAppSectionAtom);
-    const currentSection = section || AppSections.UNSPECIFIED;
+    const [isRenamingSection, setIsRenamingSection] = useAtom(contextMenuTypeAtom);
+    const currentSection = section || ContextMenuTypes.FILE;
 
-    const isEditing = isRenaming && 
-                      renamingFile === file.path && 
-                      isRenamingSection === currentSection;
+    const isEditing = isRenaming &&
+        renamingFilePath === file.path &&
+        isRenamingSection === currentSection;
 
     const focusOnEnd = () => {
         setTimeout(() => {
@@ -40,7 +41,6 @@ export const RenameableText = ({ file, onRenamingStateChange, section }: Renamea
     useEffect(() => {
         focusOnEnd();
         onRenamingStateChange(isEditing);
-        console.log("Renaming state changed: ", isEditing, currentSection);
     }, [isEditing]);
 
     return <div
