@@ -58,7 +58,10 @@ app.whenReady().then(() => {
 
   protocol.handle(protocolName, async (request) => {
     let url = request.url.replace(`${protocolName}:/`, '');
-    const filePath = decodeURIComponent(path.join(notesDirectoryPath, url));
+    let filePath = path.join(notesDirectoryPath, url);
+    if (filePath.endsWith('/')) {
+      filePath = filePath.slice(0, -1);
+    }
     try {
       const data = await readFile(filePath);
       return new Response(data, {
