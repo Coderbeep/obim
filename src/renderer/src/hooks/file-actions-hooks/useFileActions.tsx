@@ -120,6 +120,7 @@ export const useFileRename = (): UseFileRenameResult => {
 
 export const useFileCreate = () => {
     const [files, setFiles] = useAtom(fileTreeAtom);
+    const [reloadFlag, setReloadFlag] = useAtom(reloadFlagAtom);
     const setOpenNote = useSetAtom(openNoteAtom);
     const setNewlyCreatedFile = useSetAtom(newlyCreatedFileAtom);
 
@@ -153,8 +154,12 @@ export const useFileCreate = () => {
             };
             if (folderPath === notesDirectoryPath) {
                 setFiles(prevFiles => [...prevFiles, fileItem]);
+                setReloadFlag((prev) => !prev);
+                setOpenNote(fullFilePath);
+                setNewlyCreatedFile(fullFilePath);
             } else {
                 setFiles(prevFiles => addItemToTree(prevFiles, folderPath, fileItem));
+                setReloadFlag((prev) => !prev);
             }
 
             setOpenNote(fullFilePath);
@@ -169,6 +174,7 @@ export const useFileCreate = () => {
 
 export const useDirectoryCreate = () => {
     const [files, setFiles] = useAtom(fileTreeAtom);
+    const [reloadFlag, setReloadFlag] = useAtom(reloadFlagAtom);
 
     const createDirectory = async (folderPath: string = notesDirectoryPath) => {
         let foldername: string = '';
@@ -200,8 +206,10 @@ export const useDirectoryCreate = () => {
             };
             if (folderPath === notesDirectoryPath) {
                 setFiles(prevFiles => [...prevFiles, folderItem]);
+                setReloadFlag((prev) => !prev);
             } else {
                 setFiles(prevFiles => addItemToTree(prevFiles, folderPath, folderItem));
+                setReloadFlag((prev) => !prev);
             }
         } catch (err) {
             console.error('Error creating folder:', err);

@@ -7,6 +7,7 @@ import {
     fileTreeAtom,
     reloadFlagAtom,
     newlyCreatedFileAtom,
+    currentFilePathAtom,
 } from "@store/NotesStore";
 import { FileItem } from "@shared/models";
 import { ContextMenuTypes, notesDirectoryPath } from "@shared/constants";
@@ -45,15 +46,16 @@ export const ListFile = ({ file, openFile, level }: ListFileProps) => {
     const fileRef = useRef<HTMLDivElement>(null);
     const [newlyCreatedFile, setNewlyCreatedFile] = useAtom(newlyCreatedFileAtom);
     const [isHighlighted, setIsHighlighted] = useState(false);
+    const currentFilePath = useAtomValue(currentFilePathAtom);
 
     useEffect(() => {
         if (fileRef.current && file.path === newlyCreatedFile) {
             console.log("Scrolling to newly created file: ", `'${file.path}'`);
-            fileRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
-            setNewlyCreatedFile("");
+            fileRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
 
             setIsHighlighted(true);
             setTimeout(() => {
+                setNewlyCreatedFile("");
                 setIsHighlighted(false);
             }, 3000);
         }
@@ -69,7 +71,9 @@ export const ListFile = ({ file, openFile, level }: ListFileProps) => {
             ref={fileRef}
             draggable
             onDragStart={onDragStart}
-            className={`file-explorer-item flex ${isHighlighted ? "bg-blue-200" : ""}`}
+            className={`file-explorer-item
+                ${isHighlighted ? "bg-blue-200" : ""}
+                ${currentFilePath === file.path ? "active" : ""}`  }
             style={{ marginLeft: `${level * 1.5}em`, }}
             onClick={() => !isRenaming && openFile(file.path)}
             onContextMenu={onContextMenu}
@@ -112,6 +116,7 @@ const ListDirectory = ({
     const selectedBreadcrumb = useAtomValue(selectedBreadcrumbAtom);
     const isOpen = expandedDirectories.has(file.relativePath);
     const [isRenaming, setIsRenaming] = useState(false);
+    const directoryRef = useRef<HTMLDivElement>(null);
 
     const { onContextMenu } = useFileContextMenu(file, ContextMenuTypes.DIRECTORY)
 
@@ -123,6 +128,12 @@ const ListDirectory = ({
         console.log("Started dragging directory: ", `'${file.path}'`);
     }
 
+    useEffect(() => {
+        if (selectedBreadcrumb === file.relativePath) {
+            directoryRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+        }
+    }, [selectedBreadcrumb]);
+
     return (
         <div
             className={`file-explorer-group ${dragCounter > 0 ? "bg-blue-100" : ""}`}
@@ -131,6 +142,7 @@ const ListDirectory = ({
             onDragOver={onDragOver}
             onDrop={onDrop}>
             <div
+                ref={directoryRef}
                 className={`file-explorer-item transition-colors duration-75 border ${selectedBreadcrumb === file.relativePath ? "bg-blue-200 border-blue-400" : "border-transparent"}`}
                 style={{ marginLeft: `${level * 1.5}em` }}
                 onClick={() => onDirectorySelect(file.relativePath)}
@@ -211,7 +223,6 @@ export const FileExplorer = memo(({ directoryPath }: FileExplorerProps) => {
     const { dragCounter, onDragEnter, onDragOver, onDragLeave, onDrop } =
         useFileExplorerDragAndDrop({ targetDirectoryPath: notesDirectoryPath })
 
-
     return (
         <div className="file-explorer h-full"
             onDragEnter={onDragEnter}
@@ -219,29 +230,31 @@ export const FileExplorer = memo(({ directoryPath }: FileExplorerProps) => {
             onDragOver={onDragOver}
             onDrop={onDrop}>
             <FileExplorerHeader />
-            <FileExplorerBookmarks />
-            <div className="file-explorer-category">
-                <span>Notes</span>
-            </div>
-            <div className="file-explorer-list pr-4" onContextMenu={onContextMenu}>
-                {fileTree.map((file) =>
-                    file.isDirectory ? (
-                        <ListDirectory
-                            key={file.relativePath}
-                            file={file}
-                            onDirectorySelect={onDirectorySelect}
-                            openFile={open}
-                            level={0}
-                        />
-                    ) : (
-                        <ListFile
-                            key={file.relativePath}
-                            file={file}
-                            openFile={open}
-                            level={0}
-                        />
-                    ),
-                )}
+            <div className="file-explorer-list">
+                <FileExplorerBookmarks />
+                <div className="file-explorer-category">
+                    <span>Notes</span>
+                </div>
+                <div className="pr-4" onContextMenu={onContextMenu}>
+                    {fileTree.map((file) =>
+                        file.isDirectory ? (
+                            <ListDirectory
+                                key={file.relativePath}
+                                file={file}
+                                onDirectorySelect={onDirectorySelect}
+                                openFile={open}
+                                level={0}
+                            />
+                        ) : (
+                            <ListFile
+                                key={file.relativePath}
+                                file={file}
+                                openFile={open}
+                                level={0}
+                            />
+                        ),
+                    )}
+                </div>
             </div>
         </div>
     );
