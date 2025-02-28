@@ -1,12 +1,12 @@
 @import './Colors';
 
 strong, .cm-bold-marker, .cm-bold-text {
-    font-weight: bold;
+    font-weight: 300 !important;
     color: $significant-color-third;
 }
 
 .cm-formatting-bold-text {
-    font-weight: bold;
+    font-weight: 300 !important;
     color: $significant-color-third;
 }
 
@@ -21,13 +21,15 @@ em, .cm-italic-marker, .cm-italic-text {
 }
 
 .cm-inline-code-text {
-    background-color: $background-color-secondary;
+    // background-color: $background-color-secondary;
+    @apply bg-gray-200 text-xs !important;
     padding: 0.1em 0.25em;
     border-radius: 4px;
 }
 
 .cm-formatting-inline-code-text {
-    background-color: $background-color-secondary;
+    // background-color: $background-color-secondary;
+    @apply bg-gray-200 text-xs !important;
     padding: 0.1em 0.25em;
     border-radius: 4px;
 }

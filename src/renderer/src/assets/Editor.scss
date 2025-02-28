@@ -62,39 +62,36 @@
   }
 }
 
+math {
+  font-size: 1.2em
+}
+
+
 .file-explorer-list {
   margin-top: 0.5em;
   user-select: none;
 
   max-height: 90vh;
   overflow-y: auto;
+}
 
+.file-explorer-item {
+  @apply flex items-center gap-[0.3em] p-[0.2em] rounded-md cursor-pointer;
 
-  .file-explorer-item {
-    display: flex;
-    align-items: center;
-    gap: 0.3em;
-    padding: 0.2em;
-    border-radius: 8px;
-    cursor: pointer;
+  .span {
+    @apply whitespace-nowrap overflow-hidden overflow-ellipsis flex-1;
+  }
 
-    &.selected {
-      background-color: $background-focus-line;
-    }
+  &:hover {
+    @apply bg-slate-200 text-normal
+  }
 
-    &:hover {
-      background-color: $gray-3;
-      color: $gray-5;
-    }
-
-    span {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      flex: 1;
-    }
+  &.active {
+    @apply bg-slate-200 text-normal
   }
 }
+
+
 
 .file-explorer-button {
   display: flex;
@@ -149,12 +146,19 @@
 }
 
 
+.cm-selectionMatch {
+  @apply bg-transparent !important;
+}
 
+.cm-activeLine {
+  @apply bg-transparent !important;
+}
 
-
-
-
-
+.cm-focused>.cm-scroller>.cm-selectionLayer .cm-selectionBackground,
+.cm-selectionBackground,
+.cm-content ::selection {
+  @apply bg-blue-100 !important;
+}
 
 @mixin default-font {
   font-size: 16px;
@@ -186,7 +190,9 @@
   &.cm-image-error {
     border-radius: 4px;
     padding: 4px;
-    background-color: $background-color-secondary;
+    font-weight: 400;
+    font-size: 12px;
+    @apply text-muted
   }
 }
 
@@ -225,8 +231,14 @@
   display: none !important;
 }
 
+body {
+  font-family: "Cascadia Mono" !important;
+  font-weight: 400;
+}
+
 .cm-content {
-  font-family: "CaskaydiaMono Nerd Font Mono" !important;
+  font-family: "Cascadia Mono" !important;
+  font-weight: 400;
   font-size: 14px;
   color: $font-color;
   // width: 50em;
@@ -255,25 +267,17 @@
   padding: 0px;
 }
 
+.cm-line {
+  position: relative;
+}
+
 .cm-widgetBuffer {
   height: 0 !important;
 }
 
 .cm-focused>.cm-scroller>.cm-selectionLayer .cm-selectionBackground,
 .cm-selectionBackground,
-.cm-content ::selection {
-  background-color: mix(transparent, $significant-color-first, 60%) !important;
-}
-
-.cm-line {
-  position: relative;
-}
-
-.cm-activeLine {
-  &.cm-line {
-    background-color: mix(transparent, $background-focus-line, 50%) !important;
-  }
-}
+.cm-content ::selection {}
 
 table {
   border-collapse: collapse;
