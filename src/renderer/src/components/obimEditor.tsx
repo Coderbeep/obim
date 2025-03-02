@@ -11,11 +11,12 @@ import CodeMirror, {
   EditorView,
   keymap,
 } from '@uiw/react-codemirror'
-import { useRef } from 'react'
+import { memo, useCallback } from 'react'
 import '../assets/Editor.scss'
 import { MathBlockParser } from '../cm-extensions/MathExpression'
 import { useAtom, useSetAtom } from 'jotai'
 import { noteTextAtom, currentFilePathAtom, editorNoteTextAtom } from '../store/NotesStore'
+import { useObimEditor } from '@renderer/hooks/useObimEditor'
 
 
 const initText = `---
@@ -114,11 +115,11 @@ hello_world()
 `
 
 
-const ObimEditor = () => {
-  const containerRef = useRef<HTMLDivElement>(null)
+const ObimEditor = memo(() => {
   const [text, setText] = useAtom(noteTextAtom)
   const [currentFilename, setCurrentFilename] = useAtom(currentFilePathAtom)
   const setEditorNoteText = useSetAtom(editorNoteTextAtom)
+  const { handleAutoSave } = useObimEditor()
 
   const basicSetup = markdown({
     base: markdownLanguage,
@@ -126,14 +127,19 @@ const ObimEditor = () => {
     extensions: [MathBlockParser, frontmatter, Table, customMarkdownConfig],
   })
 
+  const handleChange = useCallback((value: string) => {
+    setEditorNoteText(value)
+    handleAutoSave(value)
+  }, [setEditorNoteText])
+
   return (
-    <div ref={containerRef} className="h-screen flex">
+    <div className="h-screen flex">
       <div style={{ width: `${100}%`, height: `${120}%` }} className="cm-window">
         <CodeMirror
           autoFocus
           key={currentFilename}
           value={text}
-          onChange={(value) => { setEditorNoteText(value) }}
+          onChange={handleChange}
           extensions={[
             basicSetup,
             EditorView.lineWrapping,
@@ -148,6 +154,6 @@ const ObimEditor = () => {
       </div>
     </div>
   )
-};
+})
 
 export default ObimEditor
