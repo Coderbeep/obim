@@ -53,7 +53,7 @@ export const HeadingExtension = ViewPlugin.fromClass(class {
 
         if (headingLevels[node.name]) {
           const level = headingLevels[node.name];
-          const isActive = from >= node.from && to <= node.to;
+          const isActive = from <= node.to && to >= node.from;
           widgets.push(tokenFormattingClasses.headings[level].range(node.from, node.to))
           widgets.push(tokenFormattingClasses.HeadingMark.range(node.from, node.from + level))
           if (isActive) {
