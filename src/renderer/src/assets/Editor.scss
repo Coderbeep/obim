@@ -232,17 +232,18 @@ math {
 }
 
 body {
-  font-family: "Cascadia Mono" !important;
+  font-family: "Cascadia Mono", "Menlo", "Consolas", "Liberation Mono", "Courier New", monospace !important;
   font-weight: 400;
 }
 
 .cm-content {
-  font-family: "Cascadia Mono" !important;
+  font-family: "Cascadia Mono", "Menlo", "Consolas", "Liberation Mono", "Courier New", monospace !important;
   font-weight: 400;
   font-size: 14px;
   color: $font-color;
   // width: 50em;
 }
+
 
 .cm-content.cm-lineWrapping {
   padding-bottom: 600px;
@@ -289,5 +290,3 @@ table {
     padding: 5px;
   }
 }
-
-//////////////////////////////////////////////////////////
