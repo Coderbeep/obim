@@ -19,6 +19,7 @@ function createImageDecorations(view) {
   const builder = new RangeSetBuilder();
   const { from, to } = view.state.selection.main;
   let isCaretInsideGlobal = false;
+  let activeWidgetPosition = null;
 
   syntaxTree(view.state).iterate({
     enter: (node) => {
@@ -31,6 +32,10 @@ function createImageDecorations(view) {
 
         if (!isActive) {
           builder.add(node.from, node.to, Decoration.mark({ class: 'cm-mark-hidden' }));
+        } else {
+          view.dispatch({
+            effects: activeImageWidgetPositionEffect.of([node.from + 3, node.to - 2])
+          })
         }
 
         builder.add(node.from, node.to, Decoration.mark({ class: 'cm-mark-image' }));
@@ -40,9 +45,6 @@ function createImageDecorations(view) {
           side: 1
         }));
 
-        view.dispatch({
-          effects: activeImageWidgetPositionEffect.of([node.from + 3, node.to - 2])
-        })
       }
     }
   });
