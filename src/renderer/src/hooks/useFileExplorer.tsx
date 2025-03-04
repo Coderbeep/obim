@@ -1,5 +1,5 @@
 import { fileTreeAtom } from "../store/NotesStore"
-import { notesDirectoryPath } from "@shared/constants"
+import { getNotesDirectoryPath } from "@shared/constants"
 import { FileItem } from "@shared/models"
 import { useAtom } from "jotai"
 
@@ -21,7 +21,7 @@ export const useFileExplorer = () => {
             const fileItem: FileItem = {
                 filename: filename,
                 relativePath: filename,
-                path: notesDirectoryPath + '/' + filename,
+                path: getNotesDirectoryPath() + '/' + filename,
                 isDirectory: false,
             }
             setFiles([...files, fileItem])

@@ -1,4 +1,4 @@
-import { notesDirectoryPath } from '../../shared/constants'
+import { getNotesDirectoryPath } from '../../shared/constants'
 
 const DB_NAME = 'fileDatabase';
 
@@ -76,7 +76,7 @@ export async function updateBookmarkInDB(oldPath, newPath) {
 
                 file.path = newPath;
                 file.filename = newPath.split('/').pop();
-                file.relativePath = newPath.replace(notesDirectoryPath, '');
+                file.relativePath = newPath.replace(getNotesDirectoryPath(), '');
                 store.put(file);
                 console.log(`Bookmark updated from '${oldPath}' to '${newPath}'`);
             }

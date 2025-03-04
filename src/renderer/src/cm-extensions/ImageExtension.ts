@@ -1,7 +1,7 @@
 import { RangeSetBuilder } from "@codemirror/state";
 import { Decoration, EditorView, WidgetType } from "@codemirror/view";
 import { syntaxTree } from '@codemirror/language';
-import { notesDirectoryPath } from '@shared/constants';
+import { getNotesDirectoryPath } from '@shared/constants';
 import { doesPathExist } from '../../utils/filesDB';
 import { activeImageWidgetPositionEffect, imageField, isCaretInsideImageEffect, toggleImageEffect } from "./ImageExtensionState";
 import { OverlayManager } from "./ImageExtensionOverlay";
@@ -12,7 +12,7 @@ const imageCache = new Map();
 
 const checkImageExists = (src: string) => {
   if (!ACCEPTED_EXTENSIONS.some((ext) => src.endsWith(ext))) return Promise.resolve(false);
-  return doesPathExist(notesDirectoryPath + src);
+  return doesPathExist(getNotesDirectoryPath() + src);
 }
 
 function createImageDecorations(view) {

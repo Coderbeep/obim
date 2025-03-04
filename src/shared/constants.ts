@@ -1,5 +1,8 @@
 export const fileEncoding = 'utf8'
-export const notesDirectoryPath = window['config'].getMainDirectoryPathSync();
+
+export const getNotesDirectoryPath = () => {
+    return window['config'].getMainDirectoryPathSync()
+}
 
 export const enum ContextMenuTypes {
     FILE,

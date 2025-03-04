@@ -10,7 +10,7 @@ import {
     currentFilePathAtom,
 } from "@store/NotesStore";
 import { FileItem } from "@shared/models";
-import { ContextMenuTypes, notesDirectoryPath } from "@shared/constants";
+import { ContextMenuTypes, getNotesDirectoryPath } from "@shared/constants";
 
 import { useFileExplorer } from "@hooks/useFileExplorer";
 import { useFileExplorerDragAndDrop } from "@hooks/useFileExplorerDragAndDrop";
@@ -195,7 +195,7 @@ export const FileExplorer = memo(({ directoryPath }: FileExplorerProps) => {
     useEffect(() => {
         const loadFiles = async () => {
             const result =
-                await window["api"].getFilesRecursiveAsTree(notesDirectoryPath);
+                await window["api"].getFilesRecursiveAsTree(getNotesDirectoryPath());
             console.log("RESULTS")
             setFileTree(result);
         };
@@ -221,7 +221,7 @@ export const FileExplorer = memo(({ directoryPath }: FileExplorerProps) => {
     };
 
     const { dragCounter, onDragEnter, onDragOver, onDragLeave, onDrop } =
-        useFileExplorerDragAndDrop({ targetDirectoryPath: notesDirectoryPath })
+        useFileExplorerDragAndDrop({ targetDirectoryPath: getNotesDirectoryPath() })
 
     return (
         <div className="file-explorer h-full"

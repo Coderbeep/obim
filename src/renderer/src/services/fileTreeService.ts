@@ -1,8 +1,8 @@
-import { notesDirectoryPath } from "@shared/constants";
+import { getNotesDirectoryPath } from "@shared/constants";
 import { FileItem } from "@shared/models";
 
 export const findFolderNode = (tree: FileItem[], folderPath: string): FileItem | null => {
-    if (folderPath === notesDirectoryPath) return null
+    if (folderPath === getNotesDirectoryPath()) return null
 
     for (const node of tree) {
         if (node.isDirectory && node.path === folderPath) return node;
