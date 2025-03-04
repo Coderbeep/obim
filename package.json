@@ -1,7 +1,7 @@
 {
-  "name": "note-mark",
+  "name": "obim",
   "version": "1.0.0",
-  "description": "A Markdown Note taking app built with Electron",
+  "description": "Markdown WYSIWYG editor with live inline preview",
   "license": "MIT",
   "main": "./out/main/index.js",
   "scripts": {
