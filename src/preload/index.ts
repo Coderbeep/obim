@@ -19,7 +19,9 @@ contextBridge.exposeInMainWorld('api', {
 })
 
 contextBridge.exposeInMainWorld('config', {
+  initializeConfig: () => { return ipcRenderer.invoke('initialize-config')},
   getMainDirectoryPathSync: () => { return ipcRenderer.sendSync('get-main-directory-path-sync') },
+  isMainDirectoryPathDefinedSync: () => { return ipcRenderer.sendSync('is-main-directory-defined-sync')},
   getConfigValue: (key) => ipcRenderer.invoke('get-config-value', key),
   updateConfig: (key, value) => ipcRenderer.invoke('update-config', key, value),
   getConfig: () => ipcRenderer.invoke('get-config'),

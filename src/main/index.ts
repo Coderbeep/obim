@@ -5,7 +5,7 @@ import icon from '../../resources/icon.png?asset'
 import { readFile, readdir, stat, writeFile, rename, unlink, mkdir } from 'fs/promises'
 import { FileItem } from '@shared/models'
 import { existsSync } from 'fs'
-import { promptUserForMainDirectory, isPropertyDefined, getConfigValue } from './app-config'
+import ConfigManager from './app-config'
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -44,8 +44,6 @@ function createWindow(): void {
   }
 }
 
-
-
 const mediaProtocolName = "media";
 protocol.registerSchemesAsPrivileged([{
   scheme: mediaProtocolName,
@@ -56,7 +54,7 @@ app.whenReady().then(async () => {
   electronApp.setAppUserModelId('com.electron')
 
   protocol.handle(mediaProtocolName, async (request) => {
-    const mainDirectoryPath = await getConfigValue('mainDirectory');
+    const mainDirectoryPath = await ConfigManager.getConfigValue('mainDirectory');
     let url = request.url.replace(`${mediaProtocolName}:/`, '');
     let filePath = path.join(mainDirectoryPath, url);
     if (filePath.endsWith('/')) {
@@ -75,15 +73,6 @@ app.whenReady().then(async () => {
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
-
-  let isDefined = await isPropertyDefined("mainDirectory");
-  if (!isDefined) {
-    const selectedDirectory = await promptUserForMainDirectory();
-    if (!selectedDirectory) {
-      app.quit();
-      return;
-    }
-  }
 
   createWindow()
 
@@ -137,7 +126,7 @@ ipcMain.handle('get-files', async (_, directoryPath: string) => {
 
 ipcMain.handle('open-file', async (_, filePath: string) => {
   try {
-    const mainDirectoryPath = await getConfigValue('mainDirectory');
+    const mainDirectoryPath = await ConfigManager.getConfigValue('mainDirectory');
     const fullPath = path.resolve(mainDirectoryPath, filePath);
     const content = await readFile(fullPath, 'utf-8');
     return content;
@@ -149,7 +138,7 @@ ipcMain.handle('open-file', async (_, filePath: string) => {
 
 ipcMain.handle('save-file', async (_, filePath: string, content: string) => {
   try {
-    const mainDirectoryPath = await getConfigValue('mainDirectory');
+    const mainDirectoryPath = await ConfigManager.getConfigValue('mainDirectory');
     const fullPath = path.resolve(mainDirectoryPath, filePath);
     await writeFile(fullPath, content, 'utf-8');
     return true;
@@ -161,7 +150,7 @@ ipcMain.handle('save-file', async (_, filePath: string, content: string) => {
 
 ipcMain.handle('create-directory', async (_, directoryPath: string) => {
   try {
-    const mainDirectoryPath = await getConfigValue('mainDirectory');
+    const mainDirectoryPath = await ConfigManager.getConfigValue('mainDirectory');
     const fullPath = path.resolve(mainDirectoryPath, directoryPath);
     await mkdir(fullPath)
     return true;
@@ -176,7 +165,7 @@ async function getFilesRecursiveAsList(directoryPath) {
   const filenames = await readdir(directoryPath);
 
   for (const filename of filenames) {
-    const mainDirectoryPath = await getConfigValue('mainDirectory');
+    const mainDirectoryPath = await ConfigManager.getConfigValue('mainDirectory');
     const filePath = path.join(directoryPath, filename);
     const fileStat = await stat(filePath);
 
@@ -205,7 +194,7 @@ async function getFilesRecursiveAsTree(directoryPath) {
   const filenames = await readdir(directoryPath);
 
   for (const filename of filenames) {
-    const mainDirectoryPath = await getConfigValue('mainDirectory');
+    const mainDirectoryPath = await ConfigManager.getConfigValue('mainDirectory');
     const filePath = path.join(directoryPath, filename);
     const fileStat = await stat(filePath);
 
@@ -242,7 +231,7 @@ ipcMain.handle("rename-file", async (_, currentFilePath: string, newFileName: st
   const newFilePath = path.join(path.dirname(currentFilePath), newFileName);
 
   try {
-    const mainDirectoryPath = await getConfigValue('mainDirectory');
+    const mainDirectoryPath = await ConfigManager.getConfigValue('mainDirectory');
     const fullSourcePath = path.resolve(mainDirectoryPath, currentFilePath);
     const fullDestinationPath = path.resolve(mainDirectoryPath, newFilePath);
 
@@ -262,7 +251,7 @@ ipcMain.handle("move-file", async (_, movingFilePath: string, destinationDirecto
   const destinationPath = path.join(destinationDirectoryPath, path.basename(movingFilePath));
 
   try {
-    const mainDirectoryPath = await getConfigValue('mainDirectory');
+    const mainDirectoryPath = await ConfigManager.getConfigValue('mainDirectory');
     const fullSourcePath = path.resolve(mainDirectoryPath, movingFilePath);
     const fullDestinationPath = path.resolve(mainDirectoryPath, destinationPath);
 
@@ -280,7 +269,7 @@ ipcMain.handle("move-file", async (_, movingFilePath: string, destinationDirecto
 
 ipcMain.handle("delete-file", async (_, filePath: string) => {
   try {
-    const mainDirectoryPath = await getConfigValue('mainDirectory');
+    const mainDirectoryPath = await ConfigManager.getConfigValue('mainDirectory');
     const fullPath = path.resolve(mainDirectoryPath, filePath);
     await unlink(fullPath);
     return { success: true, error: null }
