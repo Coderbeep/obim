@@ -148,6 +148,10 @@ export const ContextMenu = ({ id }) => {
     const menuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
+        if (menuRef.current) {
+            menuRef.current.focus();
+        }
+
         const handleClickOutside = (event) => {
             if (menuRef.current && !menuRef.current.contains(event.target)) {
                 setContextMenuVisible(false);
@@ -158,7 +162,7 @@ export const ContextMenu = ({ id }) => {
         return () => {
             document.removeEventListener("mousedown", handleClickOutside);
         };
-    }, [setContextMenuVisible]);
+    }, [setContextMenuVisible, contextMenuVisible]);
 
     if (!contextMenuVisible) return null;
 
@@ -168,7 +172,9 @@ export const ContextMenu = ({ id }) => {
         <div
             id={id}
             ref={menuRef}
-            className="absolute bg-white border border-gray-300 shadow-md rounded-md w-40 py-2 text-sm z-50"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === "Escape" && setContextMenuVisible(false)}
+            className="absolute bg-white border border-gray-300 shadow-md rounded-md w-40 py-2 text-sm z-50 focus:outline-none"
             style={{ top: contextMenuPosition[1], left: contextMenuPosition[0] }}
         >
             <MenuComponent target={contextMenuTarget} />
