@@ -3,11 +3,9 @@ import { BrowserWindow, app, dialog, ipcMain, shell, protocol } from 'electron'
 import path, { join } from 'path'
 import icon from '../../resources/icon.png?asset'
 import { readFile, readdir, stat, writeFile, rename, unlink, mkdir } from 'fs/promises'
-import { notesDirectoryPath } from '@shared/constants'
 import { FileItem } from '@shared/models'
-import { installExtension, REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer'
 import { existsSync } from 'fs'
-import { randomUUID } from 'crypto'
+import { promptUserForMainDirectory, isPropertyDefined, getConfigValue } from './app-config'
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -46,19 +44,21 @@ function createWindow(): void {
   }
 }
 
-const protocolName = "media";
+
+
+const mediaProtocolName = "media";
 protocol.registerSchemesAsPrivileged([{
-  scheme: protocolName,
+  scheme: mediaProtocolName,
   privileges: { standard: true, secure: true, supportFetchAPI: true }
 }])
 
-
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   electronApp.setAppUserModelId('com.electron')
 
-  protocol.handle(protocolName, async (request) => {
-    let url = request.url.replace(`${protocolName}:/`, '');
-    let filePath = path.join(notesDirectoryPath, url);
+  protocol.handle(mediaProtocolName, async (request) => {
+    const mainDirectoryPath = await getConfigValue('mainDirectory');
+    let url = request.url.replace(`${mediaProtocolName}:/`, '');
+    let filePath = path.join(mainDirectoryPath, url);
     if (filePath.endsWith('/')) {
       filePath = filePath.slice(0, -1);
     }
@@ -72,13 +72,18 @@ app.whenReady().then(() => {
     }
   });
 
-  installExtension([REACT_DEVELOPER_TOOLS])
-    .then(([react]) => console.log(`Added Extensions: ${react.name}`))
-    .catch((err) => console.log('An error occurred: ', err));
-
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
+
+  let isDefined = await isPropertyDefined("mainDirectory");
+  if (!isDefined) {
+    const selectedDirectory = await promptUserForMainDirectory();
+    if (!selectedDirectory) {
+      app.quit();
+      return;
+    }
+  }
 
   createWindow()
 
@@ -96,7 +101,6 @@ app.on('window-all-closed', () => {
 
 
 // Define ipcMain handlers
-
 ipcMain.handle('open-folder-dialog', async () => {
   const result = await dialog.showOpenDialog({
     properties: ['openDirectory']
@@ -116,10 +120,11 @@ ipcMain.handle('get-files', async (_, directoryPath: string) => {
   for (const filename of filenames) {
     const filePath = path.join(directoryPath, filename);
     const fileStat = await stat(filePath);
+    const mainDirectoryPath = await getConfigValue('mainDirectory');
 
     const fileItem: FileItem = {
       filename: filename,
-      relativePath: filePath.replace(notesDirectoryPath, ''),
+      relativePath: filePath.replace(mainDirectoryPath, ''),
       path: filePath,
       isDirectory: fileStat.isDirectory(),
     }
@@ -132,7 +137,8 @@ ipcMain.handle('get-files', async (_, directoryPath: string) => {
 
 ipcMain.handle('open-file', async (_, filePath: string) => {
   try {
-    const fullPath = path.resolve(notesDirectoryPath, filePath);
+    const mainDirectoryPath = await getConfigValue('mainDirectory');
+    const fullPath = path.resolve(mainDirectoryPath, filePath);
     const content = await readFile(fullPath, 'utf-8');
     return content;
   } catch (err) {
@@ -143,7 +149,8 @@ ipcMain.handle('open-file', async (_, filePath: string) => {
 
 ipcMain.handle('save-file', async (_, filePath: string, content: string) => {
   try {
-    const fullPath = path.resolve(notesDirectoryPath, filePath);
+    const mainDirectoryPath = await getConfigValue('mainDirectory');
+    const fullPath = path.resolve(mainDirectoryPath, filePath);
     await writeFile(fullPath, content, 'utf-8');
     return true;
   } catch (err) {
@@ -154,7 +161,8 @@ ipcMain.handle('save-file', async (_, filePath: string, content: string) => {
 
 ipcMain.handle('create-directory', async (_, directoryPath: string) => {
   try {
-    const fullPath = path.resolve(notesDirectoryPath, directoryPath);
+    const mainDirectoryPath = await getConfigValue('mainDirectory');
+    const fullPath = path.resolve(mainDirectoryPath, directoryPath);
     await mkdir(fullPath)
     return true;
   } catch (error) {
@@ -168,6 +176,7 @@ async function getFilesRecursiveAsList(directoryPath) {
   const filenames = await readdir(directoryPath);
 
   for (const filename of filenames) {
+    const mainDirectoryPath = await getConfigValue('mainDirectory');
     const filePath = path.join(directoryPath, filename);
     const fileStat = await stat(filePath);
 
@@ -176,9 +185,10 @@ async function getFilesRecursiveAsList(directoryPath) {
       const children = await getFilesRecursiveAsList(filePath);
       files.push(...children)
     }
+    
     const fileItem: FileItem = {
       filename: filename,
-      relativePath: filePath.replace(notesDirectoryPath, ''),
+      relativePath: filePath.replace(mainDirectoryPath, ''),
       path: filePath,
       isDirectory: fileStat.isDirectory(),
     }
@@ -196,12 +206,13 @@ async function getFilesRecursiveAsTree(directoryPath) {
   const filenames = await readdir(directoryPath);
 
   for (const filename of filenames) {
+    const mainDirectoryPath = await getConfigValue('mainDirectory');
     const filePath = path.join(directoryPath, filename);
     const fileStat = await stat(filePath);
 
     const fileItem: FileItem = {
       filename: filename,
-      relativePath: filePath.replace(notesDirectoryPath, ''),
+      relativePath: filePath.replace(mainDirectoryPath, ''),
       path: filePath,
       isDirectory: fileStat.isDirectory(),
     };
@@ -232,8 +243,9 @@ ipcMain.handle("rename-file", async (_, currentFilePath: string, newFileName: st
   const newFilePath = path.join(path.dirname(currentFilePath), newFileName);
 
   try {
-    const fullSourcePath = path.resolve(notesDirectoryPath, currentFilePath);
-    const fullDestinationPath = path.resolve(notesDirectoryPath, newFilePath);
+    const mainDirectoryPath = await getConfigValue('mainDirectory');
+    const fullSourcePath = path.resolve(mainDirectoryPath, currentFilePath);
+    const fullDestinationPath = path.resolve(mainDirectoryPath, newFilePath);
 
     if (existsSync(fullDestinationPath)) {
       return { success: false, error: "Destination file already exists" }
@@ -251,8 +263,9 @@ ipcMain.handle("move-file", async (_, movingFilePath: string, destinationDirecto
   const destinationPath = path.join(destinationDirectoryPath, path.basename(movingFilePath));
 
   try {
-    const fullSourcePath = path.resolve(notesDirectoryPath, movingFilePath);
-    const fullDestinationPath = path.resolve(notesDirectoryPath, destinationPath);
+    const mainDirectoryPath = await getConfigValue('mainDirectory');
+    const fullSourcePath = path.resolve(mainDirectoryPath, movingFilePath);
+    const fullDestinationPath = path.resolve(mainDirectoryPath, destinationPath);
 
     if (existsSync(fullDestinationPath)) {
       return { success: false, error: "Destination file already exists" }
@@ -268,7 +281,8 @@ ipcMain.handle("move-file", async (_, movingFilePath: string, destinationDirecto
 
 ipcMain.handle("delete-file", async (_, filePath: string) => {
   try {
-    const fullPath = path.resolve(notesDirectoryPath, filePath);
+    const mainDirectoryPath = await getConfigValue('mainDirectory');
+    const fullPath = path.resolve(mainDirectoryPath, filePath);
     await unlink(fullPath);
     return { success: true, error: null }
   } catch (error) {

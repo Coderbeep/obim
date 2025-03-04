@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron')
+import { contextBridge, ipcRenderer } from "electron"
 
 if (!process.contextIsolated) {
   throw new Error('contextIsolation must be enabled in the BrowserWindow')
@@ -16,4 +16,11 @@ contextBridge.exposeInMainWorld('api', {
   renameFile: (oldPath, newPath) => ipcRenderer.invoke('rename-file', oldPath, newPath),
   moveFile: (sourcePath, destinationPath) => ipcRenderer.invoke('move-file', sourcePath, destinationPath),
   deleteFile: (filePath) => ipcRenderer.invoke('delete-file', filePath),
+})
+
+contextBridge.exposeInMainWorld('config', {
+  getMainDirectoryPathSync: () => { return ipcRenderer.sendSync('get-main-directory-path-sync') },
+  getConfigValue: (key) => ipcRenderer.invoke('get-config-value', key),
+  updateConfig: (key, value) => ipcRenderer.invoke('update-config', key, value),
+  getConfig: () => ipcRenderer.invoke('get-config'),
 })

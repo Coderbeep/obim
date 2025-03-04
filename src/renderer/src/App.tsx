@@ -14,7 +14,7 @@ function App() {
 
   useEffect(() => {
     const load = async () => {
-      const files = await window['api'].getFilesRecursiveAsList(notesDirectoryPath);
+      const files = await window['api'].getFilesRecursiveAsList(notesDirectoryPath)
       storeFilesInDB(files)
       console.log('Files loaded')
     }
