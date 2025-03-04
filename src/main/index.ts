@@ -181,7 +181,6 @@ async function getFilesRecursiveAsList(directoryPath) {
     const fileStat = await stat(filePath);
 
     if (fileStat.isDirectory()) {
-      console.debug('Getting files in:', filePath);
       const children = await getFilesRecursiveAsList(filePath);
       files.push(...children)
     }
