@@ -1,6 +1,9 @@
-import { notesDirectoryPath } from '@shared/constants'
+import { getNotesDirectoryPath } from '@shared/constants'
 import { FileItem } from '@shared/models'
 import { atom } from 'jotai'
+
+// Editor-wide config
+export const isInitializedAtom = atom(false)
 
 // Editor related atoms
 export const noteTextAtom = atom('')
@@ -8,7 +11,7 @@ export const currentFilePathAtom = atom('')
 export const fileHistoryAtom = atom<string[]>([])
 
 export const editorNoteTextAtom = atom('')
-export const currentRelativeFilePathAtom = atom((get) => get(currentFilePathAtom).replace(notesDirectoryPath, ''))
+export const currentRelativeFilePathAtom = atom((get) => get(currentFilePathAtom).replace(getNotesDirectoryPath(), ''))
 
 // File explorer related atoms
 export const fileTreeAtom = atom<FileItem[]>([]);
