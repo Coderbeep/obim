@@ -2,7 +2,7 @@ import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import { BrowserWindow, app, dialog, ipcMain, shell, protocol } from 'electron'
 import path, { join } from 'path'
 import icon from '../../resources/icon.png?asset'
-import { readFile, readdir, stat, writeFile, rename, unlink, mkdir } from 'fs/promises'
+import { readFile, readdir, stat, writeFile, rename, mkdir, rm } from 'fs/promises'
 import { FileItem } from '@shared/models'
 import { existsSync } from 'fs'
 import ConfigManager from './app-config'
@@ -271,7 +271,8 @@ ipcMain.handle("delete-file", async (_, filePath: string) => {
   try {
     const mainDirectoryPath = await ConfigManager.getConfigValue('mainDirectory');
     const fullPath = path.resolve(mainDirectoryPath, filePath);
-    await unlink(fullPath);
+    await rm(fullPath, { recursive: true, force: true})
+    
     return { success: true, error: null }
   } catch (error) {
     console.error('Error deleting file:', error);
