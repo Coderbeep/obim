@@ -127,6 +127,8 @@ export const useFileCreate = () => {
     const [editorNoteText, setEditorNoteText] = useAtom(editorNoteTextAtom)
     const [noteText, setNoteText] = useAtom(noteTextAtom)
 
+    const { startRenaming } = useFileRename()
+
     const saveCurrentFile = async () => {
         if (currentFilename) {
             try {
@@ -177,6 +179,7 @@ export const useFileCreate = () => {
             setReloadFlag((prev) => !prev);
             setOpenNote(fullFilePath);
             setNewlyCreatedFile(fullFilePath);
+            startRenaming(fullFilePath)
         } catch (err) {
             console.error('Error creating file:', err);
         }
@@ -188,6 +191,8 @@ export const useFileCreate = () => {
 export const useDirectoryCreate = () => {
     const [files, setFiles] = useAtom(fileTreeAtom);
     const [reloadFlag, setReloadFlag] = useAtom(reloadFlagAtom);
+
+    const { startRenaming } = useFileRename()
 
     const createDirectory = async (folderPath: string = getNotesDirectoryPath()) => {
         let foldername: string = '';
@@ -223,6 +228,7 @@ export const useDirectoryCreate = () => {
                 setFiles(prevFiles => addItemToTree(prevFiles, folderPath, folderItem));
             }
             setReloadFlag((prev) => !prev);
+            startRenaming(fullFolderPath)
         } catch (err) {
             console.error('Error creating folder:', err);
         }
