@@ -2,7 +2,7 @@ import { deleteFile, openFile, renameFile } from "@renderer/services/fileService
 import { bookmarksAtom, currentFilePathAtom, editorNoteTextAtom, fileHistoryAtom, fileTreeAtom, isRenamingAtom, newlyCreatedFileAtom, noteTextAtom, openNoteAtom, reloadFlagAtom, renamingFilePathAtom, selectedBreadcrumbAtom } from "../../store/NotesStore"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { FileItem } from "@shared/models";
-import { notesDirectoryPath } from "@shared/constants";
+import { getNotesDirectoryPath } from "@shared/constants";
 import { addItemToTree, findFolderNode, generateUniqueName } from "@renderer/services/fileTreeService";
 import { addBookmarkToDB, removeBookmarkFromDB } from "../../../utils/bookmarksDB";
 import { contextMenuTypeAtom } from "../../store/ContextMenuStore";
@@ -123,12 +123,26 @@ export const useFileCreate = () => {
     const [reloadFlag, setReloadFlag] = useAtom(reloadFlagAtom);
     const setOpenNote = useSetAtom(openNoteAtom);
     const setNewlyCreatedFile = useSetAtom(newlyCreatedFileAtom);
+    const [currentFilename, setCurrentFilename] = useAtom(currentFilePathAtom)
+    const [editorNoteText, setEditorNoteText] = useAtom(editorNoteTextAtom)
+    const [noteText, setNoteText] = useAtom(noteTextAtom)
 
-    const createNewFile = async (folderPath: string = notesDirectoryPath) => {
+    const saveCurrentFile = async () => {
+        if (currentFilename) {
+            try {
+                await window['api'].saveFile(currentFilename, editorNoteText)
+                setNoteText(editorNoteText)
+            } catch (err) {
+                console.error('Error saving file:', err);
+            }
+        }
+    }
+
+    const createNewFile = async (folderPath: string = getNotesDirectoryPath()) => {
         let filename: string = '';
         let fullFilePath: string = '';
 
-        if (folderPath === notesDirectoryPath) {
+        if (folderPath === getNotesDirectoryPath()) {
             filename = generateUniqueName(files, 'Untitled', '.md');
             fullFilePath = `${folderPath}/${filename}`;
         } else {
@@ -143,25 +157,24 @@ export const useFileCreate = () => {
         }
 
         try {
+            await saveCurrentFile()
             await window['api'].saveFile(fullFilePath, '');
             console.log(`File '${filename}' created successfully in '${folderPath}'.`);
 
+
             const fileItem: FileItem = {
                 filename: filename,
-                relativePath: fullFilePath.replace(`${notesDirectoryPath}/`, ''),
+                relativePath: fullFilePath.replace(`${getNotesDirectoryPath()}/`, ''),
                 path: fullFilePath,
                 isDirectory: false,
             };
-            if (folderPath === notesDirectoryPath) {
-                setFiles(prevFiles => [...prevFiles, fileItem]);
-                setReloadFlag((prev) => !prev);
-                setOpenNote(fullFilePath);
-                setNewlyCreatedFile(fullFilePath);
-            } else {
-                setFiles(prevFiles => addItemToTree(prevFiles, folderPath, fileItem));
-                setReloadFlag((prev) => !prev);
-            }
 
+            if (folderPath === getNotesDirectoryPath()) 
+                setFiles(prevFiles => [...prevFiles, fileItem]);
+            else 
+                setFiles(prevFiles => addItemToTree(prevFiles, folderPath, fileItem));
+            
+            setReloadFlag((prev) => !prev);
             setOpenNote(fullFilePath);
             setNewlyCreatedFile(fullFilePath);
         } catch (err) {
@@ -176,10 +189,10 @@ export const useDirectoryCreate = () => {
     const [files, setFiles] = useAtom(fileTreeAtom);
     const [reloadFlag, setReloadFlag] = useAtom(reloadFlagAtom);
 
-    const createDirectory = async (folderPath: string = notesDirectoryPath) => {
+    const createDirectory = async (folderPath: string = getNotesDirectoryPath()) => {
         let foldername: string = '';
         let fullFolderPath: string = '';
-        if (folderPath === notesDirectoryPath) {
+        if (folderPath === getNotesDirectoryPath()) {
             foldername = generateUniqueName(files, 'New directory');
             fullFolderPath = `${folderPath}/${foldername}`;
         } else {
@@ -199,18 +212,17 @@ export const useDirectoryCreate = () => {
 
             const folderItem: FileItem = {
                 filename: foldername,
-                relativePath: fullFolderPath.replace(`${notesDirectoryPath}/`, ''),
+                relativePath: fullFolderPath.replace(`${getNotesDirectoryPath()}/`, ''),
                 path: fullFolderPath,
                 isDirectory: true,
                 children: []
             };
-            if (folderPath === notesDirectoryPath) {
+            if (folderPath === getNotesDirectoryPath()) {
                 setFiles(prevFiles => [...prevFiles, folderItem]);
-                setReloadFlag((prev) => !prev);
             } else {
                 setFiles(prevFiles => addItemToTree(prevFiles, folderPath, folderItem));
-                setReloadFlag((prev) => !prev);
             }
+            setReloadFlag((prev) => !prev);
         } catch (err) {
             console.error('Error creating folder:', err);
         }
