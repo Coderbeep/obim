@@ -1,9 +1,12 @@
 import { addBookmarkToDB, removeBookmarkFromDB, updateBookmarkInDB } from "../../utils/bookmarksDB";
 
-export const saveFile = async (filaname: string, content: string): Promise<void> => {
+export const saveFile = async (filename: string, content: string): Promise<void> => {
     try {
-        await window['api'].saveFile(filaname, content);
-        console.log(`File '${filaname}' saved successfully.`);
+        if (filename != '') {
+            await window['api'].saveFile(filename, content);
+            console.log(`File '${filename}' saved successfully.`);
+        }
+
     } catch (err) {
         console.error('Error saving file:', err);
     }
