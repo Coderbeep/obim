@@ -1,11 +1,19 @@
 import { syntaxTree } from '@codemirror/language';
 import { Decoration, EditorView, ViewPlugin, WidgetType } from '@codemirror/view';
-import { RangeSetBuilder } from '@uiw/react-codemirror';
+import { Range } from '@codemirror/state';
 import * as emojiToolkit from 'emoji-toolkit';
 
-// TODO: Click on the widget should insert the selection at the heading position
+const tokenFormattingClasses = {
+  'Blockquote': (isActive: boolean) => { return isActive ? 
+    Decoration.mark({ class: 'cm-formatting-blockquote cm-active' }) : 
+    Decoration.mark({ class: 'cm-formatting-blockquote' })},
+  'QuoteMark': Decoration.mark({ class: 'cm-formatting-quote-mark' }),
+}
 
-
+const tokenElements = [
+  'Blockquote',
+  'QuoteMark',
+]
 
 export const BlockQuoteExtension = ViewPlugin.fromClass(class {
   decorations;
@@ -21,53 +29,23 @@ export const BlockQuoteExtension = ViewPlugin.fromClass(class {
   }
 
   computeDecorations(view) {
-      const builder = new RangeSetBuilder();
+      let widgets: Range<Decoration>[] = []
       const { from, to } = view.state.selection.main;
 
       syntaxTree(view.state).iterate({
           enter: (node) => {
-            if (node.name === 'QuoteMark') {    
-              builder.add(
-                node.from,
-                node.to, 
-                Decoration.mark({ class: 'cm-formatting-blockquote' })
-              )
-            }
-
-            if (node.name === 'TaskMarker') {
-              const isActive = from >= node.from && to <= node.to;
-
-              if (!isActive) {
-                let isChecked: boolean = view.state.sliceDoc(node.from, node.to).includes('x')
-
-                builder.add(
-                  node.from,
-                  node.to, 
-                  Decoration.widget({
-                    widget: new TaskMarkerWidget(isChecked, { from: node.from, to: node.to }),
-                    side: 1,
-                  })
-                )
+            if (tokenElements.includes(node.name)) {
+              const isActive = from <= node.to && to >= node.from;
+              if (node.name === 'Blockquote') {
+                widgets.push(tokenFormattingClasses[node.name](isActive).range(node.from, node.to))
+              } else {
+                widgets.push(tokenFormattingClasses[node.name].range(node.from, node.to))
               }
-            }
-
-            if (node.name === 'Emoji') {
-              builder.add(
-                node.from,
-                node.to, 
-                Decoration.replace({ widget: new EmojiWidget(view.state.sliceDoc(node.from, node.to)) })
-              )
             }
           }
       });
 
-      return builder.finish();
-  }
-
-
-
-  get decorationss() {
-      return this.decorations;
+      return Decoration.set(widgets);
   }
 }, {
   decorations: v => v.decorations
