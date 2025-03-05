@@ -1,0 +1,35 @@
+.cm-line:has(.cm-formatting-blockquote):not(:has(.cm-formatting-blockquote.cm-active)) {
+    @apply bg-red-100;
+}
+
+.cm-line:has(.cm-formatting-blockquote):not(:has(.cm-formatting-blockquote) + .cm-line) {
+    border-top-right-radius: 8px;
+}
+
+.cm-line:has(.cm-formatting-blockquote):not(:has(+ .cm-line .cm-formatting-blockquote)) {
+    border-bottom-right-radius: 8px;
+}
+
+.cm-line .cm-formatting-blockquote {
+    .cm-formatting-quote-mark {
+        color: transparent;
+
+        &::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            width: 3px;
+            background-color: $significant-color-first;
+        }
+
+        span {
+            color: transparent
+        }
+    }
+}
+
+.cm-line.cm-activeLine .cm-formatting-blockquote .cm-formatting-quote-mark span {
+    color: $foreground-color-light;
+}

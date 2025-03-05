@@ -35,47 +35,27 @@ em, .cm-italic-marker, .cm-italic-text {
 }
 
 .cm-line:has(.cm-formatting-codeblock) {
-    background-color: $background-color-secondary;
+    // background-color: $background-color-secondary;
 }
 
 .cm-formatting-codeblock-line {
-    background-color: $background-color-secondary;
+    // background-color: $background-color-secondary;
     display: block;
 }
 .cm-formatting-codeblock-line-begin {
-    background-color: $background-color-secondary;
+    // background-color: $background-color-secondary;
     display: block;
     border-top-left-radius: 5px;
     border-top-right-radius: 5px;
 }
 
 .cm-formatting-codeblock-line-end {
-    background-color: $background-color-secondary;
+    // background-color: $background-color-secondary;
     display: block;
     border-bottom-left-radius: 5px;
     border-bottom-right-radius: 5px;
 }
 
-.cm-line {
-    &.cm-activeLine {
-        .cm-formatting-blockquote {
-            color: $foreground-color;
-        }
-    }
-
-    .cm-formatting-blockquote {
-        color: transparent;
-    
-        &::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            width: 2px;
-            background-color: $significant-color-first;
-        }
-    }
-}
 
 .cm-formatting-input {
     -webkit-appearance: none;
