@@ -5,6 +5,7 @@
 @import 'Frontmatter';
 @import 'ContextMenu';
 @import 'Blockquote';
+@import 'Codeblock';
 
 .root-layout {
   display: flex;
@@ -155,9 +156,7 @@ math {
   @apply bg-transparent !important;
 }
 
-.cm-focused>.cm-scroller>.cm-selectionLayer .cm-selectionBackground,
-.cm-selectionBackground,
-.cm-content ::selection {
+.cm-focused>.cm-scroller>.cm-selectionLayer, .cm-selectionBackground {
   @apply bg-blue-100 !important;
 }
 
@@ -275,10 +274,6 @@ body {
 .cm-widgetBuffer {
   height: 0 !important;
 }
-
-.cm-focused>.cm-scroller>.cm-selectionLayer .cm-selectionBackground,
-.cm-selectionBackground,
-.cm-content ::selection {}
 
 table {
   border-collapse: collapse;

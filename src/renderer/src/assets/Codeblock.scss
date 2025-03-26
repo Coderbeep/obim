@@ -1,3 +1,31 @@
-.cm-line.cm-formatting-codeblock-line-begin, cm-formatting-codeblock-line, cm-formatting-codeblock-line-end {
-    background-color: red !important;
+.cm-formatting-codeblock-line-begin, 
+.cm-formatting-codeblock-line, 
+.cm-formatting-codeblock-line-end, 
+.cm-activeLine.cm-formatting-codeblock-line, 
+.cm-activeLine.cm-formatting-codeblock-line-begin, 
+.cm-activeLine.cm-formatting-codeblock-line-end {
+    @apply bg-gray-100 !important;
+    mix-blend-mode: multiply;
 }
+
+
+.cm-formatting-codeblock-line-begin {
+    @apply rounded-t-lg border-t border-l border-r border-gray-200 !important;
+}
+
+.cm-formatting-codeblock-line-begin:not(.active) * {
+    @apply text-transparent !important;
+}
+
+.cm-formatting-codeblock-line-end {
+    @apply rounded-b-lg border-b border-l border-r border-gray-200 !important;
+}
+
+.cm-formatting-codeblock-line-end:not(.active) * {
+    @apply text-transparent !important;
+}
+
+.cm-formatting-codeblock-line {
+    @apply border-l border-r border-gray-200 !important;
+}
+
