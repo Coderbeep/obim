@@ -1,5 +1,5 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { useEffect, memo, useState, useRef } from "react";
+import { useEffect, memo, useState, useRef, useMemo } from "react";
 import { Folder, File, FolderOpen } from "lucide-react";
 import {
     expandedDirectoriesAtom,
@@ -188,6 +188,7 @@ export const FileExplorer = memo(({ directoryPath }: FileExplorerProps) => {
     const [fileTree, setFileTree] = useAtom(fileTreeAtom);
     const setExpandedDirectories = useSetAtom(expandedDirectoriesAtom);
     const reloadFlag = useAtomValue(reloadFlagAtom);
+    const notesDirectoryPath = useMemo(() => getNotesDirectoryPath(), []);
 
     const { onContextMenu } = useFileContextMenu(null, ContextMenuTypes.FILEEXPLORER)
 
@@ -221,7 +222,7 @@ export const FileExplorer = memo(({ directoryPath }: FileExplorerProps) => {
     };
 
     const { dragCounter, onDragEnter, onDragOver, onDragLeave, onDrop } =
-        useFileExplorerDragAndDrop({ targetDirectoryPath: getNotesDirectoryPath() })
+        useFileExplorerDragAndDrop({ targetDirectoryPath: notesDirectoryPath })
 
     return (
         <div className="file-explorer h-full"

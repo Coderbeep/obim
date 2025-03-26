@@ -54,7 +54,7 @@ app.whenReady().then(async () => {
   electronApp.setAppUserModelId('com.electron')
 
   protocol.handle(mediaProtocolName, async (request) => {
-    const mainDirectoryPath = await ConfigManager.getConfigValue('mainDirectory');
+    const mainDirectoryPath = await ConfigManager.getConfigValue<string>('mainDirectory');
     let url = request.url.replace(`${mediaProtocolName}:/`, '');
     let filePath = path.join(mainDirectoryPath, url);
     if (filePath.endsWith('/')) {
@@ -105,11 +105,11 @@ ipcMain.handle('open-folder-dialog', async () => {
 ipcMain.handle('get-files', async (_, directoryPath: string) => {
   const files: FileItem[] = [];
   const filenames = await readdir(directoryPath);
+  const mainDirectoryPath = await ConfigManager.getConfigValue<string>('mainDirectory');
 
   for (const filename of filenames) {
     const filePath = path.join(directoryPath, filename);
     const fileStat = await stat(filePath);
-    const mainDirectoryPath = await getConfigValue('mainDirectory');
 
     const fileItem: FileItem = {
       filename: filename,
@@ -126,7 +126,7 @@ ipcMain.handle('get-files', async (_, directoryPath: string) => {
 
 ipcMain.handle('open-file', async (_, filePath: string) => {
   try {
-    const mainDirectoryPath = await ConfigManager.getConfigValue('mainDirectory');
+    const mainDirectoryPath = await ConfigManager.getConfigValue<string>('mainDirectory');
     const fullPath = path.resolve(mainDirectoryPath, filePath);
     const content = await readFile(fullPath, 'utf-8');
     return content;
@@ -138,7 +138,7 @@ ipcMain.handle('open-file', async (_, filePath: string) => {
 
 ipcMain.handle('save-file', async (_, filePath: string, content: string) => {
   try {
-    const mainDirectoryPath = await ConfigManager.getConfigValue('mainDirectory');
+    const mainDirectoryPath = await ConfigManager.getConfigValue<string>('mainDirectory');
     const fullPath = path.resolve(mainDirectoryPath, filePath);
     await writeFile(fullPath, content, 'utf-8');
     return true;
@@ -150,7 +150,7 @@ ipcMain.handle('save-file', async (_, filePath: string, content: string) => {
 
 ipcMain.handle('create-directory', async (_, directoryPath: string) => {
   try {
-    const mainDirectoryPath = await ConfigManager.getConfigValue('mainDirectory');
+    const mainDirectoryPath = await ConfigManager.getConfigValue<string>('mainDirectory');
     const fullPath = path.resolve(mainDirectoryPath, directoryPath);
     await mkdir(fullPath)
     return true;
@@ -160,20 +160,20 @@ ipcMain.handle('create-directory', async (_, directoryPath: string) => {
   }
 })
 
-async function getFilesRecursiveAsList(directoryPath) {
+async function getFilesRecursiveAsList(directoryPath, mainDirectoryPath) {
   const files: FileItem[] = [];
   const filenames = await readdir(directoryPath);
 
+
   for (const filename of filenames) {
-    const mainDirectoryPath = await ConfigManager.getConfigValue('mainDirectory');
     const filePath = path.join(directoryPath, filename);
     const fileStat = await stat(filePath);
 
     if (fileStat.isDirectory()) {
-      const children = await getFilesRecursiveAsList(filePath);
+      const children = await getFilesRecursiveAsList(filePath, mainDirectoryPath);
       files.push(...children)
     }
-    
+
     const fileItem: FileItem = {
       filename: filename,
       relativePath: filePath.replace(mainDirectoryPath, ''),
@@ -186,15 +186,15 @@ async function getFilesRecursiveAsList(directoryPath) {
 }
 
 ipcMain.handle('get-files-recursive-as-list', async (_, directoryPath: string) => {
-  return getFilesRecursiveAsList(directoryPath);
+  const mainDirectoryPath = await ConfigManager.getConfigValue<string>('mainDirectory');
+  return getFilesRecursiveAsList(directoryPath, mainDirectoryPath);
 })
 
-async function getFilesRecursiveAsTree(directoryPath) {
+async function getFilesRecursiveAsTree(directoryPath, mainDirectoryPath) {
   const files: FileItem[] = [];
   const filenames = await readdir(directoryPath);
 
   for (const filename of filenames) {
-    const mainDirectoryPath = await ConfigManager.getConfigValue('mainDirectory');
     const filePath = path.join(directoryPath, filename);
     const fileStat = await stat(filePath);
 
@@ -206,7 +206,7 @@ async function getFilesRecursiveAsTree(directoryPath) {
     };
 
     if (fileStat.isDirectory()) {
-      fileItem.children = await getFilesRecursiveAsTree(filePath);
+      fileItem.children = await getFilesRecursiveAsTree(filePath, mainDirectoryPath);
     }
 
     files.push(fileItem);
@@ -223,7 +223,8 @@ async function getFilesRecursiveAsTree(directoryPath) {
 }
 
 ipcMain.handle('get-files-recursive-as-tree', async (_, directoryPath: string) => {
-  return getFilesRecursiveAsTree(directoryPath);
+  const mainDirectoryPath = await ConfigManager.getConfigValue<string>('mainDirectory');
+  return getFilesRecursiveAsTree(directoryPath, mainDirectoryPath);
 })
 
 
@@ -231,7 +232,7 @@ ipcMain.handle("rename-file", async (_, currentFilePath: string, newFileName: st
   const newFilePath = path.join(path.dirname(currentFilePath), newFileName);
 
   try {
-    const mainDirectoryPath = await ConfigManager.getConfigValue('mainDirectory');
+    const mainDirectoryPath = await ConfigManager.getConfigValue<string>('mainDirectory');
     const fullSourcePath = path.resolve(mainDirectoryPath, currentFilePath);
     const fullDestinationPath = path.resolve(mainDirectoryPath, newFilePath);
 
@@ -251,7 +252,7 @@ ipcMain.handle("move-file", async (_, movingFilePath: string, destinationDirecto
   const destinationPath = path.join(destinationDirectoryPath, path.basename(movingFilePath));
 
   try {
-    const mainDirectoryPath = await ConfigManager.getConfigValue('mainDirectory');
+    const mainDirectoryPath: string = await ConfigManager.getConfigValue('mainDirectory');
     const fullSourcePath = path.resolve(mainDirectoryPath, movingFilePath);
     const fullDestinationPath = path.resolve(mainDirectoryPath, destinationPath);
 
@@ -269,10 +270,10 @@ ipcMain.handle("move-file", async (_, movingFilePath: string, destinationDirecto
 
 ipcMain.handle("delete-file", async (_, filePath: string) => {
   try {
-    const mainDirectoryPath = await ConfigManager.getConfigValue('mainDirectory');
+    const mainDirectoryPath = await ConfigManager.getConfigValue<string>('mainDirectory');
     const fullPath = path.resolve(mainDirectoryPath, filePath);
-    await rm(fullPath, { recursive: true, force: true})
-    
+    await rm(fullPath, { recursive: true, force: true })
+
     return { success: true, error: null }
   } catch (error) {
     console.error('Error deleting file:', error);
