@@ -5,27 +5,32 @@
 .cm-activeLine.cm-formatting-codeblock-line-begin, 
 .cm-activeLine.cm-formatting-codeblock-line-end {
     @apply bg-gray-100 !important;
-    mix-blend-mode: multiply;
+    mix-blend-mode: multiply; // background selection visibility
 }
 
+/* || SPECIFIC STYLING */
 
+/* 
+ * Styling for the opening line of markdown code blocks.
+ * No need for active state styling because the opening line 
+ * is replaced with a widget.
+ */
 .cm-formatting-codeblock-line-begin {
     @apply rounded-t-lg border-t border-l border-r border-gray-200 !important;
 }
 
-.cm-formatting-codeblock-line-begin:not(.active) * {
-    @apply text-transparent !important;
-}
-
+/* 
+ * Styling for the closing line of markdown code blocks.
+ * The text inside the line becomes transparent when inactive.
+ */
 .cm-formatting-codeblock-line-end {
     @apply rounded-b-lg border-b border-l border-r border-gray-200 !important;
-}
 
-.cm-formatting-codeblock-line-end:not(.active) * {
-    @apply text-transparent !important;
+    &:not(.active) * {
+        @apply text-transparent !important;
+    }
 }
 
 .cm-formatting-codeblock-line {
     @apply border-l border-r border-gray-200 !important;
 }
-
