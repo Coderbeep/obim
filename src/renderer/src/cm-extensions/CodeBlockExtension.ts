@@ -2,6 +2,7 @@ import { syntaxTree } from '@codemirror/language';
 import { Decoration, EditorView, ViewPlugin, WidgetType } from '@codemirror/view';
 import { SyntaxNodeRef } from '@lezer/common';
 import { RangeSetBuilder } from '@uiw/react-codemirror';
+import icons from "@shared/assets/icons.json"
 
 
 const inlineCodeFormattingClasses = {
@@ -115,13 +116,36 @@ class CodeLanguageIndicatorWidget extends WidgetType {
   toDOM() {
     const container = document.createElement('div');
     container.className = 'cm-formatting-codeblock-language-container';
+    container.style.display = 'flex';
+    container.style.alignItems = 'center';
     container.style.float = 'right';
     
     const span = document.createElement('span');
     span.textContent = this.language;
+    span.style.fontSize = '12px';
+    span.style.color = 'gray'
     span.className = 'cm-formatting-codeblock-language';
+    span.style.marginLeft = '4px';
+
+    const iconData = icons[this.language.toLowerCase()] || icons['default'];
+    if (!iconData) return span;
+
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('fill', 'gray');
+    svg.setAttribute('stroke-width', '0');
+    svg.setAttribute('viewBox', iconData.viewBox);
+    svg.setAttribute('height', '12px');
+    svg.setAttribute('width', '12px');
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', iconData.path);
+    svg.appendChild(path);
     
+
+    container.appendChild(svg);
     container.appendChild(span);
+
     return container;
   }
 }
