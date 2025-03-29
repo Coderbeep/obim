@@ -113,6 +113,23 @@ class CodeLanguageIndicatorWidget extends WidgetType {
       this.language = language;
   }
 
+  private _createSVGElement = () => {
+    const iconData = icons[this.language] || icons['default'];
+
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('fill', 'gray');
+    svg.setAttribute('stroke-width', '0');
+    svg.setAttribute('viewBox', iconData.viewBox);
+    svg.setAttribute('height', iconData.size);
+    svg.setAttribute('width', iconData.size);
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', iconData.path);
+    svg.appendChild(path);
+    return svg;
+  }
+
   toDOM() {
     const container = document.createElement('div');
     container.className = 'cm-formatting-codeblock-language-container';
@@ -127,21 +144,7 @@ class CodeLanguageIndicatorWidget extends WidgetType {
     span.className = 'cm-formatting-codeblock-language';
     span.style.marginLeft = '4px';
 
-    const iconData = icons[this.language.toLowerCase()] || icons['default'];
-    if (!iconData) return span;
-
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('stroke', 'currentColor');
-    svg.setAttribute('fill', 'gray');
-    svg.setAttribute('stroke-width', '0');
-    svg.setAttribute('viewBox', iconData.viewBox);
-    svg.setAttribute('height', '12px');
-    svg.setAttribute('width', '12px');
-
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    path.setAttribute('d', iconData.path);
-    svg.appendChild(path);
-    
+    const svg = this._createSVGElement();
 
     container.appendChild(svg);
     container.appendChild(span);
