@@ -79,8 +79,10 @@ export const CodeBlockExtension = ViewPlugin.fromClass(class {
               builder.add(node.from, node.from, tokenFormattingClasses.FencedCodeBegin(isActive))
 
               if (!isActive) {
+                const language = view.state.sliceDoc(node.from, lineStarts[0] - 1).slice(3).trim()
+                console.log(language)
                 builder.add(node.from, lineStarts[0] - 1, Decoration.widget({
-                  widget: new CodeLanguageIndicatorWidget(view.state.sliceDoc(node.from + 3, lineStarts[0] - 1)),
+                  widget: new CodeLanguageIndicatorWidget(language),
                 }))
               } 
               
@@ -103,7 +105,6 @@ export const CodeBlockExtension = ViewPlugin.fromClass(class {
 class CodeLanguageIndicatorWidget extends WidgetType {
   constructor(private language: string) {
       super();
-      this.language = language;
   }
 
   private _createSVGElement = () => {
