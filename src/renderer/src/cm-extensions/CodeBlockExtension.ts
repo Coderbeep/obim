@@ -5,13 +5,21 @@ import { RangeSetBuilder } from '@uiw/react-codemirror';
 import icons from "@shared/assets/icons.json"
 
 
-const inlineCodeFormattingClasses = {
-  InlineCodeText: 'cm-formatting-inline-code-text',
-  InlineCodeMarker: 'cm-formatting-inline-code-marker',
+const tokenFormattingClasses = {
+  InlineCodeText: Decoration.mark({ class: 'cm-formatting-inline-code-text' }),
+  FencedCode: Decoration.line({ class: 'cm-formatting-codeblock-line' }),
+  FencedCodeBegin: (isActive: boolean) => {
+    return Decoration.line({ class: `cm-formatting-codeblock-line-begin ${isActive ? 'active' : ''}`})},
+  FencedCodeEnd: (isActive: boolean) => {
+    return Decoration.line({ class: `cm-formatting-codeblock-line-end ${isActive ? 'active' : ''}`})},
+  MarkHidden: Decoration.mark({ class: 'cm-mark-hidden' })
 }
 
-const markDecorationClass = Decoration.mark({ class: 'cm-inline-code-marker' })
-const codeDecorationClass = Decoration.mark({ class: 'cm-inline-code-text' })
+const tokenElements = {
+  InlineCode: 'InlineCode',
+  FencedCode: 'FencedCode',
+  CodeMark: 'CodeMark'
+}
 
 /**
  * Get the start positions of each line in a block syntax node (FencedCode)
@@ -19,8 +27,8 @@ const codeDecorationClass = Decoration.mark({ class: 'cm-inline-code-text' })
  * @param {EditorView} view The EditorView
  * @returns {Array<number>} An array of line start positions
 */
-function getLineStartPositions(node: SyntaxNodeRef, view: EditorView) {
-  let lineStarts: Array<number> = []
+const _getLineStartPositions = (node: SyntaxNodeRef, view: EditorView): number[] => {
+  let lineStarts: number[] = []
   let docStateLines = view.state.doc.slice(node.from, node.to).iterLines()
   let starts = node.from
   
@@ -52,35 +60,23 @@ export const CodeBlockExtension = ViewPlugin.fromClass(class {
 
       syntaxTree(view.state).iterate({
           enter: (node) => {
-            if (node.name === 'InlineCode') {    
-              const isActive = from >= node.from && to <= node.to;
-              if (!isActive) {
-                builder.add(node.from, node.from + 1, Decoration.widget({
-                  widget: new InlineCodeMarkerWidget(),
-                  side: 1,
-                }))
-  
-  
-                builder.add(node.from + 1, node.to - 1, Decoration.mark(Decoration.mark({ class:  inlineCodeFormattingClasses.InlineCodeText})))
-  
-  
-                builder.add(node.to - 1, node.to, Decoration.widget({
-                  widget: new InlineCodeMarkerWidget(),
-                  side: 1,
-                }))
+            if (node.name === tokenElements.InlineCode || node.matchContext([tokenElements.InlineCode])) {
+              if (node.name === tokenElements.CodeMark) {
+                builder.add(node.from, node.to, tokenFormattingClasses.MarkHidden)
               }
-              else {
-                builder.add(node.from, node.from + 1, markDecorationClass)
-                builder.add(node.from + 1, node.to - 1, codeDecorationClass)
-                builder.add(node.to - 1, node.to, markDecorationClass)
+
+              if (node.name === tokenElements.InlineCode) {
+                builder.add(node.from, node.to, tokenFormattingClasses.InlineCodeText)
+                if (from <= node.to && to >= node.from) 
+                  return false
               }
             }
             
             if (node.name === 'FencedCode') {
-              const isActive = from >= node.from && to <= node.to;
-              const lineStarts = getLineStartPositions(node, view)
+              const isActive = from <= node.to && to >= node.from;
+              const lineStarts = _getLineStartPositions(node, view)
               
-              builder.add(node.from, node.from, Decoration.line({ class: `cm-formatting-codeblock-line-begin active`}))
+              builder.add(node.from, node.from, tokenFormattingClasses.FencedCodeBegin(isActive))
 
               if (!isActive) {
                 builder.add(node.from, lineStarts[0] - 1, Decoration.widget({
@@ -89,10 +85,10 @@ export const CodeBlockExtension = ViewPlugin.fromClass(class {
               } 
               
               for (let i = 0; i < lineStarts.length - 1; i++) {
-                builder.add(lineStarts[i], lineStarts[i], Decoration.line({ class: 'cm-formatting-codeblock-line'}))
+                builder.add(lineStarts[i], lineStarts[i], tokenFormattingClasses.FencedCode)
               }
               builder.add(lineStarts[lineStarts.length - 1], lineStarts[lineStarts.length - 1], 
-                Decoration.line({ class: `cm-formatting-codeblock-line-end ${isActive ? 'active' : ''}`}))
+                tokenFormattingClasses.FencedCodeEnd(isActive))
             }
           }
       });
@@ -100,9 +96,6 @@ export const CodeBlockExtension = ViewPlugin.fromClass(class {
       return builder.finish();
   }
 
-  get decorationss() {
-      return this.decorations;
-  }
 }, {
   decorations: v => v.decorations
 });
@@ -150,18 +143,5 @@ class CodeLanguageIndicatorWidget extends WidgetType {
     container.appendChild(span);
 
     return container;
-  }
-}
-
-class InlineCodeMarkerWidget extends WidgetType {
-  constructor() {
-      super();
-  }
-
-  toDOM() {
-      const span = document.createElement('span');
-      span.textContent = ''
-      span.className = inlineCodeFormattingClasses.InlineCodeMarker;
-      return span;
   }
 }
