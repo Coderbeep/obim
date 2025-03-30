@@ -41,7 +41,7 @@ export const EmphasisExtension = ViewPlugin.fromClass(class {
 
         if (tokenElements.includes(node.name)) {
           widgets.push(tokenFormattingClasses[node.name].range(node.from, node.to))
-          if (from >= node.from && to <= node.to) {
+          if (from <= node.to && to >= node.from) {
             return false
           }
         }
