@@ -4,7 +4,6 @@ import { SyntaxNodeRef } from '@lezer/common';
 import { RangeSetBuilder } from '@uiw/react-codemirror';
 import icons from "@shared/assets/icons.json"
 import { createElement, Clipboard, ClipboardCheck } from 'lucide'
-import { size } from 'lodash';
 
 const tokenFormattingClasses = {
   InlineCodeText: Decoration.mark({ class: 'cm-formatting-inline-code-text' }),
