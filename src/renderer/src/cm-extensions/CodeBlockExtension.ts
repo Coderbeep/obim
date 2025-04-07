@@ -4,6 +4,7 @@ import { SyntaxNodeRef } from '@lezer/common';
 import { RangeSetBuilder } from '@uiw/react-codemirror';
 import icons from "@shared/assets/icons.json"
 import { createElement, Clipboard, ClipboardCheck } from 'lucide'
+import { size } from 'lodash';
 
 const tokenFormattingClasses = {
   InlineCodeText: Decoration.mark({ class: 'cm-formatting-inline-code-text' }),
@@ -140,6 +141,17 @@ class CodeLanguageIndicatorWidget extends WidgetType {
     button.style.fontSize = '12px';
     button.style.marginLeft = '4px';
     button.style.marginRight = '4px';
+    button.style.padding = '2px';
+    button.style.borderRadius = '4px';
+    button.style.outline = 'none';
+
+    button.onmouseover = () => {
+      button.style.backgroundColor = colors.gray[200]
+    }
+
+    button.onmouseout = () => {
+      button.style.backgroundColor = 'transparent'
+    }
 
     button.onclick = () => {
       navigator.clipboard.writeText(this.code).then(() => {
@@ -172,15 +184,16 @@ class CodeLanguageIndicatorWidget extends WidgetType {
     span.style.color = 'gray'
     span.className = 'cm-formatting-codeblock-language';
     span.style.marginRight = '8px';
+    span.style.userSelect = 'none';
 
 
     const svg = this._createSVGElement();
     const button = this._createCopyButton();
 
-
     container.appendChild(svg);
     container.appendChild(span);
     container.appendChild(button);
+
 
     return container;
   }
