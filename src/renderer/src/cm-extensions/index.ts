@@ -1,5 +1,6 @@
 import { BlockQuoteExtension } from "./BlockQuoteExtension";
 import { CodeBlockExtension } from "./CodeBlockExtension";
+import { CodeBlockGutterExtension } from "./CodeBlockGutterExtension";
 import { EmphasisExtension } from "./EmphasisExtension";
 import { FrontmatterExtension } from "./FrontmatterExtension";
 import { HeadingExtension } from "./HeadingExtension";
@@ -24,4 +25,5 @@ export const DefaultExtensions = [
     TableExtension,
     MarkdocTableExtension,
     MathBlockExtension,
+    CodeBlockGutterExtension
 ]

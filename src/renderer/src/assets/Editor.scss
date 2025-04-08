@@ -227,8 +227,31 @@ math {
   // padding: 0 5em 0 5em;
 }
 
-.cm-gutters {
+/*
+ * hide the gutters for the dev process*/
+.cm-gutter.cm-lineNumbers {
   display: none !important;
+}
+
+.cm-gutter.cm-foldGutter {
+  display: none !important;
+}
+
+.cm-activeLineGutter {
+  background-color: transparent !important;
+}
+
+.cm-gutters {
+  background-color: transparent !important;
+  border: none !important;
+  font-size: 12px;
+}
+
+.cm-gutterElement {
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
+  margin-right: 0.5em
 }
 
 body {
