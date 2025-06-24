@@ -1,46 +1,45 @@
-import { syntaxTree } from '@codemirror/language'
-import { RangeSetBuilder, StateEffect, StateField } from '@codemirror/state'
-import { Decoration, EditorView, WidgetType } from '@codemirror/view'
-import { Tag } from '@lezer/highlight'
-import markdoc from '@markdoc/markdoc'
-
+import { syntaxTree } from "@codemirror/language";
+import { RangeSetBuilder, StateEffect, StateField } from "@codemirror/state";
+import { Decoration, EditorView, WidgetType } from "@codemirror/view";
+import { Tag } from "@lezer/highlight";
+import markdoc from "@markdoc/markdoc";
 
 // TODO: input handling into specific rows
 // TODO: non block inputs
 // TODO: focus on click
 
 const customTags = {
-  customBlock: Tag.define()
-}
+  customBlock: Tag.define(),
+};
 
-const customBlock = 'CustomBlock'
-const customBlockMark = 'CustomBlockMark'
+const customBlock = "CustomBlock";
+const customBlockMark = "CustomBlockMark";
 
 export const customNodes = {
   customBlock,
-  customBlockMark
-}
+  customBlockMark,
+};
 const findCustomBlockEnd = (cx, line) => {
-  const endMarker = '{% /table %}'
-  const sameLineIndex = line.text.indexOf(endMarker)
+  const endMarker = "{% /table %}";
+  const sameLineIndex = line.text.indexOf(endMarker);
 
   if (sameLineIndex !== -1) {
-    return cx.lineStart + line.pos + sameLineIndex + endMarker.length
+    return cx.lineStart + line.pos + sameLineIndex + endMarker.length;
   }
 
-  let hasNextLine
-  let index
+  let hasNextLine;
+  let index;
   do {
-    hasNextLine = cx.nextLine()
-    index = line.text.indexOf(endMarker)
-  } while (hasNextLine && index === -1)
+    hasNextLine = cx.nextLine();
+    index = line.text.indexOf(endMarker);
+  } while (hasNextLine && index === -1);
 
   if (!hasNextLine) {
-    return -1
+    return -1;
   }
 
-  return cx.lineStart + line.pos + index + endMarker.length
-}
+  return cx.lineStart + line.pos + index + endMarker.length;
+};
 
 export const customMarkdownConfig = {
   defineNodes: [{ name: customBlock, block: true }, customBlockMark],
@@ -48,57 +47,57 @@ export const customMarkdownConfig = {
     {
       name: customBlock,
       parse(cx, line) {
-        const startMarker = '{% table %}'
+        const startMarker = "{% table %}";
         if (!line.text.trim().startsWith(startMarker)) {
-          return false
+          return false;
         }
 
-        const from = cx.lineStart + line.pos
-        cx.addElement(cx.elt(customBlockMark, from, from + startMarker.length))
+        const from = cx.lineStart + line.pos;
+        cx.addElement(cx.elt(customBlockMark, from, from + startMarker.length));
 
-        const to = findCustomBlockEnd(cx, line)
+        const to = findCustomBlockEnd(cx, line);
         if (to === -1) {
-          return false
+          return false;
         }
 
-        cx.addElement(cx.elt(customBlockMark, to - '{% /table %}'.length, to))
-        cx.addElement(cx.elt(customBlock, from, to))
-        cx.nextLine()
-        return true
-      }
-    }
-  ]
-}
+        cx.addElement(cx.elt(customBlockMark, to - "{% /table %}".length, to));
+        cx.addElement(cx.elt(customBlock, from, to));
+        cx.nextLine();
+        return true;
+      },
+    },
+  ],
+};
 
-const toggleMarkdocTableEffect = StateEffect.define()
+const toggleMarkdocTableEffect = StateEffect.define();
 
 const markdocTableField = StateField.define({
   create() {
-    return Decoration.none
+    return Decoration.none;
   },
   update(decorations, transaction) {
     if (transaction.docChanged) {
-			return Decoration.none;
-		}
+      return Decoration.none;
+    }
 
     for (let effect of transaction.effects) {
       if (effect.is(toggleMarkdocTableEffect)) {
-        decorations = effect.value
+        decorations = effect.value;
       }
     }
-    return decorations
+    return decorations;
   },
-  provide: field => EditorView.decorations.from(field)
-})
+  provide: (field) => EditorView.decorations.from(field),
+});
 
 function createTableDecorations(view) {
-  const builder = new RangeSetBuilder()
-  const { from, to } = view.state.selection.main
+  const builder = new RangeSetBuilder();
+  const { from, to } = view.state.selection.main;
 
   syntaxTree(view.state).iterate({
     enter: (node) => {
-      if (node.name === 'CustomBlock') {
-        const isActive = from >= node.from && to <= node.to
+      if (node.name === "CustomBlock") {
+        const isActive = from >= node.from && to <= node.to;
         if (!isActive) {
           builder.add(
             node.from,
@@ -106,39 +105,39 @@ function createTableDecorations(view) {
             Decoration.widget({
               widget: new TableWidget(view.state.sliceDoc(node.from, node.to)),
               block: true,
-              side: 1
-            })
-          )
+              side: 1,
+            }),
+          );
         }
       }
-    }
-  })
-  return builder.finish()
+    },
+  });
+  return builder.finish();
 }
 
 function toggleTableVisibility(view) {
   view.dispatch({
-    effects: toggleMarkdocTableEffect.of(createTableDecorations(view))
-  })
+    effects: toggleMarkdocTableEffect.of(createTableDecorations(view)),
+  });
 }
 
 class TableWidget extends WidgetType {
   constructor(public source: string) {
-    super()
-    this.source = source
+    super();
+    this.source = source;
   }
 
   toDOM(view: EditorView): HTMLElement {
-    const container = document.createElement('div')
-    container.className = 'cm-table-markdoc'
+    const container = document.createElement("div");
+    container.className = "cm-table-markdoc";
 
-    const doc = markdoc.parse(this.source)
-    const transformed = markdoc.transform(doc)
-    const rendered = markdoc.renderers.html(transformed)
+    const doc = markdoc.parse(this.source);
+    const transformed = markdoc.transform(doc);
+    const rendered = markdoc.renderers.html(transformed);
 
-    container.innerHTML = rendered
+    container.innerHTML = rendered;
 
-    return container
+    return container;
   }
 }
 
@@ -146,7 +145,7 @@ export const MarkdocTableExtension = [
   markdocTableField,
   EditorView.updateListener.of((update) => {
     if (update.docChanged || update.selectionSet) {
-      toggleTableVisibility(update.view)
+      toggleTableVisibility(update.view);
     }
-  })
-]
+  }),
+];

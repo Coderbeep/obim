@@ -1,7 +1,7 @@
-import { syntaxTree } from '@codemirror/language';
+import { syntaxTree } from "@codemirror/language";
 import { RangeSetBuilder, StateEffect, StateField } from "@codemirror/state";
 import { Decoration, EditorView, WidgetType } from "@codemirror/view";
-import markdoc from '@markdoc/markdoc';
+import markdoc from "@markdoc/markdoc";
 
 const toggleTableEffect = StateEffect.define();
 
@@ -21,9 +21,8 @@ const tableField = StateField.define({
     }
     return decorations;
   },
-  provide: field => EditorView.decorations.from(field)
-})
-
+  provide: (field) => EditorView.decorations.from(field),
+});
 
 function createTableDecorations(view) {
   const builder = new RangeSetBuilder();
@@ -31,27 +30,30 @@ function createTableDecorations(view) {
 
   syntaxTree(view.state).iterate({
     enter: (node) => {
-      if (node.name === 'Table') {
+      if (node.name === "Table") {
         const isActive = from >= node.from && to <= node.to;
         if (!isActive) {
-          builder.add(node.from, node.to, Decoration.replace({
-            widget: new TableWidget(view.state.sliceDoc(node.from, node.to)),
-            block: true,
-            side: 1
-          }))
+          builder.add(
+            node.from,
+            node.to,
+            Decoration.replace({
+              widget: new TableWidget(view.state.sliceDoc(node.from, node.to)),
+              block: true,
+              side: 1,
+            }),
+          );
         }
       }
-    }
+    },
   });
   return builder.finish();
 }
 
 function toggleTableVisibility(view) {
   view.dispatch({
-    effects: toggleTableEffect.of(createTableDecorations(view))
+    effects: toggleTableEffect.of(createTableDecorations(view)),
   });
 }
-
 
 export class TableWidget extends WidgetType {
   private container: HTMLElement | null = null;
@@ -62,8 +64,8 @@ export class TableWidget extends WidgetType {
   }
 
   toDOM(view: EditorView) {
-    this.container = document.createElement('div');
-    this.container.className = 'cm-table-widget';
+    this.container = document.createElement("div");
+    this.container.className = "cm-table-widget";
 
     const doc = markdoc.parse(this.source);
     const transformed = markdoc.transform(doc);
@@ -71,7 +73,7 @@ export class TableWidget extends WidgetType {
 
     this.container.innerHTML = rendered;
 
-    view.requestMeasure()
+    view.requestMeasure();
     return this.container;
   }
 
@@ -90,5 +92,5 @@ export const TableExtension = [
     if (update.docChanged || update.selectionSet) {
       toggleTableVisibility(update.view);
     }
-  })
-]
+  }),
+];
