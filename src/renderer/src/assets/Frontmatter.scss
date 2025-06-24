@@ -1,66 +1,67 @@
-@import './Colors';
+@use "sass:color";
+@use "Colors";
 
 .cm-properties-widget {
-    padding: 8px;
-    background-color: $background-color-primary;
-    border: 2px solid $border-color;
-    border-radius: 8px;
-    font-size: 1em;
-    cursor: pointer;
-  }
-  
+  padding: 8px;
+  background-color: Colors.$background-color-primary;
+  border: 2px solid Colors.$border-color;
+  border-radius: 8px;
+  font-size: 1em;
+  cursor: pointer;
+}
+
 .cm-property-container {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
 }
 
 .cm-property {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
 }
 
-
-  
 .cm-key-container {
-    color: $foreground-color;
-    width: 7em;
-    font-weight: bold;
-    white-space: nowrap;
-    overflow:hidden;
-    text-overflow: ellipsis;
+  color: Colors.$foreground-color;
+  width: 7em;
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-right: 8px;
+
+  // Icon and key name are nested in the key container
+  .cm-icon-container {
+    margin: 0 8px 0 8px;
     flex-shrink: 0;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    margin-right: 8px;
+  }
 
-    // Icon and key name are nested in the key container
-    .cm-icon-container {
-        margin: 0 8px 0 8px;
-        flex-shrink: 0;
-    }
-      
-    .cm-key-name {
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
+  .cm-key-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 }
-  
 
+.cm-value-container {
+  display: block;
+  flex-grow: 0;
+  word-wrap: break-word;
 
-.cm-value-container{
-    display: block;
-    flex-grow: 0;
-    word-wrap: break-word;
-
-    .cm-value-item {
-        color: $significant-color-first;
-        background-color: mix(transparent, $significant-color-first, 80%);
-        padding: 2px 8px 2px 8px;
-        border-radius: 5px;
-        margin-right: 8px;
-    }    
+  .cm-value-item {
+    color: Colors.$significant-color-first;
+    background-color: color.mix(
+      transparent,
+      Colors.$significant-color-first,
+      80%
+    );
+    padding: 2px 8px 2px 8px;
+    border-radius: 5px;
+    margin-right: 8px;
+  }
 }

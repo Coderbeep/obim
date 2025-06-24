@@ -1,101 +1,103 @@
-@import './Colors';
+@use "Colors";
 
-strong, .cm-bold-marker, .cm-bold-text {
-    font-weight: 300 !important;
-    color: $significant-color-third;
+strong,
+.cm-bold-marker,
+.cm-bold-text {
+  font-weight: 300 !important;
+  color: Colors.$significant-color-third;
 }
 
 .cm-formatting-bold-text {
-    font-weight: 300 !important;
-    color: $significant-color-third;
+  font-weight: 300 !important;
+  color: Colors.$significant-color-third;
 }
 
-em, .cm-italic-marker, .cm-italic-text {
-    font-style: italic;
-    color: $significant-color-second;
+em,
+.cm-italic-marker,
+.cm-italic-text {
+  font-style: italic;
+  color: Colors.$significant-color-second;
 }
-  
+
 .cm-formatting-italic-text {
-    font-style: italic;
-    color: $significant-color-second;
+  font-style: italic;
+  color: Colors.$significant-color-second;
 }
 
 .cm-inline-code-text {
-    // background-color: $background-color-secondary;
-    @apply bg-gray-200 text-xs !important;
-    padding: 0.1em 0.25em;
-    border-radius: 4px;
+  // background-color: $background-color-secondary;
+  @apply bg-gray-200! text-xs!;
+  padding: 0.1em 0.25em;
+  border-radius: 4px;
 }
 
 .cm-formatting-inline-code-text {
-    // background-color: $background-color-secondary;
-    @apply bg-gray-200 text-xs !important;
-    padding: 0.1em 0.25em;
-    border-radius: 4px;
+  // background-color: $background-color-secondary;
+  @apply bg-gray-200! text-xs!;
+  padding: 0.1em 0.25em;
+  border-radius: 4px;
 }
 
 .cm-line:has(.cm-formatting-codeblock) {
-    // background-color: $background-color-secondary;
+  // background-color: $background-color-secondary;
 }
 
 .cm-formatting-codeblock-line {
-    // background-color: $background-color-secondary;
-    display: block;
+  // background-color: $background-color-secondary;
+  display: block;
 }
 .cm-formatting-codeblock-line-begin {
-    // background-color: $background-color-secondary;
-    display: block;
-    border-top-left-radius: 5px;
-    border-top-right-radius: 5px;
+  // background-color: $background-color-secondary;
+  display: block;
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
 }
 
 .cm-formatting-codeblock-line-end {
-    // background-color: $background-color-secondary;
-    display: block;
-    border-bottom-left-radius: 5px;
-    border-bottom-right-radius: 5px;
+  // background-color: $background-color-secondary;
+  display: block;
+  border-bottom-left-radius: 5px;
+  border-bottom-right-radius: 5px;
 }
-
 
 .cm-formatting-input {
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    width: 15px;
-    height: 15px;
-    border: 1px solid $foreground-color;
-    border-radius: 4px;
-    cursor: pointer;
-    vertical-align: middle;
-    margin-right: 5px;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: 15px;
+  height: 15px;
+  border: 1px solid Colors.$foreground-color;
+  border-radius: 4px;
+  cursor: pointer;
+  vertical-align: middle;
+  margin-right: 5px;
 
-    &:checked {
-        background-color: $significant-color-second;
-        border-color: $significant-color-second;
-    }
+  &:checked {
+    background-color: Colors.$significant-color-second;
+    border-color: Colors.$significant-color-second;
+  }
 
-    &:checked::after {
-        content: '\2714'; 
-        display: block;
-        color: white;
-        font-size: 15px;
-        text-align: center;
-        line-height: 12px;
-    }
+  &:checked::after {
+    content: "\2714";
+    display: block;
+    color: white;
+    font-size: 15px;
+    text-align: center;
+    line-height: 12px;
+  }
 
-    &:hover {
-        border-color: $significant-color-second;
-    }
+  &:hover {
+    border-color: Colors.$significant-color-second;
+  }
 }
 
-
 .cm-line:has(.cm-formatting-input:checked):has(.list-item-content-unordered) {
-    .list-item-content-unordered {
-        // text-decoration: line-through;
-        color: $foreground-color-light;
-    }
+  .list-item-content-unordered {
+    // text-decoration: line-through;
+    color: Colors.$foreground-color-light;
+  }
 }
 
 .cm-mark-hidden {
-    display: none;
+  display: none;
 }

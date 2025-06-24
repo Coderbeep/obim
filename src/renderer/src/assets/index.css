@@ -1,11 +1,8 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 html {
   overflow: hidden;
 }
-
 
 @layer base {
   #root {
@@ -39,5 +36,4 @@ html {
   ::-webkit-search-cancel-button {
     /* webkit cancel button override*/
   }
-
 }

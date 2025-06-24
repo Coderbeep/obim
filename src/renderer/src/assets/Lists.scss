@@ -1,11 +1,13 @@
+@use "Colors";
+
 .cm-listA-indent::before {
   margin-inline-start: 4px;
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   bottom: 0;
   width: 1px;
-  background-color: $border-color; 
+  background-color: Colors.$border-color;
 }
 
 .cm-line {
@@ -32,12 +34,12 @@
 
 .cm-listB-indent::before {
   margin-inline-start: 4px;
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   bottom: 0;
   width: 1px;
-  background-color: $border-color; 
+  background-color: Colors.$border-color;
 }
 
 .cm-line {
