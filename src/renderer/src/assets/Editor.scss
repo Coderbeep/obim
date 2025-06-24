@@ -1,11 +1,12 @@
-@import 'Colors';
-@import 'Headings';
-@import 'Emphasis';
-@import 'Lists';
-@import 'Frontmatter';
-@import 'ContextMenu';
-@import 'Blockquote';
-@import 'Codeblock';
+@use "Colors";
+@use "Headings";
+@use "Emphasis";
+@use "Lists";
+@use "Frontmatter";
+@use "ContextMenu";
+@use "Blockquote";
+@use "Codeblock";
+@use "tailwindcss";
 
 .root-layout {
   display: flex;
@@ -49,15 +50,13 @@
   // }
 }
 
-
 .file-explorer {
-  color: $gray-4;
+  color: Colors.$gray-4;
   margin-right: 0.5em;
   width: 100%;
 
-
   .file-explorer-category {
-    color: $gray-5;
+    color: Colors.$gray-5;
     font-weight: bold;
     margin-top: 0.7em;
     font-size: 0.9rem;
@@ -65,9 +64,8 @@
 }
 
 math {
-  font-size: 1.2em
+  font-size: 1em;
 }
-
 
 .file-explorer-list {
   margin-top: 0.5em;
@@ -85,15 +83,13 @@ math {
   }
 
   &:hover {
-    @apply bg-slate-200 text-normal
+    @apply bg-slate-200 text-[#222222];
   }
 
   &.active {
-    @apply bg-slate-200 text-normal
+    @apply bg-slate-200 text-[#222222];
   }
 }
-
-
 
 .file-explorer-button {
   display: flex;
@@ -102,7 +98,7 @@ math {
   background-color: white;
   padding: 8px;
   border-radius: 8px;
-  border: 1px solid $gray-2;
+  border: 1px solid Colors.$gray-2;
 
   svg {
     width: 1.4em;
@@ -119,11 +115,10 @@ math {
   }
 
   &:hover {
-    border: 1px solid $foreground-color;
+    border: 1px solid Colors.$foreground-color;
     cursor: pointer;
   }
 }
-
 
 .file-explorer-group {
   border-radius: 8px;
@@ -136,7 +131,7 @@ math {
     position: relative;
 
     &::before {
-      content: '';
+      content: "";
       position: absolute;
       top: 0;
       left: #{0.75em + $i * 1.5em}; // Increases by 1.5em per level
@@ -147,17 +142,17 @@ math {
   }
 }
 
-
 .cm-selectionMatch {
-  @apply bg-transparent !important;
+  @apply bg-transparent;
 }
 
 .cm-activeLine {
-  @apply bg-transparent !important;
+  @apply bg-transparent!;
 }
 
-.cm-focused>.cm-scroller>.cm-selectionLayer, .cm-selectionBackground {
-  @apply bg-blue-100 !important;
+.cm-focused > .cm-scroller > .cm-selectionLayer,
+.cm-selectionBackground {
+  @apply bg-blue-100!;
 }
 
 @mixin default-font {
@@ -192,12 +187,11 @@ math {
     padding: 4px;
     font-weight: 400;
     font-size: 12px;
-    @apply text-muted
+    @apply text-[#5C5C5C];
   }
 }
 
 .cm-window {
-
   height: 100%;
   min-height: 100vh;
   justify-content: center;
@@ -251,21 +245,25 @@ math {
   display: flex;
   justify-content: flex-end;
   align-items: flex-end;
-  margin-right: 0.5em
+  margin-right: 0.5em;
 }
 
 body {
-  font-family: "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";  font-weight: 400;
+  font-family:
+    "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  font-weight: 400;
 }
 
 .cm-content {
-  font-family: "Cascadia Mono", "Menlo", "Consolas", "Liberation Mono", "Courier New", monospace !important;
+  font-family:
+    "Cascadia Mono", "Menlo", "Consolas", "Liberation Mono", "Courier New",
+    monospace !important;
   font-weight: 400;
   font-size: 14px;
-  color: $font-color;
+  color: Colors.$font-color;
   // width: 50em;
 }
-
 
 .cm-content.cm-lineWrapping {
   padding-bottom: 600px;
@@ -281,7 +279,7 @@ body {
 .cm-horizontal-rule-widget-container hr {
   width: 100%;
   border: none;
-  border-top: 2px solid $border-color;
+  border-top: 2px solid Colors.$border-color;
   margin: 0;
 }
 
@@ -300,11 +298,11 @@ body {
 
 table {
   border-collapse: collapse;
-  border: 1px solid $border-color;
+  border: 1px solid Colors.$border-color;
 
   th,
   td {
-    border: 1px solid $border-color;
+    border: 1px solid Colors.$border-color;
     padding: 5px;
   }
 }

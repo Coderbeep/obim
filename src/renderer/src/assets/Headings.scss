@@ -1,4 +1,5 @@
-@import 'Colors';
+@use "sass:map";
+@use "Colors";
 
 $sizes: (
   1: 1.8em,
@@ -10,7 +11,7 @@ $sizes: (
 );
 
 .cm-formatting-heading-mark * {
-  color: $gray-1;
+  color: Colors.$gray-1;
 }
 
 .cm-heading-widget {
@@ -20,14 +21,14 @@ $sizes: (
 
   @for $i from 1 through 6 {
     .cm-formatting-heading-#{$i} {
-      font-size: map-get($sizes, $i);
+      font-size: map.get($sizes, $i);
     }
   }
 }
 
 @for $i from 1 through 6 {
   .cm-formatting-heading-#{$i} {
-    font-size: map-get($sizes, $i);
+    font-size: map.get($sizes, $i);
 
     & * {
       text-decoration: none;
