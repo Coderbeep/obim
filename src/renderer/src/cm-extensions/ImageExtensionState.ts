@@ -12,9 +12,11 @@ export const isCaretInsideImageField = StateField.define({
     }
     return value;
   },
-})
+});
 
-export const activeImageWidgetPositionEffect = StateEffect.define<[number, number] | null>();
+export const activeImageWidgetPositionEffect = StateEffect.define<
+  [number, number] | null
+>();
 export const activeImageWidgetPositionField = StateField.define({
   create: () => [],
   update(value, transaction) {
@@ -25,7 +27,7 @@ export const activeImageWidgetPositionField = StateField.define({
     }
     return value;
   },
-})
+});
 
 export const toggleImageEffect = StateEffect.define<DecorationSet>();
 export const imageField = StateField.define({
@@ -38,5 +40,5 @@ export const imageField = StateField.define({
     }
     return decorations;
   },
-  provide: field => EditorView.decorations.from(field)
+  provide: (field) => EditorView.decorations.from(field),
 });

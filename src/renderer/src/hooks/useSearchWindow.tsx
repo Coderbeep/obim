@@ -1,12 +1,12 @@
 import { isVisibleAtom } from "../store/SearchWindowStore";
-import { useAtom } from "jotai"
+import { useAtom } from "jotai";
 
 export const useSearchWindow = () => {
-    const [isVisible, setIsVisible] = useAtom(isVisibleAtom);
+  const [isVisible, setIsVisible] = useAtom(isVisibleAtom);
 
-    const toggleSearchWindow = () => {
-        setIsVisible((prev) => !prev);
-    }
+  const toggleSearchWindow = () => {
+    setIsVisible((prev) => !prev);
+  };
 
-    return { toggleSearchWindow }
-}
+  return { toggleSearchWindow };
+};

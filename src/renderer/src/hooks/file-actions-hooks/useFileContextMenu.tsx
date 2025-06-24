@@ -7,13 +7,16 @@ interface UseFileContextMenu {
   onContextMenu: (event: React.MouseEvent<HTMLDivElement>) => void;
 }
 
-export const useFileContextMenu = (file: FileItem | null, type: ContextMenuTypes): UseFileContextMenu => {
-  const openContextMenu = useSetAtom(openContextMenuAtom)
+export const useFileContextMenu = (
+  file: FileItem | null,
+  type: ContextMenuTypes,
+): UseFileContextMenu => {
+  const openContextMenu = useSetAtom(openContextMenuAtom);
 
   const onContextMenu = (event: React.MouseEvent<HTMLDivElement>) => {
-    event.stopPropagation()
-    openContextMenu(event, file, type)
-  }
+    event.stopPropagation();
+    openContextMenu(event, file, type);
+  };
 
   return { onContextMenu };
 };
