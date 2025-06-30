@@ -22,7 +22,7 @@ export const Sidebar = ({
 
   return (
     <div
-      className={`sidebar ${className}`}
+      className={`sidebar ${className} bg-sidebar flex shrink-0 h-full pl-3 pr-3 box-border flex-row overflow-x-hidden`}
       style={{ width: `${width}px` }}
       {...props}
     >
