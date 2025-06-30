@@ -15,6 +15,7 @@ import { isInitializedAtom } from "./store/NotesStore";
 import { getNotesDirectoryPath } from "@shared/constants";
 import { fileRepository } from "@renderer/services/FileRepository";
 import { dbService } from "./services/DatabaseService";
+import { GlobalDrag }  from "./components/GlobalDrag";
 
 function App() {
   const [isInitialized, setIsInitialized] = useAtom(isInitializedAtom);
@@ -42,7 +43,7 @@ function App() {
       if (isDefined) {
         try {
           const files = await window["api"].getFilesRecursiveAsList(
-            getNotesDirectoryPath(),
+            getNotesDirectoryPath()
           );
 
           await fileRepository.clear();
@@ -60,8 +61,8 @@ function App() {
   if (isInitialized) {
     return (
       <RootLayout>
-        <SearchWindow />
         <Sidebar>
+          <SearchWindow />
           <FileExplorer directoryPath={getNotesDirectoryPath()} />
         </Sidebar>
         <Content>
@@ -70,6 +71,7 @@ function App() {
         </Content>
         <ImageSearchOverlay id="image-overlay" />
         <ContextMenu id="context-menu" />
+        <GlobalDrag />
       </RootLayout>
     );
   } else {
