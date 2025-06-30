@@ -15,9 +15,10 @@ import {
   openNoteAtom,
   reloadFlagAtom,
   renamingFilePathAtom,
+  renamingStateFamily,
   selectedBreadcrumbAtom,
 } from "../../store/NotesStore";
-import { useAtom, useSetAtom } from "jotai";
+import { useAtom, useSetAtom, useStore } from "jotai";
 import { FileItem } from "@shared/models";
 import { getNotesDirectoryPath } from "@shared/constants";
 import {
@@ -26,6 +27,7 @@ import {
   generateUniqueName,
 } from "@renderer/services/fileTreeService";
 import { bookmarkRepository } from "@renderer/services/BookmarkRepository";
+import { useCallback } from "react";
 
 interface UseFileRemoveResult {
   remove: (file: FileItem) => void;
@@ -35,18 +37,29 @@ interface UseFileOpenResult {
 }
 
 interface UseFileRenameResult {
-  isRenaming: boolean;
   startRenaming: (filePath: string) => void;
   saveRename: (oldFilePath: string, newName: string) => void;
+  stopRenaming: (filePath: string) => void;
 }
 
 export const useFileOpen = (): UseFileOpenResult => {
-  const [, setNoteText] = useAtom(noteTextAtom);
-  const [fileHistory, setFileHistory] = useAtom(fileHistoryAtom);
-  const [currentFilename, setCurrentFilename] = useAtom(currentFilePathAtom);
-  const [editorNoteText, setEditorNoteText] = useAtom(editorNoteTextAtom);
+  const store = useStore();
+  const getCurrentFilename = () => store.get(currentFilePathAtom);
+  const getEditorNoteText = () => store.get(editorNoteTextAtom);
+  
+  const setNoteText = (value: string) => store.set(noteTextAtom, value);
+  const setFileHistory = (updater: (prev: string[]) => string[]) => {
+    const prev = store.get(fileHistoryAtom);
+    store.set(fileHistoryAtom, updater(prev));
+  };
+  
+  const setEditorNoteText = (value: string) => store.set(editorNoteTextAtom, value);
+  const setCurrentFilename = (value: string) => store.set(currentFilePathAtom, value);
 
-  const saveCurrentFile = async () => {
+  const saveCurrentFile = useCallback(async () => {
+    const currentFilename = getCurrentFilename();
+    const editorNoteText = getEditorNoteText();
+
     if (currentFilename) {
       try {
         await window["api"].saveFile(currentFilename, editorNoteText);
@@ -55,26 +68,31 @@ export const useFileOpen = (): UseFileOpenResult => {
         console.error("Error saving file:", err);
       }
     }
-  };
+  }, []);
 
-  const open = async (file: FileItem, skipSave = false) => {
-    try {
-      if (!skipSave) {
-        await saveCurrentFile();
+  const open = useCallback(
+    async (file: FileItem, skipSave = false) => {
+      try {
+        if (!skipSave) {
+          await saveCurrentFile();
+        }
+
+        const result = await openFile(file);
+
+        setFileHistory(prev => [...prev, file.path]);
+        setNoteText(result);
+        setEditorNoteText(result);
+        setCurrentFilename(file.path);
+      } catch (err) {
+        console.error("Error opening file:", err);
       }
-      const result = await openFile(file);
-
-      setFileHistory([...fileHistory, file.path]);
-      setNoteText(result);
-      setEditorNoteText(result);
-      setCurrentFilename(file.path);
-    } catch (err) {
-      console.error("Error opening file:", err);
-    }
-  };
+    },
+    [saveCurrentFile]
+  );
 
   return { open };
 };
+
 
 export const useFileRemove = (): UseFileRemoveResult => {
   const setReloadFlag = useSetAtom(reloadFlagAtom);
@@ -108,19 +126,26 @@ export const useFileRemove = (): UseFileRemoveResult => {
  *   - `isRenaming`: A boolean value indicating whether the renaming process is active.
  */
 export const useFileRename = (): UseFileRenameResult => {
-  const [isRenaming, setIsRenaming] = useAtom(isRenamingAtom);
+  const store = useStore()
+
+  const currentFilePath = store.get(currentFilePathAtom);
+  const setCurrentFilePath = (value: string) => store.set(currentFilePathAtom, value)
+  
+  const [, setIsRenaming] = useAtom(isRenamingAtom);
   const [, setRenamingFile] = useAtom(renamingFilePathAtom);
-  const [, setReloadFlag] = useAtom(reloadFlagAtom);
-  const [currentFilePath, setCurrentFilePath] = useAtom(currentFilePathAtom);
 
   const startRenaming = (filePath: string) => {
     if (!filePath) return;
+    console.log("start renaming")
     setRenamingFile(filePath);
+    store.set(renamingStateFamily(filePath), true)
     setIsRenaming(true);
   };
 
   const saveRename = async (oldFilePath: string, newName: string) => {
     setIsRenaming(false);
+    store.set(renamingStateFamily(oldFilePath), false);
+    setRenamingFile(null)
 
     if (newName === oldFilePath) return;
 
@@ -128,14 +153,19 @@ export const useFileRename = (): UseFileRenameResult => {
     if (!result.success) {
       console.error("Renaming failed");
     } else {
-      setReloadFlag((prev) => !prev);
       if (currentFilePath === oldFilePath) {
         setCurrentFilePath(result.output || oldFilePath);
       }
     }
   };
 
-  return { isRenaming, startRenaming, saveRename };
+  const stopRenaming = (filePath: string) => {
+    setIsRenaming(false);
+    store.set(renamingStateFamily(filePath), false)
+    setRenamingFile(null);
+  }
+
+  return { startRenaming, saveRename, stopRenaming };
 };
 
 export const useFileCreate = () => {
@@ -205,8 +235,8 @@ export const useFileCreate = () => {
 
       setReloadFlag((prev) => !prev);
       setOpenNote(fullFilePath);
-      setNewlyCreatedFile(fullFilePath);
-      startRenaming(fullFilePath);
+      // setNewlyCreatedFile(fullFilePath);
+      // startRenaming(fullFilePath);
     } catch (err) {
       console.error("Error creating file:", err);
     }
