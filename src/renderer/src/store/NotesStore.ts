@@ -1,6 +1,7 @@
 import { getNotesDirectoryPath } from "@shared/constants";
 import { FileItem } from "@shared/models";
 import { atom } from "jotai";
+import { atomFamily } from "jotai/utils";
 
 // Editor-wide config
 export const isInitializedAtom = atom(false);
@@ -24,6 +25,11 @@ export const newlyCreatedFileAtom = atom<string>(""); // path to newly created a
 
 // Breadcrumbs related atoms
 export const selectedBreadcrumbAtom = atom<string>("");
+export const selectedBredcrumbMatchAtomFamily = atomFamily((path: string) => 
+  atom((get) => get(selectedBreadcrumbAtom) === path)
+);
+
+
 export const overlayVisibleAtom = atom(false);
 
 export const isRenamingAtom = atom(false);
