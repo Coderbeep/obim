@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      "@lib": path.resolve(__dirname, "lib"),
+      "@lib": path.resolve(__dirname, "src/renderer/src/components/lib"),
       "@renderer": path.resolve(__dirname, "src/renderer/src"),
       "@shared": path.resolve(__dirname, "src/shared"),
       "@": path.resolve(__dirname, "src/renderer/src"),
@@ -14,7 +14,7 @@ export default defineConfig({
       "@store": path.resolve(__dirname, "src/renderer/src/store"),
       "@components": path.resolve(__dirname, "src/renderer/src/components"),
       "@hooks": path.resolve(__dirname, "src/renderer/src/hooks"),
-      "@utils": path.resolve(__dirname, "lib/utils"),
+      "@utils": path.resolve(__dirname, "src/renderer/src/components/lib/utils"),
       "@services": path.resolve(__dirname, "src/renderer/src/services"),
     },
   },

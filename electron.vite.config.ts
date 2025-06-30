@@ -27,6 +27,7 @@ export default defineConfig({
         "@store": resolve("src/renderer/src/store"),
         "@utils": resolve("src/renderer/src/utils"),
         "@services": resolve("src/renderer/src/services"),
+        "@lib": resolve("src/renderer/src/components/lib")
       },
     },
     plugins: [react()],
