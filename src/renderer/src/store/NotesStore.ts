@@ -24,7 +24,7 @@ export const dragCounterAtomFamily = atomFamily(
 );
 
 
-export const fileHistoryAtom = atom<string[]>([]);
+export const fileHistoryAtom = atom<FileItem[]>([]);
 
 export const editorNoteTextAtom = atom("");
 export const currentRelativeFilePathAtom = atom((get) =>
@@ -58,9 +58,9 @@ export const renamingFilePathAtom = atom<string | null>(null);
 export const renamingStateFamily = atomFamily((filePath: string) => atom(false))
 
 // Opening newly created note
-export const openNoteAtom = atom(null, (get, set, filePath: string) => {
-  set(currentFilePathAtom, filePath);
-  set(fileHistoryAtom, [...get(fileHistoryAtom), filePath]);
+export const openNoteAtom = atom(null, (get, set, file: FileItem) => {
+  set(currentFilePathAtom, file.path);
+  set(fileHistoryAtom, [...get(fileHistoryAtom), file]);
   set(editorNoteTextAtom, "");
   set(noteTextAtom, "");
 });
