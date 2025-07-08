@@ -46,15 +46,29 @@ export const useFileOpen = (): UseFileOpenResult => {
   const store = useStore();
   const getCurrentFilename = () => store.get(currentFilePathAtom);
   const getEditorNoteText = () => store.get(editorNoteTextAtom);
-  
+
   const setNoteText = (value: string) => store.set(noteTextAtom, value);
-  const setFileHistory = (updater: (prev: string[]) => string[]) => {
+  const setFileHistory = (updater: (prev: FileItem[]) => FileItem[]) => {
     const prev = store.get(fileHistoryAtom);
-    store.set(fileHistoryAtom, updater(prev));
+    let updated = updater(prev);
+  
+    const lastPrev = prev[prev.length - 1];
+    const lastUpdated = updated[updated.length - 1];
+  
+    if (lastUpdated?.path === lastPrev?.path) return;
+  
+    if (updated.length > 16) {
+      updated = updated.slice(updated.length - 16);
+    }
+  
+    store.set(fileHistoryAtom, updated);
   };
   
-  const setEditorNoteText = (value: string) => store.set(editorNoteTextAtom, value);
-  const setCurrentFilename = (value: string) => store.set(currentFilePathAtom, value);
+
+  const setEditorNoteText = (value: string) =>
+    store.set(editorNoteTextAtom, value);
+  const setCurrentFilename = (value: string) =>
+    store.set(currentFilePathAtom, value);
 
   const saveCurrentFile = useCallback(async () => {
     const currentFilename = getCurrentFilename();
@@ -79,7 +93,7 @@ export const useFileOpen = (): UseFileOpenResult => {
 
         const result = await openFile(file);
 
-        setFileHistory(prev => [...prev, file.path]);
+        setFileHistory((prev) => [...prev, file]);
         setNoteText(result);
         setEditorNoteText(result);
         setCurrentFilename(file.path);
@@ -92,7 +106,6 @@ export const useFileOpen = (): UseFileOpenResult => {
 
   return { open };
 };
-
 
 export const useFileRemove = (): UseFileRemoveResult => {
   const setReloadFlag = useSetAtom(reloadFlagAtom);
@@ -126,26 +139,27 @@ export const useFileRemove = (): UseFileRemoveResult => {
  *   - `isRenaming`: A boolean value indicating whether the renaming process is active.
  */
 export const useFileRename = (): UseFileRenameResult => {
-  const store = useStore()
+  const store = useStore();
 
   const currentFilePath = store.get(currentFilePathAtom);
-  const setCurrentFilePath = (value: string) => store.set(currentFilePathAtom, value)
-  
+  const setCurrentFilePath = (value: string) =>
+    store.set(currentFilePathAtom, value);
+
   const [, setIsRenaming] = useAtom(isRenamingAtom);
   const [, setRenamingFile] = useAtom(renamingFilePathAtom);
 
   const startRenaming = (filePath: string) => {
     if (!filePath) return;
-    console.log("start renaming")
+    console.log("start renaming");
     setRenamingFile(filePath);
-    store.set(renamingStateFamily(filePath), true)
+    store.set(renamingStateFamily(filePath), true);
     setIsRenaming(true);
   };
 
   const saveRename = async (oldFilePath: string, newName: string) => {
     setIsRenaming(false);
     store.set(renamingStateFamily(oldFilePath), false);
-    setRenamingFile(null)
+    setRenamingFile(null);
 
     if (newName === oldFilePath) return;
 
@@ -161,9 +175,9 @@ export const useFileRename = (): UseFileRenameResult => {
 
   const stopRenaming = (filePath: string) => {
     setIsRenaming(false);
-    store.set(renamingStateFamily(filePath), false)
+    store.set(renamingStateFamily(filePath), false);
     setRenamingFile(null);
-  }
+  };
 
   return { startRenaming, saveRename, stopRenaming };
 };
@@ -191,7 +205,7 @@ export const useFileCreate = () => {
   };
 
   const createNewFile = async (
-    folderPath: string = getNotesDirectoryPath(),
+    folderPath: string = getNotesDirectoryPath()
   ) => {
     let filename: string = "";
     let fullFilePath: string = "";
@@ -209,7 +223,7 @@ export const useFileCreate = () => {
       filename = generateUniqueName(
         targetFolder.children || [],
         "Untitled",
-        ".md",
+        ".md"
       );
       fullFilePath = `${folderPath}/${filename}`;
     }
@@ -218,7 +232,7 @@ export const useFileCreate = () => {
       await saveCurrentFile();
       await window["api"].saveFile(fullFilePath, "");
       console.log(
-        `File '${filename}' created successfully in '${folderPath}'.`,
+        `File '${filename}' created successfully in '${folderPath}'.`
       );
 
       const fileItem: FileItem = {
@@ -234,7 +248,7 @@ export const useFileCreate = () => {
         setFiles((prevFiles) => addItemToTree(prevFiles, folderPath, fileItem));
 
       setReloadFlag((prev) => !prev);
-      setOpenNote(fullFilePath);
+      setOpenNote(fileItem);
       // setNewlyCreatedFile(fullFilePath);
       // startRenaming(fullFilePath);
     } catch (err) {
@@ -252,7 +266,7 @@ export const useDirectoryCreate = () => {
   const { startRenaming } = useFileRename();
 
   const createDirectory = async (
-    folderPath: string = getNotesDirectoryPath(),
+    folderPath: string = getNotesDirectoryPath()
   ) => {
     let foldername: string = "";
     let fullFolderPath: string = "";
@@ -268,7 +282,7 @@ export const useDirectoryCreate = () => {
 
       foldername = generateUniqueName(
         targetFolder.children || [],
-        "New directory",
+        "New directory"
       );
       fullFolderPath = `${folderPath}/${foldername}`;
     }
@@ -276,7 +290,7 @@ export const useDirectoryCreate = () => {
     try {
       await window["api"].createDirectory(fullFolderPath);
       console.log(
-        `Folder '${foldername}' created successfully in '${folderPath}'.`,
+        `Folder '${foldername}' created successfully in '${folderPath}'.`
       );
 
       const folderItem: FileItem = {
@@ -290,7 +304,7 @@ export const useDirectoryCreate = () => {
         setFiles((prevFiles) => [...prevFiles, folderItem]);
       } else {
         setFiles((prevFiles) =>
-          addItemToTree(prevFiles, folderPath, folderItem),
+          addItemToTree(prevFiles, folderPath, folderItem)
         );
       }
       setReloadFlag((prev) => !prev);
