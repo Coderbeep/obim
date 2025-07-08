@@ -119,7 +119,7 @@ const ListDirectory = memo(({ file, level }: ListItem) => {
 
   return (
     <div
-      className={`file-explorer-group rounded-[var(--radius)] border-1 z-10 ${
+      className={`file-explorer-group rounded-[var(--radius)] z-10 ${
         dragCounter
           ? "bg-blue-100! border-[var(--sidebar-ring)]"
           : "border-transparent"
