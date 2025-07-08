@@ -19,7 +19,7 @@ interface HeaderButtonProps {
   action?: () => void;
 }
 
-const HeaderButton = ({
+export const HeaderButton = ({
   icon: Icon,
   altIcon: AltIcon,
   action,
@@ -37,7 +37,7 @@ const HeaderButton = ({
 
   return (
     <div
-      className="hover:bg-gray-200 p-1 rounded-md cursor-pointer"
+      className="hover:bg-gray-200 p-1 rounded-[var(--radius)] cursor-pointer"
       onClick={handleClick}
     >
       {whichIcon && AltIcon ? <AltIcon size={16} /> : <Icon size={16} />}
