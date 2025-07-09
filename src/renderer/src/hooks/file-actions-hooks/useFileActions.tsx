@@ -7,7 +7,6 @@ import {
   bookmarksAtom,
   currentFilePathAtom,
   editorNoteTextAtom,
-  fileHistoryAtom,
   fileTreeAtom,
   isRenamingAtom,
   newlyCreatedFileAtom,
@@ -18,6 +17,7 @@ import {
   renamingStateFamily,
   selectedBreadcrumbAtom,
 } from "../../store/NotesStore";
+import { fileHistoryBackwardStackAtom, fileHistoryForwardStackAtom } from "@renderer/store/FileNavigationStore";
 import { useAtom, useSetAtom, useStore } from "jotai";
 import { FileItem } from "@shared/models";
 import { getNotesDirectoryPath } from "@shared/constants";
@@ -33,7 +33,7 @@ interface UseFileRemoveResult {
   remove: (file: FileItem) => void;
 }
 interface UseFileOpenResult {
-  open: (file: FileItem, skipSave?: boolean) => void;
+  open: (file: FileItem, skipSave?: boolean, skipForwardHistoryClear?: boolean) => void;
 }
 
 interface UseFileRenameResult {
@@ -48,22 +48,20 @@ export const useFileOpen = (): UseFileOpenResult => {
   const getEditorNoteText = () => store.get(editorNoteTextAtom);
 
   const setNoteText = (value: string) => store.set(noteTextAtom, value);
-  const setFileHistory = (updater: (prev: FileItem[]) => FileItem[]) => {
-    const prev = store.get(fileHistoryAtom);
-    let updated = updater(prev);
+
+  const pushToFileHistoryBackwardStack = (file: FileItem) => {
+    const backStack = store.get(fileHistoryBackwardStackAtom);
+    const last = backStack[backStack.length - 1];
   
-    const lastPrev = prev[prev.length - 1];
-    const lastUpdated = updated[updated.length - 1];
+    if (last?.path === file.path) return;
   
-    if (lastUpdated?.path === lastPrev?.path) return;
-  
-    if (updated.length > 16) {
-      updated = updated.slice(updated.length - 16);
-    }
-  
-    store.set(fileHistoryAtom, updated);
+    store.set(fileHistoryBackwardStackAtom, [...backStack, file]);
   };
   
+  const clearFileHistoryForwardStack = () => {
+    store.set(fileHistoryForwardStackAtom, [])
+  }
+
 
   const setEditorNoteText = (value: string) =>
     store.set(editorNoteTextAtom, value);
@@ -85,15 +83,19 @@ export const useFileOpen = (): UseFileOpenResult => {
   }, []);
 
   const open = useCallback(
-    async (file: FileItem, skipSave = false) => {
+    async (file: FileItem, skipSave = false, skipForwardHistoryClear = false) => {
       try {
         if (!skipSave) {
           await saveCurrentFile();
         }
 
+        if (!skipForwardHistoryClear) {
+          clearFileHistoryForwardStack();
+        }
+
         const result = await openFile(file);
 
-        setFileHistory((prev) => [...prev, file]);
+        pushToFileHistoryBackwardStack(file)
         setNoteText(result);
         setEditorNoteText(result);
         setCurrentFilename(file.path);
