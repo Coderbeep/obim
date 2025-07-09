@@ -6,29 +6,21 @@ import SearchWindow from "./components/SearchWindow";
 import "./assets/index.css";
 import "./assets/Editor.scss";
 import "./assets/globals.css";
-import { Breadcrumbs } from "./components/Breadcrumbs";
 import ImageSearchOverlay from "./components/ImageSearchOverlay";
 import { ContextMenu } from "./components/ContextMenu";
 import { InitializationCard } from "./components/InitializationCard";
-import { useAtom, useStore } from "jotai";
-import { currentFilePathAtom, fileHistoryAtom, isInitializedAtom } from "./store/NotesStore";
+import { useAtom } from "jotai";
+import { isInitializedAtom } from "./store/NotesStore"
 import { getNotesDirectoryPath } from "@shared/constants";
 import { fileRepository } from "@renderer/services/FileRepository";
 import { dbService } from "./services/DatabaseService";
 import { GlobalDrag } from "./components/GlobalDrag";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { HeaderButton } from "./components/FileExplorer/FileExplorerHeader";
-import { useFileOpen } from "./hooks/file-actions-hooks/useFileActions";
+import { EditorHeader } from "./components/EditorHeader";
 
 
 function App() {
   const [isInitialized, setIsInitialized] = useAtom(isInitializedAtom);
   const [, setDbReady] = useState(false);
-  const store = useStore();
-  const getCurrentFilePath = () => store.get(currentFilePathAtom);
-  const setCurrentFilePath = (value: string) => store.set(currentFilePathAtom, value);
-  const fileHistory = () => store.get(fileHistoryAtom); 
-  const { open } = useFileOpen();
 
   useEffect(() => {
     const initializeDB = async () => {
@@ -75,40 +67,7 @@ function App() {
           <FileExplorer directoryPath={getNotesDirectoryPath()} />
         </Sidebar>
         <Content>
-          <div className="flex items-center">
-            <div className="flex items-center gap-2 shrink-0">
-              <HeaderButton
-                icon={ChevronLeft}
-                action={() => {
-                  console.log("Left clicked.")
-                  const currentFilePath = getCurrentFilePath();
-                  const history = fileHistory();
-                  const currentIndex = history.findIndex(f => f.path === currentFilePath);
-                  if (currentIndex > 0) {
-                    const previousFile = history[currentIndex - 1];
-                    open(previousFile);
-                  }
-                }}
-              />
-              <HeaderButton
-                icon={ChevronRight}
-                action={() => {
-                  console.log("Right clicked.")
-                  const currentFilePath = getCurrentFilePath();
-                  const history = fileHistory();
-                  const currentIndex = history.findIndex(f => f.path === currentFilePath);
-                  if (currentIndex > -1 && currentIndex < history.length - 1) {
-                    const nextFile = history[currentIndex + 1];
-                    open(nextFile);
-                  }
-                }}
-              />
-            </div>
-
-            <div className="flex-grow flex justify-center">
-              <Breadcrumbs />
-            </div>
-          </div>
+          <EditorHeader />
           <ObimEditor />
         </Content>
         <ImageSearchOverlay id="image-overlay" />
