@@ -2,6 +2,7 @@ import { getNotesDirectoryPath } from "@shared/constants";
 import { FileItem } from "@shared/models";
 import { atom } from "jotai";
 import { atomFamily } from "jotai/utils";
+import { fileHistoryBackwardStackAtom, fileHistoryForwardStackAtom } from "./FileNavigationStore";
 
 // Editor-wide config
 export const isInitializedAtom = atom(false);
@@ -22,9 +23,6 @@ export const dragCounterAtomFamily = atomFamily(
   (directoryPath: string) => atom(0),
   (a, b) => a === b
 );
-
-
-export const fileHistoryAtom = atom<FileItem[]>([]);
 
 export const editorNoteTextAtom = atom("");
 export const currentRelativeFilePathAtom = atom((get) =>
@@ -59,8 +57,16 @@ export const renamingStateFamily = atomFamily((filePath: string) => atom(false))
 
 // Opening newly created note
 export const openNoteAtom = atom(null, (get, set, file: FileItem) => {
+  const backStack = get(fileHistoryBackwardStackAtom);
+  const last = backStack[backStack.length - 1];
+
+  // Only push if not duplicate
+  if (!last || last.path !== file.path) {
+    set(fileHistoryBackwardStackAtom, [...backStack, file]);
+  }
+
+  set(fileHistoryForwardStackAtom, []);
   set(currentFilePathAtom, file.path);
-  set(fileHistoryAtom, [...get(fileHistoryAtom), file]);
   set(editorNoteTextAtom, "");
   set(noteTextAtom, "");
 });
