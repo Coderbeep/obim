@@ -32,9 +32,16 @@ import { useCallback } from "react";
 interface UseFileRemoveResult {
   remove: (file: FileItem) => void;
 }
-interface UseFileOpenResult {
-  open: (file: FileItem, skipSave?: boolean, skipForwardHistoryClear?: boolean) => void;
+
+interface OpenFileOptions {
+  skipSave?: boolean,
+  skipForwardHistoryClear?: boolean
 }
+interface UseFileOpenResult {
+  open: (file: FileItem, options?: OpenFileOptions) => void;
+}
+
+
 
 interface UseFileRenameResult {
   startRenaming: (filePath: string) => void;
@@ -83,7 +90,12 @@ export const useFileOpen = (): UseFileOpenResult => {
   }, []);
 
   const open = useCallback(
-    async (file: FileItem, skipSave = false, skipForwardHistoryClear = false) => {
+    async (file: FileItem, options?: OpenFileOptions) => {
+      const {
+        skipSave = false, 
+        skipForwardHistoryClear = false
+      } = options ?? {};
+
       try {
         if (!skipSave) {
           await saveCurrentFile();

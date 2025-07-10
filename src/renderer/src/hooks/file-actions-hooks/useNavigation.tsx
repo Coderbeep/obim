@@ -18,7 +18,7 @@ export const useNavigation = () => {
         store.set(fileHistoryForwardStackAtom, [...forwardStack, previousFile]);
         store.set(fileHistoryBackwardStackAtom, backStack.slice(0, -1));
 
-        open(backStack[backStack.length - 2], false, true);
+        open(backStack[backStack.length - 2], {skipSave: false, skipForwardHistoryClear: true});
       }, [store, open]);
 
     const goForward = useCallback(() => {
@@ -30,7 +30,7 @@ export const useNavigation = () => {
 
         store.set(fileHistoryBackwardStackAtom, [...backStack, nextFile]);
         store.set(fileHistoryForwardStackAtom, forwardStack.slice(0, -1));
-        open(nextFile, false, true);
+        open(nextFile, {skipSave: false, skipForwardHistoryClear: true});
     }, [store, open]);
 
     return {

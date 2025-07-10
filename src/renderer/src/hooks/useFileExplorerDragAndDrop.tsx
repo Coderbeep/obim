@@ -118,7 +118,7 @@ export const useFileExplorerDropTarget = (targetDirectoryPath: string) => {
 
     if (draggedFile.path === currentFilePath && moveResult.data.output) {
       draggedFile.path = moveResult.data.output;
-      open(draggedFile, true);
+      open(draggedFile, {skipSave: true} );
     }
 
     setReloadFlag(!store.get(reloadFlagAtom));
