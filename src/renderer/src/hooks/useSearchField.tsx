@@ -6,6 +6,7 @@ import {
 } from "../store/SearchWindowStore";
 import { useAtom, useSetAtom } from "jotai";
 import { fileRepository } from "@renderer/services/FileRepository";
+import { FileSearchResultsLimit } from "@shared/constants";
 
 export const useSearchField = () => {
   const [isVisible, setIsVisible] = useAtom(isVisibleAtom);
@@ -30,7 +31,8 @@ export const useSearchField = () => {
 
   const queryDB = async (query: string) => {
     const filesFromDB = await fileRepository.search(query);
-    setResults(filesFromDB.slice(0, 30));
+    const filteredFiles = filesFromDB.filter(file => !file.isDirectory);
+    setResults(filteredFiles.slice(0, FileSearchResultsLimit));
   };
 
   const onQueryChange = (newQuery: string) => {
