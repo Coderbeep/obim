@@ -7,16 +7,10 @@ import useSearchField from "@hooks/useSearchField";
 import { useFileOpen } from "@hooks/file-actions-hooks/useFileActions";
 import { FileItem } from "@shared/models";
 import { cn } from "@lib/utils";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@components/ui/command";
+import { Command, CommandInput, CommandList } from "@components/ui/command";
 import { Dialog, DialogContent, DialogHeader } from "@components/ui/dialog";
 import { Badge } from "@components/ui/badge";
+import { DialogTitle } from "@radix-ui/react-dialog";
 
 const SearchWindow = () => {
   const results = useAtomValue(resultsAtom);
@@ -31,6 +25,8 @@ const SearchWindow = () => {
   const [navMode, setNavMode] = useState(0); // 0: keyboard, 1: mouse
   const { onQueryChange } = useSearchField();
   const [query, setQuery] = useState("");
+  const [keyboardActive, setKeyboardActive] = useState(false);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   const listRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -49,23 +45,61 @@ const SearchWindow = () => {
   };
 
   const handleKeyboardNavigation = (e: React.KeyboardEvent) => {
-    setNavMode(0);
-    handleKeyDown(e.nativeEvent);
-    if (e.key === "Enter") {
-      onResultClick(results[currentlySelected]);
+    if (["ArrowUp", "ArrowDown", "Enter", "Escape"].includes(e.key)) {
+      e.preventDefault();
+      e.stopPropagation();
     }
+
+    if (["ArrowUp", "ArrowDown"].includes(e.key)) {
+      setNavMode(0);
+      setKeyboardActive(true);
+      setHoveredIndex(null); // Clear hover state when using keyboard
+
+      setTimeout(() => setKeyboardActive(false), 100);
+    }
+
+    if (e.key === "Enter" && results[currentlySelected]) {
+      onResultClick(results[currentlySelected]);
+      return;
+    }
+
+    if (e.key === "Escape") {
+      setIsVisible(false);
+      return;
+    }
+
+    // Handle navigation keys
+    handleKeyDown(e.nativeEvent);
   };
 
-  const handleMouseNavigation = (index: number) => {
+  const handleMouseEnter = (index: number) => {
+    if (keyboardActive) return;
+
     setNavMode(1);
     setCurrentlySelected(index);
+    setHoveredIndex(index);
+  };
+
+  const handleMouseLeave = () => {
+    if (keyboardActive) return;
+    setHoveredIndex(null);
+  };
+
+  const handleMouseMove = (index: number) => {
+    // Re-enable mouse navigation on any mouse movement
+    if (keyboardActive) {
+      setKeyboardActive(false);
+      setNavMode(1);
+      setCurrentlySelected(index);
+      setHoveredIndex(index);
+    }
   };
 
   const getFileIcon = (path: string) => {
     const extension = path.split(".").pop()?.toLowerCase();
     if (["jpg", "jpeg", "png", "gif"].includes(extension || ""))
-      return <Image className="h-[14px]! w-[14px]! text-muted-foreground" />;
-    else return <File className="h-[14px]! w-[14px]! text-muted-foreground" />;
+      return <Image className="h-[14px] w-[14px] text-muted-foreground" />;
+    else return <File className="h-[14px] w-[14px] text-muted-foreground" />;
   };
 
   const getFileType = (path: string) => {
@@ -85,27 +119,37 @@ const SearchWindow = () => {
 
   useEffect(() => {
     setMaxIndex(results.length - 1);
-  }, [results]);
+  }, [results, setMaxIndex]);
 
   useEffect(() => {
-    if (listRefs.current[currentlySelected] && !navMode) {
+    // Scroll when keyboard navigation is active and selection changes
+    if (listRefs.current[currentlySelected] && navMode === 0) {
       listRefs.current[currentlySelected].scrollIntoView({
         behavior: "instant",
         block: "nearest",
       });
     }
-  }, [currentlySelected]);
+  }, [currentlySelected, navMode]);
+
+  // Reset selection when results change
+  useEffect(() => {
+    setCurrentlySelected(0);
+    setHoveredIndex(null);
+  }, [results, setCurrentlySelected]);
 
   if (!isVisible) return null;
 
   return (
     <Dialog open={isVisible} onOpenChange={setIsVisible}>
-      <DialogContent className="sm:max-w-[600px] p-0 gap-0">
+      <DialogContent
+        className="sm:max-w-[600px] p-0 gap-0"
+        aria-describedby={undefined}
+      >
         <DialogHeader className="sr-only">
-          <title>Search Files</title>
+          <DialogTitle>Search Files</DialogTitle>
         </DialogHeader>
 
-        <Command className="rounded-lg border-none shadow-none ">
+        <Command className="rounded-lg border-none shadow-none">
           <CommandInput
             placeholder="Search files..."
             value={query}
@@ -115,35 +159,41 @@ const SearchWindow = () => {
           />
 
           <CommandList className="max-h-96">
-            <CommandEmpty className="text-center text-sm text-muted-foreground">
-              No files found.
-            </CommandEmpty>
+            {results.length === 0 && (
+              <div className="text-center py-3 text-sm text-muted-foreground">
+                No files found.
+              </div>
+            )}
 
             {results.length > 0 && (
-              <CommandGroup>
+              <div className="px-2">
                 {results.map((result, index) => {
                   const { fileName, directory } = formatPath(
                     result.relativePath
                   );
                   const fileType = getFileType(result.relativePath);
 
+                  const isSelected = currentlySelected === index;
+                  const isHovered = hoveredIndex === index && navMode === 1;
+                  const shouldHighlight = isSelected || isHovered;
+
                   return (
-                    <CommandItem
+                    <div
                       key={result.relativePath}
-                      value={result.relativePath}
-                      onSelect={() => onResultClick(result)}
-                      onMouseEnter={() => handleMouseNavigation(index)}
+                      onClick={() => onResultClick(result)}
+                      onMouseEnter={() => handleMouseEnter(index)}
+                      onMouseLeave={handleMouseLeave}
+                      onMouseMove={() => handleMouseMove(index)}
                       ref={(listElement) =>
                         (listRefs.current[index] = listElement)
                       }
                       className={cn(
-                        "flex items-center gap-3 cursor-pointer rounded-md",
-                        "hover:bg-accent hover:text-accent-foreground",
-                        currentlySelected === index &&
+                        "flex items-center gap-3 cursor-pointer rounded-md pl-2 py-1",
+                        shouldHighlight &&
                           "bg-accent text-accent-foreground"
                       )}
                     >
-                      <div className="flex items-start gap-2 flex-1 min-w-0 ">
+                      <div className="flex items-start gap-2 flex-1 min-w-0">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <span className="flex items-center gap-2 font-medium text-sm truncate">
@@ -163,10 +213,10 @@ const SearchWindow = () => {
                           )}
                         </div>
                       </div>
-                    </CommandItem>
+                    </div>
                   );
                 })}
-              </CommandGroup>
+              </div>
             )}
           </CommandList>
         </Command>
