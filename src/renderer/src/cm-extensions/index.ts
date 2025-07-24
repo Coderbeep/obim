@@ -17,13 +17,13 @@ export const DefaultExtensions = [
   BlockQuoteExtension,
   CodeBlockExtension,
   EmphasisExtension,
-  ImageExtension,
+  ImageExtension, // rerender problems
   ImageExtensionOverlay,
-  FrontmatterExtension,
+  FrontmatterExtension, // rerender problems
   HeadingExtension,
   HorizontalRuleExtension,
   ListsExtension,
-  TableExtension,
+  TableExtension, // rerender problems
   MarkdocTableExtension,
   MathBlockExtension,
   CodeBlockGutterExtension,

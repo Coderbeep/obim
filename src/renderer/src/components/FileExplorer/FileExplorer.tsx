@@ -47,10 +47,6 @@ export const ListFile = memo(({ file, level }: ListItem) => {
   const fileRef = useRef<HTMLDivElement>(null);
   const isActive = useAtomValue(isActiveFileAtomFamily(file.path));
 
-  useEffect(() => {
-    console.log("[RENDER] ListFile");
-  }, []);
-
   const { onDragStart, onDrag, onDragEnd } = useFileExplorerDragSource(file);
 
   return (
@@ -87,10 +83,6 @@ const ListDirectory = memo(({ file, level }: ListItem) => {
     file,
     ContextMenuTypes.DIRECTORY
   );
-
-  useEffect(() => {
-    console.log("[RENDER] ListDirectory");
-  });
 
   const onDirectorySelect = useCallback((directoryPath: string) => {
     setExpandedDirectories((prev) => {
@@ -186,10 +178,6 @@ export const FileExplorer = memo(({ directoryPath }: FileExplorerProps) => {
     null,
     ContextMenuTypes.FILEEXPLORER
   );
-
-  useEffect(() => {
-    console.log("[RENDER] Explorer");
-  });
 
   useEffect(() => {
     const loadFiles = async () => {
