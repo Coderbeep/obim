@@ -52,31 +52,28 @@ function createWindow(): void {
   }
 }
 
-const mediaProtocolName = "media";
-protocol.registerSchemesAsPrivileged([
-  {
-    scheme: mediaProtocolName,
-    privileges: { standard: true, secure: true, supportFetchAPI: true },
-  },
-]);
-
 app.whenReady().then(async () => {
   electronApp.setAppUserModelId("com.electron");
 
-  protocol.handle(mediaProtocolName, async (request) => {
-    const mainDirectoryPath =
-      await ConfigManager.getConfigValue<string>("mainDirectory");
-    let url = request.url.replace(`${mediaProtocolName}:/`, "");
-    let filePath = path.join(mainDirectoryPath, url);
-    if (filePath.endsWith("/")) {
-      filePath = filePath.slice(0, -1);
-    }
+  protocol.handle("media", async (request) => {
     try {
+      const mainDirectoryPath =
+        await ConfigManager.getConfigValue<string>("mainDirectory");
+      const urlObj = new URL(request.url);
+      const relativePath = decodeURIComponent(urlObj.pathname).replace(
+        /^\/+/,
+        ""
+      );
+      const filePath = path.join(mainDirectoryPath, relativePath);
+
       const data = await readFile(filePath);
+      const mimeType = "image/png";
+
       return new Response(data, {
-        headers: { "Content-Type": "image/png" },
+        headers: { "Content-Type": mimeType },
       });
     } catch (error) {
+      console.error("Error handling media protocol:", error);
       return new Response("File not found", { status: 404 });
     }
   });
@@ -184,7 +181,7 @@ async function getFilesRecursiveAsList(directoryPath, mainDirectoryPath) {
     if (fileStat.isDirectory()) {
       const children = await getFilesRecursiveAsList(
         filePath,
-        mainDirectoryPath,
+        mainDirectoryPath
       );
       files.push(...children);
     }
@@ -206,7 +203,7 @@ ipcMain.handle(
     const mainDirectoryPath =
       await ConfigManager.getConfigValue<string>("mainDirectory");
     return getFilesRecursiveAsList(directoryPath, mainDirectoryPath);
-  },
+  }
 );
 
 async function getFilesRecursiveAsTree(directoryPath, mainDirectoryPath) {
@@ -227,7 +224,7 @@ async function getFilesRecursiveAsTree(directoryPath, mainDirectoryPath) {
     if (fileStat.isDirectory()) {
       fileItem.children = await getFilesRecursiveAsTree(
         filePath,
-        mainDirectoryPath,
+        mainDirectoryPath
       );
     }
 
@@ -250,7 +247,7 @@ ipcMain.handle(
     const mainDirectoryPath =
       await ConfigManager.getConfigValue<string>("mainDirectory");
     return getFilesRecursiveAsTree(directoryPath, mainDirectoryPath);
-  },
+  }
 );
 
 ipcMain.handle(
@@ -274,7 +271,7 @@ ipcMain.handle(
       console.error("Error moving file:", error);
       return { success: false, error: error };
     }
-  },
+  }
 );
 
 ipcMain.handle(
@@ -282,7 +279,7 @@ ipcMain.handle(
   async (_, movingFilePath: string, destinationDirectoryPath: string) => {
     const destinationPath = path.join(
       destinationDirectoryPath,
-      path.basename(movingFilePath),
+      path.basename(movingFilePath)
     );
 
     try {
@@ -291,7 +288,7 @@ ipcMain.handle(
       const fullSourcePath = path.resolve(mainDirectoryPath, movingFilePath);
       const fullDestinationPath = path.resolve(
         mainDirectoryPath,
-        destinationPath,
+        destinationPath
       );
 
       if (existsSync(fullDestinationPath)) {
@@ -304,7 +301,7 @@ ipcMain.handle(
       console.error("Error moving file:", error);
       return { success: false, error: error };
     }
-  },
+  }
 );
 
 ipcMain.handle("delete-file", async (_, filePath: string) => {
