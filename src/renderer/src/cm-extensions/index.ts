@@ -28,4 +28,5 @@ export const DefaultExtensions = [
   MathBlockExtension,
   CodeBlockGutterExtension,
   FormattingKeymap,
+  ImageExtension, // rerender problems
 ];

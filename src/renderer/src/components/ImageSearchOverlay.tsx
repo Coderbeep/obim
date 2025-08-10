@@ -3,10 +3,13 @@ import { useAtom, useAtomValue } from "jotai";
 
 import useSearchField from "@hooks/useSearchField";
 import { useKeyboardHotkey } from "@hooks/useKeyboardHotkey";
+import { File, Image } from "lucide-react";
 
 import { resultsAtom } from "@store/SearchWindowStore";
 import { overlayVisibleAtom } from "@store/NotesStore";
 import { EventBus, EventTypes } from "@services/EventBus";
+import { Badge } from "./ui/badge";
+import cn from "./lib/utils";
 
 const ImageSearchOverlay = ({ id }: { id: string }) => {
   const results = useAtomValue(resultsAtom);
@@ -28,7 +31,7 @@ const ImageSearchOverlay = ({ id }: { id: string }) => {
   const listRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const handleQueryChange = (newQuery: string) => {
-    onQueryChange(newQuery);
+    onQueryChange(newQuery, { onlyImages: true });
     setCurrentlySelected(0);
   };
 
@@ -107,6 +110,29 @@ const ImageSearchOverlay = ({ id }: { id: string }) => {
     overlayVisibleRef.current = overlayVisible;
   }, [overlayVisible]);
 
+  const getFileIcon = (path: string) => {
+    const extension = path.split(".").pop()?.toLowerCase();
+    if (["jpg", "jpeg", "png", "gif"].includes(extension || ""))
+      return <Image className="h-[14px] w-[14px] text-muted-foreground" />;
+    else return <File className="h-[14px] w-[14px] text-muted-foreground" />;
+  };
+
+  const getFileType = (path: string) => {
+    const extension = path.split(".").pop()?.toLowerCase();
+    return extension || "file";
+  };
+
+  const formatPath = (path: string) => {
+    const parts = path.split("/");
+    const fileName = parts.pop() || "";
+    const fileNameWithoutExtension = fileName.split(".")[0];
+    return {
+      fileName: fileNameWithoutExtension,
+      directory: parts.join("/").slice(1),
+    };
+  };
+
+
   return (
     <div
       id={id}
@@ -114,18 +140,44 @@ const ImageSearchOverlay = ({ id }: { id: string }) => {
       className={`absolute bg-white border border-gray-300 rounded-lg shadow-md w-1/3 min-w-96 min-h-52 z-50 overflow-hidden ${overlayVisible ? "block" : "hidden"}`}
     >
       <div className="max-h-80 overflow-y-auto">
-        <div className="p-2">
-          {results.map((result, index) => (
-            <div
-              key={result.relativePath}
-              className={`p-1 text-sm cursor-pointer rounded-md truncate ${currentlySelected === index ? "bg-gray-100" : ""}`}
-              onMouseMove={() => handleMouseNavigation(index)}
-              onClick={() => handleImageSelected()}
-              ref={(listElement) => (listRefs.current[index] = listElement)}
-            >
-              {result.relativePath}
-            </div>
-          ))}
+        <div className="p-2 space-y-1">
+          {results.map((result, index) => {
+            const { fileName, directory } = formatPath(result.relativePath);
+            const fileType = getFileType(result.relativePath);
+            const isSelected = currentlySelected === index;
+
+            return (
+              <div
+                key={result.relativePath}
+                className={cn(
+                  "flex items-center gap-3 cursor-pointer rounded-md pl-2 pr-2 py-1",
+                  isSelected && "bg-accent text-accent-foreground"
+                )}
+                onMouseMove={() => handleMouseNavigation(index)}
+                onClick={handleImageSelected}
+                ref={(el) => (listRefs.current[index] = el)}
+              >
+                <div className="flex items-start gap-2 flex-1 min-w-0">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="flex items-center gap-2 font-medium text-sm truncate">
+                        {getFileIcon(result.relativePath)}
+                        {fileName}
+                      </span>
+                      <Badge variant="secondary" className="text-xs">
+                        {fileType}
+                      </Badge>
+                    </div>
+                    {directory && (
+                      <div className="text-xs text-muted-foreground truncate">
+                        {directory}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
