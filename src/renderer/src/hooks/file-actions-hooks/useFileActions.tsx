@@ -5,11 +5,11 @@ import {
 } from "@renderer/services/fileService";
 import {
   bookmarksAtom,
+  currentFileAtom,
   currentFilePathAtom,
   editorNoteTextAtom,
   fileTreeAtom,
   isRenamingAtom,
-  newlyCreatedFileAtom,
   noteTextAtom,
   openNoteAtom,
   reloadFlagAtom,
@@ -17,7 +17,10 @@ import {
   renamingStateFamily,
   selectedBreadcrumbAtom,
 } from "../../store/NotesStore";
-import { fileHistoryBackwardStackAtom, fileHistoryForwardStackAtom } from "@renderer/store/FileNavigationStore";
+import {
+  fileHistoryBackwardStackAtom,
+  fileHistoryForwardStackAtom,
+} from "@renderer/store/FileNavigationStore";
 import { useAtom, useSetAtom, useStore } from "jotai";
 import { FileItem } from "@shared/models";
 import { getNotesDirectoryPath } from "@shared/constants";
@@ -27,21 +30,20 @@ import {
   generateUniqueName,
 } from "@renderer/services/fileTreeService";
 import { bookmarkRepository } from "@renderer/services/BookmarkRepository";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
+import { set } from "lodash";
 
 interface UseFileRemoveResult {
   remove: (file: FileItem) => void;
 }
 
 interface OpenFileOptions {
-  skipSave?: boolean,
-  skipForwardHistoryClear?: boolean
+  skipSave?: boolean;
+  skipForwardHistoryClear?: boolean;
 }
 interface UseFileOpenResult {
   open: (file: FileItem, options?: OpenFileOptions) => void;
 }
-
-
 
 interface UseFileRenameResult {
   startRenaming: (filePath: string) => void;
@@ -51,66 +53,68 @@ interface UseFileRenameResult {
 
 export const useFileOpen = (): UseFileOpenResult => {
   const store = useStore();
-  const getCurrentFilename = () => store.get(currentFilePathAtom);
-  const getEditorNoteText = () => store.get(editorNoteTextAtom);
 
-  const setNoteText = (value: string) => store.set(noteTextAtom, value);
-
-  const pushToFileHistoryBackwardStack = (file: FileItem) => {
-    const backStack = store.get(fileHistoryBackwardStackAtom);
-    const last = backStack[backStack.length - 1];
-  
-    if (last?.path === file.path) return;
-  
-    store.set(fileHistoryBackwardStackAtom, [...backStack, file]);
-  };
-  
-  const clearFileHistoryForwardStack = () => {
-    store.set(fileHistoryForwardStackAtom, [])
+  // --- State Access ---
+  const currentFileState = {
+    get: () => store.get(currentFileAtom),
+    set: (file: FileItem | null) => store.set(currentFileAtom, file),
   }
 
+  const filenameState = {
+    get: () => store.get(currentFilePathAtom),
+    set: (value: string) => store.set(currentFilePathAtom, value),
+  };
 
-  const setEditorNoteText = (value: string) =>
-    store.set(editorNoteTextAtom, value);
-  const setCurrentFilename = (value: string) =>
-    store.set(currentFilePathAtom, value);
+  const noteState = {
+    getEditor: () => store.get(editorNoteTextAtom),
+    setEditor: (value: string) => store.set(editorNoteTextAtom, value),
+    setSaved: (value: string) => store.set(noteTextAtom, value),
+  };
 
+  const history = {
+    pushBack: (file: FileItem) => {
+      const stack = store.get(fileHistoryBackwardStackAtom);
+      const last = stack[stack.length - 1];
+      if (last?.path === file.path) return;
+      store.set(fileHistoryBackwardStackAtom, [...stack, file]);
+    },
+    clearForward: () => store.set(fileHistoryForwardStackAtom, []),
+  };
+
+  // --- File Persistence ---
   const saveCurrentFile = useCallback(async () => {
-    const currentFilename = getCurrentFilename();
-    const editorNoteText = getEditorNoteText();
+    const filename = filenameState.get();
+    const content = noteState.getEditor();
 
-    if (currentFilename) {
-      try {
-        await window["api"].saveFile(currentFilename, editorNoteText);
-        setNoteText(editorNoteText);
-      } catch (err) {
-        console.error("Error saving file:", err);
-      }
+    if (!filename) return;
+    try {
+      await window["api"].saveFile(filename, content);
+      noteState.setSaved(content);
+    } catch (err) {
+      console.error("Error saving file:", err);
     }
   }, []);
 
+
   const open = useCallback(
     async (file: FileItem, options?: OpenFileOptions) => {
-      const {
-        skipSave = false, 
-        skipForwardHistoryClear = false
-      } = options ?? {};
+      let { skipSave = false, skipForwardHistoryClear = false } = options ?? {};
+
+      if (currentFileState.get()?.mimeType?.startsWith('image/')) {
+        skipSave = true; 
+      }
 
       try {
-        if (!skipSave) {
-          await saveCurrentFile();
-        }
+        if (!skipSave) await saveCurrentFile();
+        if (!skipForwardHistoryClear) history.clearForward();
 
-        if (!skipForwardHistoryClear) {
-          clearFileHistoryForwardStack();
-        }
+        const content = await openFile(file);
 
-        const result = await openFile(file);
-
-        pushToFileHistoryBackwardStack(file)
-        setNoteText(result);
-        setEditorNoteText(result);
-        setCurrentFilename(file.path);
+        history.pushBack(file);
+        noteState.setEditor(content);
+        noteState.setSaved(content);
+        filenameState.set(file.path);
+        currentFileState.set(file);
       } catch (err) {
         console.error("Error opening file:", err);
       }
@@ -127,6 +131,10 @@ export const useFileRemove = (): UseFileRemoveResult => {
   const [, setNoteText] = useAtom(noteTextAtom);
   const [, setEditorNoteText] = useAtom(editorNoteTextAtom);
   const setCurrentFilePath = useSetAtom(currentFilePathAtom);
+
+  useEffect(() => {
+    console.log("[RENDER] useFileRemove");
+  });
 
   const remove = async (file: FileItem) => {
     const result = await deleteFile(file);
@@ -197,17 +205,19 @@ export const useFileRename = (): UseFileRenameResult => {
 };
 
 export const useFileCreate = () => {
-  const [files, setFiles] = useAtom(fileTreeAtom);
-  const [, setReloadFlag] = useAtom(reloadFlagAtom);
-  const setOpenNote = useSetAtom(openNoteAtom);
-  const setNewlyCreatedFile = useSetAtom(newlyCreatedFileAtom);
-  const [currentFilename] = useAtom(currentFilePathAtom);
-  const [editorNoteText] = useAtom(editorNoteTextAtom);
-  const [, setNoteText] = useAtom(noteTextAtom);
-
-  const { startRenaming } = useFileRename();
+  const store = useStore();
+  const getFiles = () => store.get(fileTreeAtom);
+  const setFiles = (value: FileItem[]) => store.set(fileTreeAtom, value);
+  const setReloadFlag = (value: boolean) => store.set(reloadFlagAtom, value);
+  const setOpenNote = (value: FileItem) => store.set(openNoteAtom, value);
+  const getCurrentFilename = () => store.get(currentFilePathAtom);
+  const getEditorNoteText = () => store.get(editorNoteTextAtom);
+  const setNoteText = (value: string) => store.set(noteTextAtom, value);
 
   const saveCurrentFile = async () => {
+    const currentFilename = getCurrentFilename();
+    const editorNoteText = getEditorNoteText();
+
     if (currentFilename) {
       try {
         await window["api"].saveFile(currentFilename, editorNoteText);
@@ -223,6 +233,7 @@ export const useFileCreate = () => {
   ) => {
     let filename: string = "";
     let fullFilePath: string = "";
+    const files = getFiles();
 
     if (folderPath === getNotesDirectoryPath()) {
       filename = generateUniqueName(files, "Untitled", ".md");
@@ -254,17 +265,15 @@ export const useFileCreate = () => {
         relativePath: fullFilePath.replace(`${getNotesDirectoryPath()}/`, ""),
         path: fullFilePath,
         isDirectory: false,
+        mimeType: "text/markdown",
       };
 
       if (folderPath === getNotesDirectoryPath())
-        setFiles((prevFiles) => [...prevFiles, fileItem]);
-      else
-        setFiles((prevFiles) => addItemToTree(prevFiles, folderPath, fileItem));
+        setFiles([...files, fileItem]);
+      else setFiles(addItemToTree(files, folderPath, fileItem));
 
       setReloadFlag((prev) => !prev);
       setOpenNote(fileItem);
-      // setNewlyCreatedFile(fullFilePath);
-      // startRenaming(fullFilePath);
     } catch (err) {
       console.error("Error creating file:", err);
     }

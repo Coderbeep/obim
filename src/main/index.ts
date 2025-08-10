@@ -14,6 +14,7 @@ import {
 import { FileItem } from "@shared/models";
 import { existsSync } from "fs";
 import ConfigManager from "./app-config";
+import { lookup } from "mime-types";
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -123,6 +124,7 @@ ipcMain.handle("get-files", async (_, directoryPath: string) => {
       relativePath: filePath.replace(mainDirectoryPath, ""),
       path: filePath,
       isDirectory: fileStat.isDirectory(),
+      mimeType: lookup(filePath) || "application/octet-stream",
     };
 
     files.push(fileItem);
@@ -191,6 +193,7 @@ async function getFilesRecursiveAsList(directoryPath, mainDirectoryPath) {
       relativePath: filePath.replace(mainDirectoryPath, ""),
       path: filePath,
       isDirectory: fileStat.isDirectory(),
+      mimeType: lookup(filePath) || "application/octet-stream",
     };
     files.push(fileItem);
   }
@@ -213,12 +216,13 @@ async function getFilesRecursiveAsTree(directoryPath, mainDirectoryPath) {
   for (const filename of filenames) {
     const filePath = path.join(directoryPath, filename);
     const fileStat = await stat(filePath);
-
+    
     const fileItem: FileItem = {
       filename: filename,
       relativePath: filePath.replace(mainDirectoryPath, ""),
       path: filePath,
       isDirectory: fileStat.isDirectory(),
+      mimeType: lookup(filePath) || "application/octet-stream",
     };
 
     if (fileStat.isDirectory()) {
