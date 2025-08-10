@@ -28,17 +28,3 @@ export const activeImageWidgetPositionField = StateField.define({
     return value;
   },
 });
-
-export const toggleImageEffect = StateEffect.define<DecorationSet>();
-export const imageField = StateField.define({
-  create: () => Decoration.none,
-  update(decorations, transaction) {
-    for (let effect of transaction.effects) {
-      if (effect.is(toggleImageEffect)) {
-        decorations = effect.value;
-      }
-    }
-    return decorations;
-  },
-  provide: (field) => EditorView.decorations.from(field),
-});
