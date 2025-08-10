@@ -1,5 +1,4 @@
 import { Content, RootLayout, Sidebar } from "./components";
-import ObimEditor from "./components/obimEditor";
 import { FileExplorer } from "./components/FileExplorer/FileExplorer";
 import { useEffect, useState } from "react";
 import SearchWindow from "./components/SearchWindow";
@@ -16,7 +15,7 @@ import { fileRepository } from "@renderer/services/FileRepository";
 import { dbService } from "./services/DatabaseService";
 import { GlobalDrag } from "./components/GlobalDrag";
 import { EditorHeader } from "./components/EditorHeader";
-
+import { RenderPane } from "./components/RenderPane";
 
 function App() {
   const [isInitialized, setIsInitialized] = useAtom(isInitializedAtom);
@@ -68,7 +67,7 @@ function App() {
         </Sidebar>
         <Content>
           <EditorHeader />
-          <ObimEditor />
+          <RenderPane />
         </Content>
         <ImageSearchOverlay id="image-overlay" />
         <ContextMenu id="context-menu" />
