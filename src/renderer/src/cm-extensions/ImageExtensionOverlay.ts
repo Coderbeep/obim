@@ -2,10 +2,31 @@ import { Compartment, Prec } from "@codemirror/state";
 import { EventBus, EventTypes } from "@renderer/services/EventBus";
 import { EditorView, keymap } from "@codemirror/view";
 import {
-  activeImageWidgetPositionEffect,
-  activeImageWidgetPositionField,
-  isCaretInsideImageField,
+  imageOverlayEffect,
+  imageOverlayField,
+  setViewportEffect
 } from "./ImageExtensionState";
+
+export const updateImageOverlayKeymap = (view: EditorView, isActive: boolean) => {
+  view.dispatch({
+    effects: imageKeymapCompartment.reconfigure(
+      isActive ? conditionalKeymap : keymap.of([])
+    ),
+  });
+};
+
+
+export function closeOverlay(view: EditorView) {
+  EventBus.emit(EventTypes.OVERLAY_CLOSE, {});
+  updateImageOverlayKeymap(view, false);
+
+  view.dispatch({
+    effects: imageOverlayEffect.of({
+      caretInside: false,
+      activePos: null
+    }),
+  });
+}
 
 export class OverlayManager {
   static handleImageSelected: null | ((payload: { path: string }) => void);
@@ -21,22 +42,29 @@ export class OverlayManager {
     EventBus.emit(EventTypes.IMAGE_SRC_CHANGED, { src });
   }
 
-  static registerSelectionHandler(view) {
+  static registerSelectionHandler(view: EditorView) {
     if (this.handleImageSelected) return;
+
     this.handleImageSelected = (payload) => {
-      let position = view.state.field(activeImageWidgetPositionField);
+      const { activePos: position } = view.state.field(imageOverlayField, false);
       if (!position) return;
+
+      const { from, to } = view.viewport;
       view.dispatch({
         changes: { from: position[0], to: position[1], insert: payload.path },
+        effects: [setViewportEffect.of({ from, to })],
       });
+
       view.dispatch({
         selection: {
           anchor: position[0] + 2 + payload.path.length,
           head: position[0] + 2 + payload.path.length,
         },
       });
+
       closeOverlay(view);
     };
+
     EventBus.on(EventTypes.IMAGE_SELECTED, this.handleImageSelected);
   }
 
@@ -46,6 +74,7 @@ export class OverlayManager {
     this.handleImageSelected = null;
   }
 }
+
 
 const conditionalKeymap = Prec.highest(
   keymap.of([
@@ -77,38 +106,13 @@ const conditionalKeymap = Prec.highest(
         return true;
       },
     },
-  ]),
+  ])
 );
 
 const imageKeymapCompartment = new Compartment();
 
-const updateImageOverlayKeymap = (view: EditorView, isActive: boolean) => {
-  view.dispatch({
-    effects: imageKeymapCompartment.reconfigure(
-      isActive ? conditionalKeymap : keymap.of([]),
-    ),
-  });
-};
-
-function closeOverlay(view: EditorView) {
-  EventBus.emit(EventTypes.OVERLAY_CLOSE, {});
-  updateImageOverlayKeymap(view, false);
-  view.dispatch({
-    effects: activeImageWidgetPositionEffect.of([]),
-  });
-}
 
 export const ImageExtensionOverlay = [
-  isCaretInsideImageField,
-  activeImageWidgetPositionField,
+  imageOverlayField,
   imageKeymapCompartment.of(keymap.of([])),
-  EditorView.updateListener.of((update) => {
-    if (update.docChanged || update.selectionSet) {
-      if (update.view.state.field(isCaretInsideImageField)) {
-        updateImageOverlayKeymap(update.view, true);
-      } else {
-        closeOverlay(update.view);
-      }
-    }
-  }),
 ];
