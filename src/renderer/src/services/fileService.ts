@@ -1,6 +1,7 @@
 import { FileItem } from "@shared/models";
 import { bookmarkRepository } from "./BookmarkRepository";
 import { fileRepository } from "./FileRepository";
+import { tryCatch } from "@shared/tryCatch";
 
 export const saveFile = async (
   filename: string,
@@ -17,12 +18,12 @@ export const saveFile = async (
 };
 
 export const openFile = async (file: FileItem): Promise<string> => {
-  try {
-    return await window["api"].openFile(file.path);
-  } catch (err) {
-    console.error("Error opening file:", err);
-    throw err;
+  const openResult = await tryCatch<string>(window["api"].openFile(file.path));
+  if (openResult.error) {
+    console.error("Error opening file:", openResult.error);
+    throw openResult.error;
   }
+  return openResult.data;
 };
 
 interface RenameFileResult {

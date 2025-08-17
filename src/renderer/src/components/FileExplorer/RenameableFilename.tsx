@@ -1,10 +1,9 @@
 import { useFileRename } from "@renderer/hooks/file-actions-hooks/useFileActions";
-import { renamingFilePathAtom } from "../../store/NotesStore";
-import { FileItem } from "@shared/models";
-import { useAtom } from "jotai";
-import { useEffect, useRef } from "react";
+import { renamingStateFamily } from "@renderer/store/NotesStore";
 import { ContextMenuTypes } from "@shared/constants";
-import { contextMenuTypeAtom } from "../../store/ContextMenuStore";
+import { FileItem } from "@shared/models";
+import { useAtomValue } from "jotai";
+import { useCallback, useEffect, useRef } from "react";
 
 interface RenameableTextProps {
   file: FileItem;
@@ -15,20 +14,12 @@ interface RenameableTextProps {
 export const RenameableFilename = ({
   file,
   onRenamingStateChange,
-  section,
 }: RenameableTextProps) => {
-  const [renamingFilePath] = useAtom(renamingFilePathAtom);
+  const isEditing = useAtomValue(renamingStateFamily(file.path))
   const editableRef = useRef<HTMLDivElement>(null);
-  const { isRenaming, saveRename } = useFileRename();
-  const [isRenamingSection] = useAtom(contextMenuTypeAtom);
-  const currentSection = section || ContextMenuTypes.FILE;
+  const { saveRename, stopRenaming } = useFileRename();
 
-  const isEditing =
-    isRenaming &&
-    renamingFilePath === file.path &&
-    isRenamingSection === currentSection;
-
-  const focusOnEnd = () => {
+  const focusOnEnd = useCallback(() => {
     setTimeout(() => {
       if (editableRef.current) {
         editableRef.current.focus();
@@ -41,25 +32,40 @@ export const RenameableFilename = ({
         selection.addRange(range);
       }
     }, 0);
-  };
+  }, []);
 
   useEffect(() => {
-    focusOnEnd();
+    if (isEditing) {
+      focusOnEnd()
+    }
+  }, [isEditing, focusOnEnd])
+
+  useEffect(() => {
     onRenamingStateChange(isEditing);
-  }, [isEditing]);
+  }, [isEditing, onRenamingStateChange]);
+
+  const handleBlur = useCallback(() => {
+    saveRename(file.path, editableRef.current?.innerText || "");
+    stopRenaming(file.path)
+  }, [file.path]);
+
+  const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
+    if (event.key === "Enter" || event.key === "Escape") {
+      editableRef.current?.blur();
+    }
+  }, []);
 
   return (
     <div
       ref={editableRef}
-      className={`testx whitespace-nowrap overflow-hidden text-sm text-ellipsis flex-1 truncate ${isEditing ? "bg-blue-100 focus:outline-none" : ""}`}
+      className={`rounded-[var(--radius)] px-1 whitespace-nowrap overflow-hidden text-sm text-ellipsis flex-1 truncate ${
+        isEditing ? "bg-blue-100 focus:outline-none" : ""
+      }`}
       contentEditable={isEditing}
       spellCheck={false}
       suppressContentEditableWarning={true}
-      onBlur={() => saveRename(file.path, editableRef.current?.innerText || "")}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === "Escape")
-          editableRef.current?.blur();
-      }}
+      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
     >
       {file.filename}
     </div>

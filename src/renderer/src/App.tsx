@@ -1,20 +1,21 @@
 import { Content, RootLayout, Sidebar } from "./components";
-import ObimEditor from "./components/obimEditor";
 import { FileExplorer } from "./components/FileExplorer/FileExplorer";
 import { useEffect, useState } from "react";
 import SearchWindow from "./components/SearchWindow";
 import "./assets/index.css";
 import "./assets/Editor.scss";
 import "./assets/globals.css";
-import { Breadcrumbs } from "./components/Breadcrumbs";
 import ImageSearchOverlay from "./components/ImageSearchOverlay";
 import { ContextMenu } from "./components/ContextMenu";
 import { InitializationCard } from "./components/InitializationCard";
 import { useAtom } from "jotai";
-import { isInitializedAtom } from "./store/NotesStore";
+import { isInitializedAtom } from "./store/NotesStore"
 import { getNotesDirectoryPath } from "@shared/constants";
 import { fileRepository } from "@renderer/services/FileRepository";
 import { dbService } from "./services/DatabaseService";
+import { GlobalDrag } from "./components/GlobalDrag";
+import { EditorHeader } from "./components/EditorHeader";
+import { RenderPane } from "./components/RenderPane";
 
 function App() {
   const [isInitialized, setIsInitialized] = useAtom(isInitializedAtom);
@@ -42,7 +43,7 @@ function App() {
       if (isDefined) {
         try {
           const files = await window["api"].getFilesRecursiveAsList(
-            getNotesDirectoryPath(),
+            getNotesDirectoryPath()
           );
 
           await fileRepository.clear();
@@ -60,16 +61,17 @@ function App() {
   if (isInitialized) {
     return (
       <RootLayout>
-        <SearchWindow />
         <Sidebar>
+          <SearchWindow />
           <FileExplorer directoryPath={getNotesDirectoryPath()} />
         </Sidebar>
         <Content>
-          <Breadcrumbs />
-          <ObimEditor />
+          <EditorHeader />
+          <RenderPane />
         </Content>
         <ImageSearchOverlay id="image-overlay" />
         <ContextMenu id="context-menu" />
+        <GlobalDrag />
       </RootLayout>
     );
   } else {

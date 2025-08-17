@@ -11,7 +11,7 @@ import CodeMirror, { EditorView, keymap } from "@uiw/react-codemirror";
 import { memo, useCallback } from "react";
 import "../assets/Editor.scss";
 import { MathBlockParser } from "../cm-extensions/MathExpression";
-import { useAtom, useSetAtom } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
   noteTextAtom,
   currentFilePathAtom,
@@ -22,7 +22,7 @@ import { basicLight } from "@renderer/assets/basic-light";
 
 const ObimEditor = memo(() => {
   const [text] = useAtom(noteTextAtom);
-  const [currentFilename] = useAtom(currentFilePathAtom);
+  const [currentFilename] = useAtomValue(currentFilePathAtom);
   const setEditorNoteText = useSetAtom(editorNoteTextAtom);
   const { handleAutoSave } = useObimEditor();
 

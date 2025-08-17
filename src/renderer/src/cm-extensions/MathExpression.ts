@@ -2,7 +2,6 @@ import { RangeSetBuilder, StateEffect, StateField } from "@codemirror/state";
 import { Decoration, EditorView, WidgetType } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
 import katex from "katex";
-import { parse } from "path";
 
 // TODO: Error highlighting
 
@@ -163,18 +162,11 @@ class MathBlockWidget extends WidgetType {
   }
 
   toDOM() {
-    let math = document.createElement("div");
-    try {
-      katex.render(this.mathContent, math, {
-        throwOnError: false,
-        displayMode: true,
-      });
-      math = math.querySelector(".katex-mathml");
-    } catch (error) {
-      math = document.createElement("span");
-      math.textContent = this.mathContent;
-    }
-
+    const math = document.createElement("div");
+    katex.render(this.mathContent, math, {
+      throwOnError: false,
+      displayMode: true,
+    });
     return math;
   }
 }
@@ -185,19 +177,11 @@ class MathInlineWidget extends WidgetType {
   }
 
   toDOM() {
-    let math = document.createElement("span");
-
-    try {
-      katex.render(this.mathContent, math, {
-        throwOnError: false,
-        displayMode: false,
-      });
-      math = math.querySelector(".katex-mathml");
-    } catch (error) {
-      math = document.createElement("span");
-      math.textContent = this.mathContent;
-    }
-
+    const math = document.createElement("span");
+    katex.render(this.mathContent, math, {
+      throwOnError: false,
+      displayMode: false,
+    });
     return math;
   }
 }

@@ -16,16 +16,6 @@
   margin: 0;
 }
 
-.sidebar {
-  display: flex;
-  flex-shrink: 0;
-  height: 100%;
-  padding: 10px;
-  box-sizing: border-box;
-  flex-direction: row;
-  overflow-x: hidden;
-}
-
 .content {
   flex-grow: 1;
   background-color: white;
@@ -37,17 +27,12 @@
 
 .file-explorer-header {
   display: flex;
-  gap: 0.8em;
 }
 
 .resizer {
   width: 1px;
   cursor: ew-resize;
   margin-left: 1em;
-
-  // &:hover {
-  //   background-color: $gray-2;
-  // }
 }
 
 .file-explorer {
@@ -76,18 +61,18 @@ math {
 }
 
 .file-explorer-item {
-  @apply flex items-center gap-[0.3em] p-[0.2em] rounded-md cursor-pointer;
+  @apply flex items-center gap-[0.3em] p-[0.2em] rounded-[var(--radius)] cursor-pointer;
 
   .span {
     @apply whitespace-nowrap overflow-hidden overflow-ellipsis flex-1;
   }
 
   &:hover {
-    @apply bg-slate-200 text-[#222222];
+    @apply bg-[var(--sidebar-accent)] text-[#222222];
   }
 
   &.active {
-    @apply bg-slate-200 text-[#222222];
+    @apply bg-[var(--sidebar-border)] text-[#222222];
   }
 }
 
@@ -118,11 +103,6 @@ math {
     border: 1px solid Colors.$foreground-color;
     cursor: pointer;
   }
-}
-
-.file-explorer-group {
-  border-radius: 8px;
-  position: relative; // Ensure positioning for absolute child elements
 }
 
 // file-explorer-children should have a vertical line indicating the indentation

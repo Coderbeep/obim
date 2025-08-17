@@ -13,16 +13,19 @@ import {
   useFileCreate,
 } from "@renderer/hooks/file-actions-hooks/useFileActions";
 
-interface HeaderButtonProps {
+interface HeaderButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   icon: LucideIcon;
   altIcon?: LucideIcon;
   action?: () => void;
 }
 
-const HeaderButton = ({
+export const HeaderButton = ({
   icon: Icon,
   altIcon: AltIcon,
   action,
+  disabled,
+  className,
+  ...buttonProps
 }: HeaderButtonProps) => {
   const [whichIcon, setWhichIcon] = useState<boolean>(false);
 
@@ -36,12 +39,20 @@ const HeaderButton = ({
   };
 
   return (
-    <div
-      className="hover:bg-gray-200 p-1 rounded-md cursor-pointer"
+    <button
+      className={`hover:bg-gray-200 p-1 rounded-[var(--radius)] ${
+        disabled ? 'opacity-50 cursor-default hover:bg-transparent' : 'cursor-pointer hover:bg-gray-200'
+      } ${className || ''}`}
       onClick={handleClick}
+      disabled={disabled}
+      {...buttonProps}
     >
-      {whichIcon && AltIcon ? <AltIcon size={16} /> : <Icon size={16} />}
-    </div>
+      {whichIcon && AltIcon ? (
+        <AltIcon size={16} className={disabled ? 'text-gray-400' : ''} />
+      ) : (
+        <Icon size={16} className={disabled ? 'text-gray-400' : ''} />
+      )}
+    </button>
   );
 };
 

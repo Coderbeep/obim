@@ -6,6 +6,11 @@ import {
 } from "../store/SearchWindowStore";
 import { useAtom, useSetAtom } from "jotai";
 import { fileRepository } from "@renderer/services/FileRepository";
+import { FileSearchResultsLimit } from "@shared/constants";
+
+interface QueryDBOptions {
+  onlyImages?: boolean;
+}
 
 export const useSearchField = () => {
   const [isVisible, setIsVisible] = useAtom(isVisibleAtom);
@@ -13,29 +18,39 @@ export const useSearchField = () => {
   const setResults = useSetAtom(resultsAtom);
 
   useEffect(() => {
-    if (isVisible) {
-      window.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") {
-          setIsVisible(false);
-        }
-      });
-    } else {
-      window.removeEventListener("keydown", (e) => {
-        if (e.key === "Escape") {
-          setIsVisible(false);
-        }
-      });
-    }
-  });
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsVisible(false);
+      }
+    };
 
-  const queryDB = async (query: string) => {
+    if (isVisible) {
+      window.addEventListener("keydown", handleEscape);
+    }
+
+    return () => {
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [isVisible]);
+
+  const queryDB = async (query: string, options?: QueryDBOptions) => {
+    const { onlyImages = false } = options || {};
+
     const filesFromDB = await fileRepository.search(query);
-    setResults(filesFromDB.slice(0, 30));
+    let filteredFiles = filesFromDB.filter((file) => !file.isDirectory);
+
+    if (onlyImages) {
+      filteredFiles = filteredFiles.filter((file) =>
+        file.mimeType?.startsWith("image/")
+      );
+    }
+
+    setResults(filteredFiles.slice(0, FileSearchResultsLimit));
   };
 
-  const onQueryChange = (newQuery: string) => {
+  const onQueryChange = (newQuery: string, options?: QueryDBOptions) => {
     setQuery(newQuery);
-    queryDB(newQuery);
+    queryDB(newQuery, options);
   };
 
   return {
