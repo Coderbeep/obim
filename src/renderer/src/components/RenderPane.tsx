@@ -10,8 +10,7 @@ import { useMemo } from "react";
 export const RenderPane = () => {
   const [currentFile] = useAtom(currentFileAtom);
 
-  const isImageFile = SUPPORTED_IMAGE_MIME_TYPES.includes(currentFile?.mimeType) || false;
-  console.log("[RenderPane] Current file:", currentFile, "Is image file:", isImageFile);
+  const isImageFile = SUPPORTED_IMAGE_MIME_TYPES.includes(currentFile?.mimeType);
 
   const encodedMediaPath = useMemo(() => {
     if (!currentFile) return "";

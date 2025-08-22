@@ -33,7 +33,6 @@ class ImageWidget extends WidgetType {
   }
 
   toDOM(view: EditorView) {
-    console.log("[INFO] Creating ImageWidget for:", this.src);
     const container = document.createElement("div");
     container.className = "cm-image-widget cm-image-error";
     container.innerHTML = `Image '${this.src}' not found`;
