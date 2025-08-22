@@ -46,7 +46,7 @@ export class OverlayManager {
     if (this.handleImageSelected) return;
 
     this.handleImageSelected = (payload) => {
-      const { activePos: position } = view.state.field(imageOverlayField, false);
+      const { activePos: position } = view.state.field(imageOverlayField);
       if (!position) return;
 
       const { from, to } = view.viewport;

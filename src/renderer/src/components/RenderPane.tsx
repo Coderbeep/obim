@@ -1,26 +1,22 @@
-import { currentFilePathAtom } from "@renderer/store/NotesStore";
+import { currentFileAtom } from "@renderer/store/NotesStore";
 import { useAtom } from "jotai";
 import {
-  getNotesDirectoryPath,
-} from "@shared/constants";
+  SUPPORTED_IMAGE_MIME_TYPES,
+} from "@shared/mime-types";
 import { Dialog, DialogContent, DialogTrigger } from "./ui/dialog";
 import ObimEditor from "./obimEditor";
 import { useMemo } from "react";
 
 export const RenderPane = () => {
-  const [currentFilePath] = useAtom(currentFilePathAtom);
+  const [currentFile] = useAtom(currentFileAtom);
 
-  const isImageFile = currentFilePath.endsWith(".png")
+  const isImageFile = SUPPORTED_IMAGE_MIME_TYPES.includes(currentFile?.mimeType) || false;
+  console.log("[RenderPane] Current file:", currentFile, "Is image file:", isImageFile);
 
   const encodedMediaPath = useMemo(() => {
-    const relativePath = currentFilePath
-      .replace(getNotesDirectoryPath(), "")
-      .slice(1);
-
-    const mediaPath = `media:///${relativePath}`;
-
-    return mediaPath;
-  }, [currentFilePath]);
+    if (!currentFile) return "";
+    return `media:///${currentFile!.relativePath}`;
+  }, [currentFile]);
 
   return isImageFile ? (
     <Dialog>
@@ -35,7 +31,7 @@ export const RenderPane = () => {
         </div>
       </DialogContent>
     </Dialog>
-  ) : (
+  ) : currentFile?.mimeType === "text/markdown" ? (
     <ObimEditor />
-  );
+  ) : null;
 };
