@@ -11,7 +11,6 @@ import {
   fileTreeAtom,
   isRenamingAtom,
   noteTextAtom,
-  openNoteAtom,
   reloadFlagAtom,
   renamingFilePathAtom,
   renamingStateFamily,
@@ -23,6 +22,7 @@ import {
 } from "@renderer/store/FileNavigationStore";
 import { useAtom, useSetAtom, useStore } from "jotai";
 import { FileItem } from "@shared/models";
+import { SUPPORTED_IMAGE_MIME_TYPES } from "@shared/mime-types";
 import { getNotesDirectoryPath } from "@shared/constants";
 import {
   addItemToTree,
@@ -31,7 +31,6 @@ import {
 } from "@renderer/services/fileTreeService";
 import { bookmarkRepository } from "@renderer/services/BookmarkRepository";
 import { useCallback, useEffect } from "react";
-import { set } from "lodash";
 
 interface UseFileRemoveResult {
   remove: (file: FileItem) => void;
@@ -100,7 +99,7 @@ export const useFileOpen = (): UseFileOpenResult => {
     async (file: FileItem, options?: OpenFileOptions) => {
       let { skipSave = false, skipForwardHistoryClear = false } = options ?? {};
 
-      if (currentFileState.get()?.mimeType?.startsWith('image/')) {
+      if (SUPPORTED_IMAGE_MIME_TYPES.includes(currentFileState.get()?.mimeType)) {
         skipSave = true; 
       }
 
@@ -206,10 +205,12 @@ export const useFileRename = (): UseFileRenameResult => {
 
 export const useFileCreate = () => {
   const store = useStore();
+  const { open } = useFileOpen();
+
   const getFiles = () => store.get(fileTreeAtom);
   const setFiles = (value: FileItem[]) => store.set(fileTreeAtom, value);
   const setReloadFlag = (value: boolean) => store.set(reloadFlagAtom, value);
-  const setOpenNote = (value: FileItem) => store.set(openNoteAtom, value);
+
   const getCurrentFilename = () => store.get(currentFilePathAtom);
   const getEditorNoteText = () => store.get(editorNoteTextAtom);
   const setNoteText = (value: string) => store.set(noteTextAtom, value);
@@ -270,10 +271,11 @@ export const useFileCreate = () => {
 
       if (folderPath === getNotesDirectoryPath())
         setFiles([...files, fileItem]);
-      else setFiles(addItemToTree(files, folderPath, fileItem));
+      else 
+        setFiles(addItemToTree(files, folderPath, fileItem));
 
       setReloadFlag((prev) => !prev);
-      setOpenNote(fileItem);
+      await open(fileItem, { });
     } catch (err) {
       console.error("Error creating file:", err);
     }
