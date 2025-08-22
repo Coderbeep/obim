@@ -7,6 +7,7 @@ import {
 import { useAtom, useSetAtom } from "jotai";
 import { fileRepository } from "@renderer/services/FileRepository";
 import { FileSearchResultsLimit } from "@shared/constants";
+import { SUPPORTED_IMAGE_MIME_TYPES } from "@shared/mime-types";
 
 interface QueryDBOptions {
   onlyImages?: boolean;
@@ -41,7 +42,7 @@ export const useSearchField = () => {
 
     if (onlyImages) {
       filteredFiles = filteredFiles.filter((file) =>
-        file.mimeType?.startsWith("image/")
+        SUPPORTED_IMAGE_MIME_TYPES.includes(file.mimeType)
       );
     }
 

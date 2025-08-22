@@ -2,6 +2,7 @@ import { RangeSetBuilder, StateField, StateEffect } from "@codemirror/state";
 import { Decoration, EditorView, WidgetType } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
 import { getNotesDirectoryPath } from "@shared/constants";
+import { SUPPORTED_IMAGE_MIME_TYPES } from "@shared/mime-types";
 import { fileRepository } from "@renderer/services/FileRepository";
 import {
   closeOverlay,
@@ -9,15 +10,17 @@ import {
   updateImageOverlayKeymap,
 } from "./ImageExtensionOverlay";
 import { imageOverlayEffect, setViewportEffect } from "./ImageExtensionState";
+import { FileItem } from "@shared/models";
 
-const ACCEPTED_EXTENSIONS = [".png", ".jpg", ".jpeg", ".gif"];
 const imageCache = new Map<string, HTMLImageElement>();
 
-// --- Utils ---
-function checkImageExists(src: string) {
-  if (!ACCEPTED_EXTENSIONS.some((ext) => src.endsWith(ext)))
-    return Promise.resolve(false);
-  return fileRepository.exists(getNotesDirectoryPath() + src);
+async function checkImageExists(src: string): Promise<boolean> {
+  const path = getNotesDirectoryPath() + src;
+  const file = (await fileRepository.findByPath(path)) as FileItem | null;
+
+  if (!file || file.isDirectory) return false;
+
+  return SUPPORTED_IMAGE_MIME_TYPES.includes(file.mimeType);
 }
 
 // --- Image Widget ---
