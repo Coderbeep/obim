@@ -2,67 +2,31 @@ import { RangeSetBuilder, StateField, StateEffect } from "@codemirror/state";
 import { Decoration, EditorView, WidgetType } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
 import { getNotesDirectoryPath } from "@shared/constants";
+import { SUPPORTED_IMAGE_MIME_TYPES } from "@shared/mime-types";
 import { fileRepository } from "@renderer/services/FileRepository";
-import { OverlayManager } from "./ImageExtensionOverlay";
 import {
-  isCaretInsideImageEffect,
-  activeImageWidgetPositionEffect,
-} from "./ImageExtensionState";
+  closeOverlay,
+  OverlayManager,
+  updateImageOverlayKeymap,
+} from "./ImageExtensionOverlay";
+import { imageOverlayEffect, setViewportEffect } from "./ImageExtensionState";
+import { FileItem } from "@shared/models";
 
-const ACCEPTED_EXTENSIONS = [".png", ".jpg", ".jpeg", ".gif"];
 const imageCache = new Map<string, HTMLImageElement>();
 
-// --- Utils ---
-function checkImageExists(src: string) {
-  if (!ACCEPTED_EXTENSIONS.some((ext) => src.endsWith(ext)))
-    return Promise.resolve(false);
-  return fileRepository.exists(getNotesDirectoryPath() + src);
+async function checkImageExists(src: string): Promise<boolean> {
+  const path = getNotesDirectoryPath() + src;
+  const file = (await fileRepository.findByPath(path)) as FileItem | null;
+
+  if (!file || file.isDirectory) return false;
+
+  return SUPPORTED_IMAGE_MIME_TYPES.includes(file.mimeType);
 }
-
-function isCaretInsideImageFunc(view: EditorView): boolean {
-  const state = view.state;
-  const { from, to } = state.selection.main;
-  let inside = false;
-
-  syntaxTree(state).iterate({
-    enter(node) {
-      if (node.name === "Image") {
-        const isInside = from >= node.from + 3 && to <= node.to - 2;
-        if (isInside) inside = true;
-      }
-    },
-  });
-  return inside;
-}
-
-function activeImageWidgetPositionFunc(
-  view: EditorView
-): [number, number] | null {
-  const state = view.state;
-  const { from, to } = state.selection.main;
-  let position: [number, number] | null = null;
-
-  syntaxTree(state).iterate({
-    enter(node) {
-      if (node.name === "Image") {
-        const isActive = from >= node.from && to <= node.to;
-        if (isActive) {
-          position = [node.from + 3, node.to - 2];
-        }
-      }
-    },
-  });
-  return position;
-}
-
-// --- Effect to pass viewport to the StateField ---
-const setViewportEffect = StateEffect.define<{ from: number; to: number }>();
 
 // --- Image Widget ---
 class ImageWidget extends WidgetType {
   constructor(
     private readonly src: string,
-    private readonly pos: [number, number],
     private readonly reactive: boolean
   ) {
     super();
@@ -72,7 +36,6 @@ class ImageWidget extends WidgetType {
     const container = document.createElement("div");
     container.className = "cm-image-widget cm-image-error";
     container.innerHTML = `Image '${this.src}' not found`;
-    console.log(`ImageWidget: ${this.src} at position ${this.pos}`);
 
     if (imageCache.has(this.src)) {
       const cachedImage = imageCache.get(this.src)!;
@@ -118,49 +81,14 @@ const imageField = StateField.define({
     return Decoration.none;
   },
   update(decorations, tr) {
-    console.log(tr.state.selection.main.from, tr.state.selection.main.to);
     decorations = decorations.map(tr.changes);
+    const sel = tr.state.selection.main;
 
-    let viewport: { from: number; to: number } | null = null;
-    for (const e of tr.effects) {
-      if (e.is(setViewportEffect)) viewport = e.value;
-    }
-
-    // Track caret position changes
-    const oldCaret = tr.startState.selection.main;
-    const newCaret = tr.state.selection.main;
-
-    const caretMovedBetweenImages = (() => {
-      if (oldCaret.from === newCaret.from && oldCaret.to === newCaret.to)
-        return false;
-
-      let oldNode = null,
-        newNode = null;
-      syntaxTree(tr.startState).iterate({
-        from: oldCaret.from,
-        to: oldCaret.to,
-        enter: (n) => {
-          if (n.name === "Image") oldNode = [n.from, n.to];
-        },
-      });
-      syntaxTree(tr.state).iterate({
-        from: newCaret.from,
-        to: newCaret.to,
-        enter: (n) => {
-          if (n.name === "Image") newNode = [n.from, n.to];
-        },
-      });
-      return JSON.stringify(oldNode) !== JSON.stringify(newNode);
-    })();
-
-    const needsRebuild =
-      (viewport !== null && (tr.docChanged || !decorations.size)) ||
-      (tr.selection && caretMovedBetweenImages);
+    const needsRebuild = tr.docChanged || !decorations.size || tr.selection;
 
     if (needsRebuild) {
       const builder = new RangeSetBuilder<Decoration>();
-      const { from, to } = viewport || { from: 0, to: tr.state.doc.length };
-      const sel = tr.state.selection.main;
+      const { from, to } = { from: 0, to: tr.state.doc.length };
 
       syntaxTree(tr.state).iterate({
         from,
@@ -168,8 +96,7 @@ const imageField = StateField.define({
         enter: (node) => {
           if (node.name === "Image") {
             const isActive = sel.from >= node.from && sel.to <= node.to;
-            const isCaretInside =
-              sel.from >= node.from + 3 && sel.to <= node.to - 2;
+            const isInside = sel.from >= node.from + 3 && sel.to <= node.to - 2;
             const src = tr.state.doc.sliceString(node.from + 3, node.to - 2);
 
             if (!isActive) {
@@ -190,11 +117,7 @@ const imageField = StateField.define({
               node.to,
               node.to,
               Decoration.widget({
-                widget: new ImageWidget(
-                  src,
-                  [node.from + 3, node.to - 2],
-                  isCaretInside
-                ),
+                widget: new ImageWidget(src, isInside),
                 block: true,
                 side: 0,
                 inlineOrder: true,
@@ -214,21 +137,46 @@ const imageField = StateField.define({
 
 // --- Listener plugin for viewport + caret state ---
 const imageViewportAndStatePlugin = EditorView.updateListener.of((update) => {
+  const effects: StateEffect<any>[] = [];
+
   if (update.viewportChanged || update.docChanged) {
     const { from, to } = update.view.viewport;
-    update.view.dispatch({
-      effects: setViewportEffect.of({ from, to }),
-    });
+    effects.push(setViewportEffect.of({ from, to }));
   }
+
   if (update.selectionSet || update.docChanged) {
-    update.view.dispatch({
-      effects: [
-        isCaretInsideImageEffect.of(isCaretInsideImageFunc(update.view)),
-        activeImageWidgetPositionEffect.of(
-          activeImageWidgetPositionFunc(update.view)
-        ),
-      ],
+    const state = update.view.state;
+    const { from, to } = state.selection.main;
+    let caretInside: boolean = false;
+    let activePos: [number, number] | null = null;
+
+    syntaxTree(state).iterate({
+      enter(node) {
+        if (node.name === "Image") {
+          const isActive = from >= node.from && to <= node.to;
+          const isInside = from >= node.from + 3 && to <= node.to - 2;
+
+          if (isActive) {
+            activePos = [node.from + 3, node.to - 2];
+          }
+          if (isInside) {
+            caretInside = true;
+          }
+        }
+      },
     });
+
+    effects.push(imageOverlayEffect.of({ caretInside, activePos }));
+
+    if (caretInside) {
+      updateImageOverlayKeymap(update.view, true);
+    } else {
+      closeOverlay(update.view);
+    }
+  }
+
+  if (effects.length > 0) {
+    update.view.dispatch({ effects });
   }
 });
 

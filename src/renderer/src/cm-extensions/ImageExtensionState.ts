@@ -1,30 +1,23 @@
 import { StateEffect, StateField } from "@codemirror/state";
-import { Decoration, DecorationSet, EditorView } from "@codemirror/view";
 
-export const isCaretInsideImageEffect = StateEffect.define<boolean>();
-export const isCaretInsideImageField = StateField.define({
-  create: () => false,
+export interface ImageOverlayState {
+  caretInside: boolean
+  activePos: [number, number] | null
+}
+
+export const imageOverlayEffect = StateEffect.define<ImageOverlayState>();
+
+export const imageOverlayField = StateField.define<ImageOverlayState>({
+  create: () => ({ caretInside: false, activePos: null }),
   update(value, transaction) {
-    for (let effect of transaction.effects) {
-      if (effect.is(isCaretInsideImageEffect)) {
-        value = effect.value;
-      }
+    for (const e of transaction.effects) {
+      if (e.is(imageOverlayEffect)) value = e.value;
     }
     return value;
   },
 });
 
-export const activeImageWidgetPositionEffect = StateEffect.define<
-  [number, number] | null
->();
-export const activeImageWidgetPositionField = StateField.define({
-  create: () => [],
-  update(value, transaction) {
-    for (let effect of transaction.effects) {
-      if (effect.is(activeImageWidgetPositionEffect)) {
-        value = effect.value;
-      }
-    }
-    return value;
-  },
-});
+export const setViewportEffect = StateEffect.define<{
+  from: number;
+  to: number;
+}>();

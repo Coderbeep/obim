@@ -3,7 +3,7 @@ import { useAtom, useAtomValue } from "jotai";
 
 import useSearchField from "@hooks/useSearchField";
 import { useKeyboardHotkey } from "@hooks/useKeyboardHotkey";
-import { File, Image } from "lucide-react";
+import { Image } from "lucide-react";
 
 import { resultsAtom } from "@store/SearchWindowStore";
 import { overlayVisibleAtom } from "@store/NotesStore";
@@ -110,13 +110,6 @@ const ImageSearchOverlay = ({ id }: { id: string }) => {
     overlayVisibleRef.current = overlayVisible;
   }, [overlayVisible]);
 
-  const getFileIcon = (path: string) => {
-    const extension = path.split(".").pop()?.toLowerCase();
-    if (["jpg", "jpeg", "png", "gif"].includes(extension || ""))
-      return <Image className="h-[14px] w-[14px] text-muted-foreground" />;
-    else return <File className="h-[14px] w-[14px] text-muted-foreground" />;
-  };
-
   const getFileType = (path: string) => {
     const extension = path.split(".").pop()?.toLowerCase();
     return extension || "file";
@@ -161,7 +154,7 @@ const ImageSearchOverlay = ({ id }: { id: string }) => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="flex items-center gap-2 font-medium text-sm truncate">
-                        {getFileIcon(result.relativePath)}
+                        <Image className="h-[14px] w-[14px] text-muted-foreground" />
                         {fileName}
                       </span>
                       <Badge variant="secondary" className="text-xs">
