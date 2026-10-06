@@ -73,6 +73,42 @@ const flattenFileTree = (fileTree: FileItem[]) => {
   return allItems;
 };
 
+type WorkspaceFile = Extract<FileItem, { isDirectory: false }>;
+const linkIndexes = new WeakMap<FileItem[], ReturnType<typeof buildLinkIndex>>();
+
+function buildLinkIndex(fileTree: FileItem[]) {
+  const files = flattenFileTree(fileTree).filter((item): item is WorkspaceFile => !item.isDirectory);
+  const byPath = new Map<string, { file: WorkspaceFile; order: number }>();
+  const markdownByRelativePath = new Map<string, WorkspaceFile>();
+  const markdownByStem = new Map<string, WorkspaceFile[]>();
+  files.forEach((file, order) => {
+    for (const path of [file.path, file.relativePath]) {
+      if (!byPath.has(path)) byPath.set(path, { file, order });
+    }
+    if (!isMarkdownFile(file.mimeType, file.path)) return;
+    if (!markdownByRelativePath.has(file.relativePath)) markdownByRelativePath.set(file.relativePath, file);
+    const stem = stripLastExt(basename(file.relativePath)).toLowerCase();
+    const matches = markdownByStem.get(stem) ?? [];
+    matches.push(file);
+    markdownByStem.set(stem, matches);
+  });
+  return { byPath, markdownByRelativePath, markdownByStem };
+}
+
+function linkIndex(fileTree: FileItem[]) {
+  let index = linkIndexes.get(fileTree);
+  if (!index) {
+    index = buildLinkIndex(fileTree);
+    linkIndexes.set(fileTree, index);
+  }
+  return index;
+}
+
+export type WorkspaceLinkStatus =
+  { status: "resolved" } | { status: "missing" } | { status: "ambiguous"; matches: number; target: string };
+
+type WikiNoteResolution = { status: "resolved"; path: string } | Exclude<WorkspaceLinkStatus, { status: "resolved" }>;
+
 const normalizeContainedRelativePath = (path: string) => {
   const segments: string[] = [];
   for (const segment of path.replace(/\\/g, "/").split("/")) {
@@ -136,40 +172,52 @@ export const resolveWikiImageWorkspaceFile = (
   return null;
 };
 
-/** Resolves a Writer-style wiki note target to a concrete workspace path while preserving its heading fragment. */
-export const resolveWikiNoteWorkspacePath = (target: string, fileTree: FileItem[]): string | null => {
+/** Shares wiki navigation rules with visible-link feedback, including ambiguous basenames. */
+export const resolveWikiNoteWorkspaceTarget = (target: string, fileTree: FileItem[]): WikiNoteResolution => {
   const normalizedTarget = target.trim().replace(/\\/g, "/").replace(/^\/+/, "");
   const hash = normalizedTarget.indexOf("#");
   const rawPath = hash === -1 ? normalizedTarget : normalizedTarget.slice(0, hash);
   const fragment = hash === -1 ? "" : normalizedTarget.slice(hash);
-  if (!rawPath) return fragment || null;
+  if (!rawPath) return fragment ? { status: "resolved", path: fragment } : { status: "missing" };
 
-  const markdownFiles = flattenFileTree(fileTree).filter(
-    (item): item is Extract<FileItem, { isDirectory: false }> =>
-      !item.isDirectory && isMarkdownFile(item.mimeType, item.path),
-  );
-
+  const index = linkIndex(fileTree);
   for (const value of literalThenDecoded(rawPath)) {
     const withoutExtension = value.replace(/\.(?:md|markdown)$/i, "");
     if (withoutExtension.includes("/")) {
       const base = normalizeContainedRelativePath(withoutExtension);
       if (!base) continue;
-      const match = markdownFiles.find(
-        (file) => file.relativePath === `${base}.md` || file.relativePath === `${base}.markdown`,
-      );
-      if (match) return `${match.relativePath}${fragment}`;
+      const match = [
+        index.markdownByRelativePath.get(`${base}.md`),
+        index.markdownByRelativePath.get(`${base}.markdown`),
+      ]
+        .filter((file): file is WorkspaceFile => file !== undefined)
+        .sort((left, right) => index.byPath.get(left.path)!.order - index.byPath.get(right.path)!.order)[0];
+      if (match) return { status: "resolved", path: `${match.relativePath}${fragment}` };
       continue;
     }
 
-    const lowerStem = withoutExtension.toLowerCase();
-    const matches = markdownFiles.filter(
-      (file) => stripLastExt(basename(file.relativePath)).toLowerCase() === lowerStem,
-    );
-    if (matches.length === 1) return `${matches[0].relativePath}${fragment}`;
-    if (matches.length > 1) return null;
+    const matches = index.markdownByStem.get(withoutExtension.toLowerCase()) ?? [];
+    if (matches.length === 1) return { status: "resolved", path: `${matches[0].relativePath}${fragment}` };
+    if (matches.length > 1) return { status: "ambiguous", matches: matches.length, target: value };
   }
+  return { status: "missing" };
+};
 
-  return null;
+/** Resolves a Writer-style wiki note target while preserving its heading fragment. */
+export const resolveWikiNoteWorkspacePath = (target: string, fileTree: FileItem[]): string | null => {
+  const result = resolveWikiNoteWorkspaceTarget(target, fileTree);
+  return result.status === "resolved" ? result.path : null;
+};
+
+export const resolveWorkspaceLinkStatus = (
+  target: string,
+  syntax: "markdown" | "wiki",
+  fileTree: FileItem[],
+  sourceFilePath?: string,
+): WorkspaceLinkStatus => {
+  if (syntax === "wiki") return resolveWikiNoteWorkspaceTarget(target, fileTree);
+  if (target.startsWith("#")) return { status: "resolved" };
+  return { status: resolveLinkedWorkspaceItem(target, fileTree, sourceFilePath) ? "resolved" : "missing" };
 };
 
 /** Produces Writer's shortest stable wiki target for a selected Markdown file. */
@@ -205,8 +253,8 @@ export const resolveLinkedWorkspaceItem = (
   sourceFilePath?: string,
   allowFragment = true,
 ) => {
-  const allItems = flattenFileTree(fileTree);
-  const source = sourceFilePath ? allItems.find((item) => !item.isDirectory && item.path === sourceFilePath) : null;
+  const index = linkIndex(fileTree);
+  const source = sourceFilePath ? index.byPath.get(sourceFilePath)?.file : null;
   // Match literal filenames first; retain support for previously encoded links.
   const paths = [path];
   if (allowFragment && path.includes("#")) paths.push(path.slice(0, path.indexOf("#")));
@@ -217,8 +265,7 @@ export const resolveLinkedWorkspaceItem = (
       if (value !== candidate) {
         // Rooted Markdown destinations are URI paths. Preserve literal absolute
         // filesystem links, but decode generated workspace-root links first.
-        if (candidate.startsWith("/") && !allItems.some((item) => !item.isDirectory && item.path === candidate))
-          decoded.unshift(value);
+        if (candidate.startsWith("/") && index.byPath.get(candidate)?.file.path !== candidate) decoded.unshift(value);
         else decoded.push(value);
       }
     } catch {
@@ -228,10 +275,12 @@ export const resolveLinkedWorkspaceItem = (
       const candidates = new Set([value, normalizeRelativeLinkPath(value)]);
       if (source && !isAbsoluteFsPath(value))
         candidates.add(normalizeRelativeLinkPath(`${getPathWithoutFilename(source.relativePath)}/${value}`));
-      const file = allItems.find(
-        (item) => !item.isDirectory && (candidates.has(item.path) || candidates.has(item.relativePath)),
-      );
-      if (file) return createFileWorkspaceItem(file);
+      // Preserve the existing tree-order tie break when root and source-relative paths both match.
+      const match = [...candidates]
+        .map((candidate) => index.byPath.get(candidate))
+        .filter((entry): entry is NonNullable<typeof entry> => entry !== undefined)
+        .sort((left, right) => left.order - right.order)[0];
+      if (match) return createFileWorkspaceItem(match.file);
     }
   }
   return null;

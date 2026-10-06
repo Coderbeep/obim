@@ -1,3 +1,4 @@
+import type { LinkStatusPort } from "./extensions/shared/linkStatus";
 import { defaultKeymap, history, toggleComment } from "@codemirror/commands";
 import { indentUnit } from "@codemirror/language";
 import { languages } from "@codemirror/language-data";
@@ -136,6 +137,7 @@ export function createEditorExtensions({
   onHoverPdfReference,
   openWikiResource,
   canonicalizeWikiResource,
+  linkStatus,
   openExternal,
   noteHeader,
   onFilesCreated,
@@ -149,6 +151,7 @@ export function createEditorExtensions({
   onHoverPdfReference?(destination: string | null): void;
   openWikiResource?(path: string): void | Promise<void>;
   canonicalizeWikiResource?(path: string): string;
+  linkStatus?: LinkStatusPort;
   openExternal(url: string): void | Promise<void>;
   noteHeader: Extension;
   onFilesCreated?(): void;
@@ -173,6 +176,7 @@ export function createEditorExtensions({
     onHoverPdfReference,
     openWikiResource,
     canonicalizeWikiResource,
+    linkStatus,
     openExternal,
   });
   const lists = createListsExtension(() => image.controller.isOpen() || link.controller.isOpen());
@@ -197,6 +201,7 @@ export function createEditorExtensions({
           cellMarkdownExtensions: [MathBlockParser],
           openExternal,
           openResource,
+          linkStatus,
         }),
         paste: createPasteExtension(notify, onFilesCreated),
         tabNormalization,

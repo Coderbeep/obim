@@ -32,7 +32,12 @@ import { fileSaveStatesByPathAtom } from "@renderer/store/fileSaveStore";
 import { activateWorkspacePaneAtom } from "@renderer/store/workspaceActionStore";
 import { getFilenameNoExtFromPath } from "@shared/pathUtils";
 import { useFileRename } from "../files/fileActions";
-import { canonicalWikiNoteTarget, resolveWikiNoteWorkspacePath } from "../files/workspaceFileResolver";
+import {
+  canonicalWikiNoteTarget,
+  resolveWikiNoteWorkspacePath,
+  resolveWorkspaceLinkStatus,
+} from "../files/workspaceFileResolver";
+import type { LinkStatusPort } from "./extensions/shared/linkStatus";
 import { createNoteHeaderExtension, requestNoteTitleEditEffect } from "./extensions/NoteHeaderExtension";
 import { createEditorExtensions, resetEditorHistory } from "./setup";
 import { useEditorImages } from "./useEditorImages";
@@ -156,6 +161,15 @@ const ObimEditor = memo(({ fileId, filePath, paneId, isMarkdown, openResource }:
     [store],
   );
 
+  const linkStatus = useMemo<LinkStatusPort>(
+    () => ({
+      resolve: (destination, syntax) =>
+        resolveWorkspaceLinkStatus(destination, syntax, store.get(fileTreeAtom), filePath),
+      subscribe: (listener) => store.sub(fileTreeAtom, listener),
+    }),
+    [filePath, store],
+  );
+
   const extensions = useMemo(
     () =>
       createEditorExtensions({
@@ -167,6 +181,7 @@ const ObimEditor = memo(({ fileId, filePath, paneId, isMarkdown, openResource }:
         onHoverPdfReference: hoverPdfReference,
         openWikiResource,
         canonicalizeWikiResource,
+        linkStatus,
         openExternal,
         noteHeader,
         onFilesCreated,
@@ -184,6 +199,7 @@ const ObimEditor = memo(({ fileId, filePath, paneId, isMarkdown, openResource }:
       hoverPdfReference,
       openWikiResource,
       canonicalizeWikiResource,
+      linkStatus,
       overlay,
       owner,
     ],

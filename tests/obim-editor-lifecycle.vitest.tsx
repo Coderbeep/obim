@@ -1,3 +1,4 @@
+import type { LinkStatusPort } from "../src/renderer/src/features/editor/extensions/shared/linkStatus";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { editorHeadingRequestAtom } from "../src/renderer/src/store/editorPaneStore";
 import { Provider, createStore } from "jotai";
@@ -20,6 +21,7 @@ const codeMirrorState = vi.hoisted(() => {
         openResource: (destination: string) => void | Promise<void>;
         openWikiResource?: (destination: string) => void | Promise<void>;
         canonicalizeWikiResource?: (destination: string) => string;
+        linkStatus?: LinkStatusPort;
         imageActions?: {
           resolveSource(src: string, syntax: "markdown" | "wiki"): string | null;
         };
@@ -303,6 +305,33 @@ describe("ObimEditor lifecycle", () => {
     expect(openLinkedFile).toHaveBeenCalledWith("Folder/Architectures.md#overview", item.path);
     await act(async () => options.openWikiResource?.("#local-heading"));
     expect(codeMirrorState.navigateToHeading).toHaveBeenCalledWith(codeMirrorState.editorView, "#local-heading");
+  });
+
+  it("supplies current link status and tree subscriptions without reconfiguring the editor", async () => {
+    const item = file("/notes/current.md");
+    const match = file("/notes/A/Review.md");
+    const store = createStore();
+    store.set(fileBuffersByPathAtom, { [item.path]: { savedText: "", editorText: "" } });
+    store.set(fileTreeAtom, [item, match, file("/notes/B/Review.md")]);
+    const views = createWorkspaceItemViews({
+      openWorkspaceItem: vi.fn(),
+      openLinkedFile: vi.fn(),
+      resolveWorkspaceItem: vi.fn(),
+    });
+    render(<Provider store={store}>{views.file.render(createFileWorkspaceItem(item), "pane-1")}</Provider>);
+    await screen.findByTestId("code-mirror");
+    const port = codeMirrorState.createEditorExtensions.mock.lastCall![0].linkStatus!;
+    const configurations = codeMirrorState.createEditorExtensions.mock.calls.length;
+    const listener = vi.fn();
+    const unsubscribe = port.subscribe(listener);
+    expect(port.resolve("Review", "wiki")).toMatchObject({ status: "ambiguous", matches: 2 });
+    await act(async () => store.set(fileTreeAtom, [item, match]));
+    expect(listener).toHaveBeenCalledOnce();
+    expect(port.resolve("Review", "wiki").status).toBe("resolved");
+    expect(codeMirrorState.createEditorExtensions).toHaveBeenCalledTimes(configurations);
+    unsubscribe();
+    await act(async () => store.set(fileTreeAtom, [item]));
+    expect(listener).toHaveBeenCalledOnce();
   });
 
   it("keeps editor extensions configured when the same pane renders again", async () => {

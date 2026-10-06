@@ -1,3 +1,4 @@
+import type { LinkStatusPort } from "./shared/linkStatus";
 import { historyKeymap } from "@codemirror/commands";
 import { syntaxTree, type LanguageSupport } from "@codemirror/language";
 import { getSearchQuery, searchKeymap, searchPanelOpen, setSearchQuery, type SearchQuery } from "@codemirror/search";
@@ -368,7 +369,9 @@ export function tableExtensions(
     openExternal = () => {},
     openResource = () => {},
     renderCell = renderTableCellMarkdown,
+    linkStatus,
   }: Partial<LinkActions> & {
+    linkStatus?: LinkStatusPort;
     cellExtensions?: readonly Extension[];
     cellMarkdownExtensions?: MarkdownExtension;
     renderCell?: ((source: string) => string) | null;
@@ -414,7 +417,7 @@ export function tableExtensions(
     renderedTablesCompartment.of(renderedTables),
     tableHandleTheme,
     tableMenuIcons,
-    createTableCellLinkExtension({ openExternal, openResource }),
+    createTableCellLinkExtension({ openExternal, openResource }, linkStatus),
     tableSearchSyntaxToggle(renderedTablesCompartment, renderedTables),
   ];
 }

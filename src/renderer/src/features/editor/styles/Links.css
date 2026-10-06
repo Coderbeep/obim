@@ -84,3 +84,27 @@
     mask-image: url("data:image/svg+xml,%3Csvg%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M10.0002%205H8.2002C7.08009%205%206.51962%205%206.0918%205.21799C5.71547%205.40973%205.40973%205.71547%205.21799%206.0918C5%206.51962%205%207.08009%205%208.2002V15.8002C5%2016.9203%205%2017.4801%205.21799%2017.9079C5.40973%2018.2842%205.71547%2018.5905%206.0918%2018.7822C6.5192%2019%207.07899%2019%208.19691%2019H15.8031C16.921%2019%2017.48%2019%2017.9074%2018.7822C18.2837%2018.5905%2018.5905%2018.2839%2018.7822%2017.9076C19%2017.4802%2019%2016.921%2019%2015.8031V14M20%209V4M20%204H15M20%204L13%2011%22%20stroke%3D%22%23000%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E");
   }
 }
+
+.cm-link-missing {
+  color: var(--muted-foreground);
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: color-mix(in srgb, var(--muted-foreground) 65%, transparent);
+  text-underline-offset: 0.16em;
+
+  &:hover {
+    text-decoration-color: var(--muted-foreground);
+  }
+}
+
+.cm-link-ambiguous {
+  text-decoration-line: underline;
+  text-decoration-style: wavy;
+  text-decoration-thickness: 1px;
+  text-decoration-color: color-mix(in srgb, var(--warning) 60%, transparent);
+  text-underline-offset: 0.16em;
+
+  &:hover {
+    text-decoration-color: var(--warning);
+  }
+}

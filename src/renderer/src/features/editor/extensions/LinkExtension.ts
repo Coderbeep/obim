@@ -1,4 +1,6 @@
 import { Decoration, EditorView, ViewPlugin, WidgetType } from "@renderer/features/editor/codemirror-view";
+import { StateEffect } from "@renderer/features/editor/codemirror-state";
+import { linkStatusPresentation, type LinkStatusPort } from "./shared/linkStatus";
 import { syntaxTree } from "@codemirror/language";
 import type { Range } from "@renderer/features/editor/codemirror-state";
 import type { EditorState } from "@renderer/features/editor/codemirror-state";
@@ -33,7 +35,10 @@ const LinkTargetDecoration = Decoration.mark({ class: "cm-formatting-link-target
 
 type LinkInfo = (MarkdownLinkInfo & { syntax: "markdown" }) | (WikiLinkInfo & { syntax: "wiki" });
 
+const refreshLinkStatus = StateEffect.define<null>();
+
 type WikiLinkActions = LinkActions & {
+  linkStatus?: LinkStatusPort;
   openWikiResource(path: string): void | Promise<void>;
 };
 
@@ -49,6 +54,7 @@ class LinkPlaceholderWidget extends WidgetType {
     private readonly external: boolean,
     private readonly actions: WikiLinkActions,
     private readonly wiki: boolean,
+    private readonly presentation: ReturnType<typeof linkStatusPresentation>,
   ) {
     super();
   }
@@ -59,6 +65,8 @@ class LinkPlaceholderWidget extends WidgetType {
     link.className = this.external
       ? "cm-link-placeholder cm-link-placeholder-external"
       : "cm-link-placeholder cm-link-placeholder-internal";
+    if (this.presentation.className) link.classList.add(this.presentation.className);
+    if (this.presentation.title) link.title = this.presentation.title;
     link.setAttribute("href", this.external ? externalLinkUrl(this.dest) : this.dest);
     link.draggable = false;
     link.onmousedown = (event) => event.preventDefault();
@@ -78,6 +86,8 @@ class LinkPlaceholderWidget extends WidgetType {
       this.dest === other.dest &&
       this.external === other.external &&
       this.wiki === other.wiki &&
+      this.presentation.className === other.presentation.className &&
+      this.presentation.title === other.presentation.title &&
       this.actions.openResource === other.actions.openResource &&
       this.actions.openWikiResource === other.actions.openWikiResource &&
       this.actions.openExternal === other.actions.openExternal
@@ -167,13 +177,27 @@ function wikiLinkAtSelection(state: EditorState, selection: { from: number; to: 
 }
 
 function addLinkDecoration(decorations: Range<Decoration>[], link: LinkInfo, actions: WikiLinkActions) {
+  const presentation = linkStatusPresentation(
+    link.syntax === "markdown" && isExternalLink(link.dest)
+      ? undefined
+      : actions.linkStatus?.resolve(link.dest, link.syntax),
+  );
+  const statusDecoration = (base: Decoration) =>
+    presentation.className
+      ? Decoration.mark({
+          class: `${base.spec.class} ${presentation.className}`,
+          attributes: { title: presentation.title },
+        })
+      : base;
+  const textDecoration = statusDecoration(LinkTextDecoration);
+  const targetDecoration = statusDecoration(LinkTargetDecoration);
   if (link.isActive) {
     if (link.syntax === "wiki") {
       pushDecorationRange(decorations, LinkSyntaxDecoration, link.from, link.destFrom);
-      pushDecorationRange(decorations, LinkTargetDecoration, link.destFrom, link.destTo);
+      pushDecorationRange(decorations, targetDecoration, link.destFrom, link.destTo);
       if (link.aliasFrom !== null && link.aliasTo !== null) {
         pushDecorationRange(decorations, LinkSyntaxDecoration, link.destTo, link.aliasFrom);
-        pushDecorationRange(decorations, LinkTextDecoration, link.aliasFrom, link.aliasTo);
+        pushDecorationRange(decorations, textDecoration, link.aliasFrom, link.aliasTo);
         pushDecorationRange(decorations, LinkSyntaxDecoration, link.aliasTo, link.to);
       } else {
         pushDecorationRange(decorations, LinkSyntaxDecoration, link.destTo, link.to);
@@ -181,10 +205,10 @@ function addLinkDecoration(decorations: Range<Decoration>[], link: LinkInfo, act
       return;
     }
     pushDecorationRange(decorations, LinkSyntaxDecoration, link.from, link.textFrom);
-    pushDecorationRange(decorations, LinkTextDecoration, link.textFrom, link.textTo);
+    pushDecorationRange(decorations, textDecoration, link.textFrom, link.textTo);
     pushDecorationRange(decorations, LinkSyntaxDecoration, link.textTo, link.urlFrom);
     pushDecorationRange(decorations, LinkSyntaxDecoration, link.urlFrom, link.destFrom);
-    pushDecorationRange(decorations, LinkTargetDecoration, link.destFrom, link.destTo);
+    pushDecorationRange(decorations, targetDecoration, link.destFrom, link.destTo);
     pushDecorationRange(decorations, LinkSyntaxDecoration, link.destTo, link.urlTo);
     pushDecorationRange(decorations, LinkSyntaxDecoration, link.urlTo, link.to);
     return;
@@ -198,6 +222,7 @@ function addLinkDecoration(decorations: Range<Decoration>[], link: LinkInfo, act
         link.syntax === "markdown" && isExternalLink(link.dest),
         actions,
         link.syntax === "wiki",
+        presentation,
       ),
     }).range(link.from, link.to),
   );
@@ -211,6 +236,11 @@ export function buildLinkDecorations(
   const handledLinks: Array<{ from: number; to: number }> = [];
   const fallbackLineStarts = new Set<number>();
   const selection = view.state.selection.main;
+  const visibleRanges = visibleDocumentRanges(view);
+  const addVisibleLink = (link: LinkInfo) => {
+    if (visibleRanges.some((range) => link.from < range.to && link.to > range.from))
+      addLinkDecoration(decorations, link, actions);
+  };
 
   iterateVisibleSyntaxTree(view, (node) => {
     if (node.name !== "Link") return;
@@ -222,7 +252,7 @@ export function buildLinkDecorations(
     }
 
     handledLinks.push({ from: link.from, to: link.to });
-    addLinkDecoration(decorations, link, actions);
+    addVisibleLink(link);
     return false;
   });
 
@@ -231,7 +261,7 @@ export function buildLinkDecorations(
 
     for (const link of markdownLinksInText(line.text, line.from, selection, view.state)) {
       if (overlapsHandledLink(handledLinks, link.from, link.to)) continue;
-      addLinkDecoration(decorations, { ...link, syntax: "markdown" }, actions);
+      addVisibleLink({ ...link, syntax: "markdown" });
     }
   }
 
@@ -248,7 +278,7 @@ export function buildLinkDecorations(
     const line = view.state.doc.lineAt(lineStart);
     for (const link of wikiLinksInText(line.text, line.from, selection)) {
       if (isInCodeSyntax(view.state, link.from + 1)) continue;
-      addLinkDecoration(decorations, { ...link, syntax: "wiki" }, actions);
+      addVisibleLink({ ...link, syntax: "wiki" });
     }
   }
 
@@ -319,14 +349,16 @@ export function createLinkExtension({
   openWikiResource = openResource,
   canonicalizeWikiResource,
   onHoverPdfReference,
+  linkStatus,
 }: LinkActions & {
+  linkStatus?: LinkStatusPort;
   owner: string;
   overlay: EditorOverlayPort;
   openWikiResource?(path: string): void | Promise<void>;
   canonicalizeWikiResource?(path: string): string;
   onHoverPdfReference?(destination: string | null): void;
 }) {
-  const actions = { openResource, openExternal, openWikiResource };
+  const actions = { openResource, openExternal, openWikiResource, linkStatus };
   const linkOverlay = createEditorOverlayController({
     owner,
     scope: "links",
@@ -340,7 +372,33 @@ export function createLinkExtension({
     const overlayState = getLinkOverlayState(update.view.state, update.view.state.selection.main);
     handleOverlayLogic(update, overlayState, linkOverlay);
   });
-  const linkViewPlugin = createSyntaxDecorationPlugin((view) => buildLinkDecorations(view, actions));
+  const linkViewPlugin = createSyntaxDecorationPlugin((view) => buildLinkDecorations(view, actions), {
+    shouldRebuild: (update) =>
+      update.transactions.some((transaction) => transaction.effects.some((effect) => effect.is(refreshLinkStatus))),
+  });
+  const statusSubscription = ViewPlugin.fromClass(
+    class {
+      private disposed = false;
+      private queued = false;
+      private readonly unsubscribe?: () => void;
+
+      constructor(view: EditorView) {
+        this.unsubscribe = linkStatus?.subscribe(() => {
+          if (this.queued || this.disposed) return;
+          this.queued = true;
+          queueMicrotask(() => {
+            this.queued = false;
+            if (!this.disposed) view.dispatch({ effects: refreshLinkStatus.of(null) });
+          });
+        });
+      }
+
+      destroy() {
+        this.disposed = true;
+        this.unsubscribe?.();
+      }
+    },
+  );
 
   const hoverPlugin = onHoverPdfReference
     ? ViewPlugin.fromClass(
@@ -396,6 +454,6 @@ export function createLinkExtension({
 
   return {
     controller: linkOverlay,
-    extension: [linkViewPlugin, linkOverlay.extension, linkOverlayStatePlugin, hoverPlugin],
+    extension: [linkViewPlugin, statusSubscription, linkOverlay.extension, linkOverlayStatePlugin, hoverPlugin],
   };
 }

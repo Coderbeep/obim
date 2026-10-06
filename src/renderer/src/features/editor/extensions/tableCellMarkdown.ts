@@ -3,6 +3,7 @@ import MarkdownIt from "markdown-it";
 import type StateInline from "markdown-it/lib/rules_inline/state_inline.mjs";
 
 import { ViewPlugin, type EditorView } from "@renderer/features/editor/codemirror-view";
+import { linkStatusPresentation, type LinkStatusPort } from "./shared/linkStatus";
 import { toMediaUrl } from "@shared/pathUtils";
 import { dispatchLinkDestination, isExternalLink, type LinkActions } from "./shared/linkActions";
 
@@ -108,15 +109,60 @@ function tableCellLink(event: Event) {
   return target instanceof Element ? target.closest<HTMLAnchorElement>(".tbl-cell-view a[href]") : null;
 }
 
-export function createTableCellLinkExtension(actions: LinkActions = inertLinkActions) {
+export function createTableCellLinkExtension(actions: LinkActions = inertLinkActions, linkStatus?: LinkStatusPort) {
   return ViewPlugin.fromClass(
     class {
+      private readonly observer?: MutationObserver;
+      private readonly unsubscribe?: () => void;
+      private disposed = false;
+      private queued = false;
+      private readonly originalTitles = new WeakMap<HTMLAnchorElement, string | null>();
+
       constructor(private readonly view: EditorView) {
+        if (linkStatus) {
+          this.observer = new MutationObserver(this.queueRefresh);
+          this.observer.observe(view.dom, { childList: true, subtree: true });
+          this.unsubscribe = linkStatus.subscribe(this.queueRefresh);
+          this.queueRefresh();
+          view.scrollDOM.addEventListener("scroll", this.queueRefresh, { passive: true });
+        }
         view.dom.addEventListener("pointerdown", this.handleLinkPointerDown, true);
         view.dom.addEventListener("click", this.handleLinkClick, true);
       }
 
+      update() {
+        this.queueRefresh();
+      }
+
+      private readonly queueRefresh = () => {
+        if (!linkStatus || this.queued || this.disposed) return;
+        this.queued = true;
+        queueMicrotask(() => {
+          this.queued = false;
+          if (this.disposed) return;
+          const viewport = this.view.scrollDOM.getBoundingClientRect();
+          for (const anchor of this.view.dom.querySelectorAll<HTMLAnchorElement>(".tbl-cell-view a[href]")) {
+            const bounds = anchor.getBoundingClientRect();
+            if (bounds.bottom < viewport.top || bounds.top > viewport.bottom) continue;
+            const destination = anchor.getAttribute("href") ?? "";
+            const presentation = linkStatusPresentation(
+              isExternalLink(destination) ? undefined : linkStatus.resolve(destination, "markdown"),
+            );
+            if (!this.originalTitles.has(anchor)) this.originalTitles.set(anchor, anchor.getAttribute("title"));
+            anchor.classList.toggle("cm-link-missing", presentation.className === "cm-link-missing");
+            anchor.classList.toggle("cm-link-ambiguous", presentation.className === "cm-link-ambiguous");
+            const title = presentation.title || this.originalTitles.get(anchor);
+            if (title) anchor.title = title;
+            else anchor.removeAttribute("title");
+          }
+        });
+      };
+
       destroy() {
+        this.disposed = true;
+        this.unsubscribe?.();
+        this.observer?.disconnect();
+        this.view.scrollDOM.removeEventListener("scroll", this.queueRefresh);
         this.view.dom.removeEventListener("pointerdown", this.handleLinkPointerDown, true);
         this.view.dom.removeEventListener("click", this.handleLinkClick, true);
       }
