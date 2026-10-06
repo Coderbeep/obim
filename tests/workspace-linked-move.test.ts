@@ -46,6 +46,8 @@ describe("workspace moves with link updates", () => {
     expect(await readFile(path.join(root, "source.md"), "utf8")).toBe("[[New#Heading|Alias]] [Old](New.md)");
     expect(await readFile(path.join(root, ".obim/ignored.md"), "utf8")).toBe("[[Old]]");
     expect(result?.linkUpdates).toHaveLength(2);
+    expect(result?.updatedLinkCount).toBe(3);
+    expect(result?.linkMove).toEqual({ beforePaths: ["Old.md", "source.md"], afterPaths: ["New.md", "source.md"] });
     expect(result?.linkUpdates[0].version.sizeBytes).toBeGreaterThan(0);
   });
   it("updates folder-qualified and outgoing relative links when a directory moves", async () => {

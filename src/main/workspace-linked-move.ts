@@ -1,6 +1,6 @@
 import { lstat, readFile, readdir, rename } from "fs/promises";
 import path from "path";
-import { rewriteNoteLinks } from "@shared/note-link-updates";
+import { rewriteNoteLinksWithCount } from "@shared/note-link-updates";
 import type { NoteLinkUpdate } from "@shared/file-operations";
 import { atomicWriteWorkspaceFile, getUniqueWorkspacePath, queueWorkspaceMutation } from "./workspace-mutations";
 import { readWorkspaceTextFile } from "./workspace-files";
@@ -59,15 +59,17 @@ export const moveWorkspaceItemWithLinks = (root: string, source: string, request
     const relative = (file: string) => path.relative(root, file).split(path.sep).join("/");
     const beforePaths = before.map(relative);
     const afterPaths = after.map(relative);
+    let updatedLinkCount = 0;
     const changes: { beforePath: string; path: string; previousContent: string; content: string }[] = [];
     for (let index = 0; index < before.length; index++) {
       const previousContent = await readFile(before[index], "utf8");
-      const content = rewriteNoteLinks(previousContent, {
+      const { content, count } = rewriteNoteLinksWithCount(previousContent, {
         beforePaths,
         afterPaths,
         sourceBefore: beforePaths[index],
         sourceAfter: afterPaths[index],
       });
+      updatedLinkCount += count;
       if (content !== previousContent)
         changes.push({ beforePath: before[index], path: after[index], previousContent, content });
     }
@@ -101,7 +103,7 @@ export const moveWorkspaceItemWithLinks = (root: string, source: string, request
           };
         }),
       );
-      return { output: destination, linkUpdates };
+      return { output: destination, linkUpdates, updatedLinkCount, linkMove: { beforePaths, afterPaths } };
     } catch (error) {
       const failures: unknown[] = [];
       for (const change of written.reverse()) {

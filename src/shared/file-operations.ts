@@ -11,7 +11,12 @@ export interface NoteLinkUpdate {
   content: string;
   version: WorkspaceFileVersion;
 }
-export type MovedFileResult = FileOperationResult<{ output: string }> & { linkUpdates?: NoteLinkUpdate[] };
+export type NoteLinkMovePaths = { beforePaths: string[]; afterPaths: string[] };
+export type MovedFileResult = FileOperationResult<{ output: string }> & {
+  linkUpdates?: NoteLinkUpdate[];
+  linkMove?: NoteLinkMovePaths;
+  updatedLinkCount?: number;
+};
 export type WorkspaceFileSaveResult = FileOperationResult<{ version: WorkspaceFileVersion }>;
 export type WorkspaceTextFile = { content: string; version: WorkspaceFileVersion };
 

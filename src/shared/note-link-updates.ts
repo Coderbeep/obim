@@ -42,7 +42,10 @@ export interface NoteLinkMove {
 }
 
 /** Updates only destinations that resolve to a known note; code and ambiguous wiki targets stay literal. */
-export const rewriteNoteLinks = (content: string, move: NoteLinkMove): string => {
+export const rewriteNoteLinks = (content: string, move: NoteLinkMove): string =>
+  rewriteNoteLinksWithCount(content, move).content;
+
+export const rewriteNoteLinksWithCount = (content: string, move: NoteLinkMove) => {
   const remap = new Map(move.beforePaths.map((value, index) => [value, move.afterPaths[index]]));
   const edits: { from: number; to: number; text: string }[] = [];
   const blocked: { from: number; to: number }[] = [];
@@ -131,7 +134,11 @@ export const rewriteNoteLinks = (content: string, move: NoteLinkMove): string =>
         .join("/");
     edits.push({ ...url, text: angled ? `<${destination}${fragment}>` : `${destination}${fragment}` });
   }
-  return edits
-    .sort((a, b) => b.from - a.from)
-    .reduce((text, edit) => text.slice(0, edit.from) + edit.text + text.slice(edit.to), content);
+  const changes = edits.filter((edit) => content.slice(edit.from, edit.to) !== edit.text);
+  return {
+    count: changes.length,
+    content: changes
+      .sort((a, b) => b.from - a.from)
+      .reduce((text, edit) => text.slice(0, edit.from) + edit.text + text.slice(edit.to), content),
+  };
 };

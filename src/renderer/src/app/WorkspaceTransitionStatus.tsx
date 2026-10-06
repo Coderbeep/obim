@@ -6,7 +6,7 @@ import { Button } from "@renderer/shared/ui/button";
 export const WorkspaceTransitionStatus = () => {
   const transition = useAtomValue(workspaceTransitionAtom);
   return (
-    <Dialog open={Boolean(transition)}>
+    <Dialog open={Boolean(transition && !transition.background)}>
       <DialogContent
         className="max-w-sm [&>button]:hidden"
         onEscapeKeyDown={(event) => {

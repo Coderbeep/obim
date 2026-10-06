@@ -1,3 +1,4 @@
+import { waitForBackgroundWorkspaceOperation } from "@renderer/store/workspaceTransitionStore";
 import type { useStore } from "jotai";
 
 import { saveFile } from "@renderer/features/files/workspaceFileService";
@@ -109,6 +110,7 @@ export const saveDirtyFileBuffer = async (
   path: string,
   editorText: string,
   save: FileSave = saveFile,
+  allowNewerEdits = false,
 ): Promise<FileOperationResult> => {
   const initial = store.get(fileBuffersByPathAtom)[path];
   if (!initial || initial.savedText === initial.editorText) return { success: true };
@@ -116,10 +118,18 @@ export const saveDirtyFileBuffer = async (
   const identity = store.get(fileBufferIdentitiesAtom)[path] ?? {};
   store.set(fileBufferIdentitiesAtom, (identities) => ({ ...identities, [path]: identity }));
 
+  if (save === saveFile && (await waitForBackgroundWorkspaceOperation())) {
+    const remappedPath = Object.entries(store.get(fileBufferIdentitiesAtom)).find(
+      ([, value]) => value === identity,
+    )?.[0];
+    if (!remappedPath) return { success: true };
+    path = remappedPath;
+    editorText = store.get(fileBuffersByPathAtom)[path]?.editorText ?? editorText;
+  }
   const pending = pendingSaves.get(path);
   const pendingResult = await pending;
   const current = store.get(fileBuffersByPathAtom)[path];
-  if (!current || current.editorText !== editorText) {
+  if (!current || (!allowNewerEdits && current.editorText !== editorText)) {
     const error = "File changed while the save was pending";
     notifySaveError(store, path, error);
     return { success: false, error };
@@ -140,7 +150,7 @@ export const saveDirtyFileBuffer = async (
   }
   // A completed write advances the persisted snapshot even when newer typing remains dirty.
   store.set(markFileBufferSavedAtom, savedPath, editorText, result.version);
-  if (store.get(fileBuffersByPathAtom)[savedPath]?.editorText !== editorText) {
+  if (!allowNewerEdits && store.get(fileBuffersByPathAtom)[savedPath]?.editorText !== editorText) {
     return { success: false, error: "File changed while the save was pending. Save again before continuing." };
   }
 
@@ -151,6 +161,7 @@ export const saveDirtyFileBuffers = async (
   store: Store,
   matches: (path: string) => boolean = () => true,
   save: FileSave = saveFile,
+  allowNewerEdits = false,
 ): Promise<FileOperationResult> => {
   await Promise.all([...pendingSaves].filter(([path]) => matches(path)).map(([, operation]) => operation));
   const dirtyBuffers = Object.entries(store.get(fileBuffersByPathAtom)).filter(
@@ -158,9 +169,10 @@ export const saveDirtyFileBuffers = async (
   );
 
   for (const [path, buffer] of dirtyBuffers) {
-    const result = await saveDirtyFileBuffer(store, path, buffer.editorText, save);
+    const result = await saveDirtyFileBuffer(store, path, buffer.editorText, save, allowNewerEdits);
     if (!result.success) return result;
   }
+  if (allowNewerEdits) return { success: true };
   const changed = Object.entries(store.get(fileBuffersByPathAtom)).find(
     ([path, buffer]) => matches(path) && (buffer.savedText !== buffer.editorText || pendingSaves.has(path)),
   );

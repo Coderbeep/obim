@@ -3,6 +3,7 @@ import { atom, type useStore } from "jotai";
 type Store = ReturnType<typeof useStore>;
 
 export type WorkspaceTransition = {
+  background?: boolean;
   label: string;
   phase: "preparing" | "committing";
   cancel: () => void;
@@ -12,6 +13,7 @@ export const WORKSPACE_TRANSITION_MESSAGE = "Wait for the workspace operation to
 
 let activeTransition: WorkspaceTransitionLease | null = null;
 let generation = 0;
+let backgroundCompletion: Promise<void> | null = null;
 const pendingActivity = new Set<Promise<unknown>>();
 
 export interface WorkspaceTransitionLease {
@@ -21,12 +23,31 @@ export interface WorkspaceTransitionLease {
   release(): void;
 }
 
-export const isWorkspaceTransitionActive = () => activeTransition !== null;
+export const isWorkspaceTransitionActive = () => activeTransition !== null && backgroundCompletion === null;
+
+/** Saves and disk-change reconciliation resume after link repair has updated buffer paths and versions. */
+export const waitForBackgroundWorkspaceOperation = async () => {
+  let waited = false;
+  while (backgroundCompletion) {
+    waited = true;
+    await backgroundCompletion;
+  }
+  return waited;
+};
 export const getWorkspaceTransitionGeneration = () => generation;
 
-/** Freeze synchronously, before React renders feedback or any asynchronous work begins. */
-export const beginWorkspaceTransition = (store: Store, label: string): WorkspaceTransitionLease | null => {
+/** Reserve disk mutations synchronously; background link repair keeps editing available. */
+export const beginWorkspaceTransition = (
+  store: Store,
+  label: string,
+  background = false,
+): WorkspaceTransitionLease | null => {
   if (activeTransition) return null;
+  let completeBackground: (() => void) | undefined;
+  if (background)
+    backgroundCompletion = new Promise<void>((resolve) => {
+      completeBackground = resolve;
+    });
   let cancelled = false;
   let committed = false;
   let signalCancellation!: () => void;
@@ -41,12 +62,14 @@ export const beginWorkspaceTransition = (store: Store, label: string): Workspace
     commit() {
       if (cancelled || activeTransition !== lease) return false;
       committed = true;
-      store.set(workspaceTransitionAtom, { label, phase: "committing", cancel });
+      store.set(workspaceTransitionAtom, { label, background, phase: "committing", cancel });
       return true;
     },
     release() {
       if (activeTransition !== lease) return;
       activeTransition = null;
+      backgroundCompletion = null;
+      completeBackground?.();
       store.set(workspaceTransitionAtom, null);
     },
   };
@@ -59,7 +82,7 @@ export const beginWorkspaceTransition = (store: Store, label: string): Workspace
   };
   activeTransition = lease;
   generation += 1;
-  store.set(workspaceTransitionAtom, { label, phase: "preparing", cancel });
+  store.set(workspaceTransitionAtom, { label, background, phase: "preparing", cancel });
   return lease;
 };
 

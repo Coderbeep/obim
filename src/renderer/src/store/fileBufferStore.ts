@@ -3,7 +3,9 @@ import { atom } from "jotai";
 import { selectAtom } from "jotai/utils";
 import { currentFilePathAtom } from "./workspaceResourceStore";
 import type { WorkspaceFileVersion } from "@shared/file-item";
-import type { NoteLinkUpdate } from "@shared/file-operations";
+import { rewriteNoteLinks } from "@shared/note-link-updates";
+import { isMarkdownFile } from "@shared/mime-types";
+import type { NoteLinkMovePaths, NoteLinkUpdate } from "@shared/file-operations";
 
 export interface FileBufferState {
   savedText: string;
@@ -28,6 +30,28 @@ export const applyNoteLinkUpdatesAtom = atom(null, (get, set, updates: NoteLinkU
   }
   set(buffersAtom, buffers);
 });
+/** Rewrites the latest draft, including typing accepted while the disk transaction was running. */
+export const applyBackgroundNoteLinkMoveAtom = atom(
+  null,
+  (get, set, { updates, move, root }: { updates: NoteLinkUpdate[]; move: NoteLinkMovePaths; root: string }) => {
+    const previous = get(buffersAtom);
+    set(applyNoteLinkUpdatesAtom, updates);
+    const buffers = { ...get(buffersAtom) };
+    for (const [path, buffer] of Object.entries(buffers)) {
+      if (!isMarkdownFile(null, path)) continue;
+      const sourceAfter = path.slice(root.replace(/\/$/, "").length + 1);
+      const index = move.afterPaths.indexOf(sourceAfter);
+      if (index < 0) continue;
+      const editorText = rewriteNoteLinks(previous[path].editorText, {
+        ...move,
+        sourceBefore: move.beforePaths[index],
+        sourceAfter,
+      });
+      buffers[path] = { ...buffer, editorText };
+    }
+    set(buffersAtom, buffers);
+  },
+);
 type BufferUpdate =
   Record<string, FileBufferState> | ((buffers: Record<string, FileBufferState>) => Record<string, FileBufferState>);
 export const fileBuffersByPathAtom = atom(

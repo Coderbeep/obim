@@ -434,7 +434,7 @@ ipcMain.handle("rename-file", async (_, currentFilePath: string, newFileName: st
     if (!moved) {
       return { success: false, error: "Destination file already exists" };
     }
-    return { success: true, output: toRendererPath(moved.output), linkUpdates: moved.linkUpdates };
+    return { success: true, ...moved, output: toRendererPath(moved.output) };
   } catch (error) {
     console.error("Error moving file:", error);
     return {

@@ -1,5 +1,6 @@
 import { notifyFileSaveFailure, saveFileTracked } from "@renderer/features/files/dirtyFileBuffers";
-import { fileBuffersByPathAtom } from "@renderer/store/fileBufferStore";
+import { waitForBackgroundWorkspaceOperation } from "@renderer/store/workspaceTransitionStore";
+import { fileBufferIdentitiesAtom, fileBuffersByPathAtom } from "@renderer/store/fileBufferStore";
 import { fileSaveStatesByPathAtom } from "@renderer/store/fileSaveStore";
 import { useSetAtom, useStore } from "jotai";
 import debounce from "lodash/debounce";
@@ -17,6 +18,16 @@ export const useObimEditor = () => {
     () =>
       debounce(
         async (path: string, content: string) => {
+          const identity = store.get(fileBufferIdentitiesAtom)[path] ?? {};
+          store.set(fileBufferIdentitiesAtom, (identities) => ({ ...identities, [path]: identity }));
+          if (await waitForBackgroundWorkspaceOperation()) {
+            const currentPath = Object.entries(store.get(fileBufferIdentitiesAtom)).find(
+              ([, value]) => value === identity,
+            )?.[0];
+            if (!currentPath) return;
+            path = currentPath;
+            content = store.get(fileBuffersByPathAtom)[path]?.editorText ?? content;
+          }
           const currentBuffer = store.get(fileBuffersByPathAtom)[path];
           if (!currentBuffer || currentBuffer.editorText !== content || currentBuffer.savedText === content) return;
 

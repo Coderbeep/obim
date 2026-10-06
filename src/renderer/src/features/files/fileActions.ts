@@ -28,7 +28,11 @@ import {
   workspaceNavigationRevisionAtom,
 } from "@renderer/store/editorPaneStore";
 import { workspaceTabsByIdAtom } from "@renderer/store/editorTabStore";
-import { applyNoteLinkUpdatesAtom, fileBuffersByPathAtom } from "@renderer/store/fileBufferStore";
+import {
+  applyBackgroundNoteLinkMoveAtom,
+  applyNoteLinkUpdatesAtom,
+  fileBuffersByPathAtom,
+} from "@renderer/store/fileBufferStore";
 import {
   hydrateFileBufferAtom,
   remapFileReferencesAtom,
@@ -57,6 +61,7 @@ import { resolveLinkedWorkspaceItem } from "./workspaceFileResolver";
 import { Notifications } from "@renderer/features/notifications/notifications";
 import {
   addNotificationAtom,
+  notificationsAtom,
   NotificationLevel,
   type Notification,
   updateNotificationAtom,
@@ -191,8 +196,9 @@ const withSavedLinkBuffers = async <T>(
   store: ReturnType<typeof useStore>,
   operation: (lease: WorkspaceTransitionLease) => Promise<T>,
   failed: (error: string) => T,
+  background = false,
 ): Promise<T> => {
-  const lease = beginWorkspaceTransition(store, "Updating note links…");
+  const lease = beginWorkspaceTransition(store, "Updating note links…", background);
   if (!lease) return failed(WORKSPACE_TRANSITION_MESSAGE);
   try {
     await Promise.race([waitForWorkspaceActivity(), lease.cancellation]);
@@ -201,6 +207,7 @@ const withSavedLinkBuffers = async <T>(
       store,
       () => true,
       (path, content, version) => saveFile(path, content, version, lease),
+      background,
     );
     if (!saved.success) return failed(saved.error);
     if (!lease.commit()) return failed("Operation cancelled.");
@@ -582,6 +589,7 @@ export const useFileRemove = (): UseFileRemoveResult => {
  */
 export const useFileRename = (): UseFileRenameResult => {
   const store = useStore();
+  const showIndicator = useFileTransferIndicator();
 
   const startRenaming = (filePath: string, target: RenameTarget = "explorer") => {
     if (!filePath) return;
@@ -600,7 +608,13 @@ export const useFileRename = (): UseFileRenameResult => {
     const finalName = oldItem.isDirectory ? trimmedName : withExt(trimmedName, ext || ".md");
 
     store.set(closeContextMenuAtom);
-    return withSavedLinkBuffers(
+    const dismissIndicator = showIndicator({
+      level: NotificationLevel.INFO,
+      title: "Updating links…",
+      busy: true,
+      timeout: 0,
+    });
+    const outcome = await withSavedLinkBuffers(
       store,
       async (lease) => {
         const result = await renameFile(oldFilePath, finalName, lease);
@@ -616,7 +630,21 @@ export const useFileRename = (): UseFileRenameResult => {
         const notesDirectoryPath = getWorkspacePath();
         const remapPath = (path: string) => remapPathAfterMove(path, oldFilePath, newPath, oldItem.isDirectory);
         store.set(remapFileReferencesAtom, { remapPath, notesDirectoryPath });
-        store.set(applyNoteLinkUpdatesAtom, result.linkUpdates ?? []);
+        if (result.linkMove) {
+          store.set(applyBackgroundNoteLinkMoveAtom, {
+            updates: result.linkUpdates ?? [],
+            move: result.linkMove,
+            root: notesDirectoryPath,
+          });
+        } else store.set(applyNoteLinkUpdatesAtom, result.linkUpdates ?? []);
+        const count = result.updatedLinkCount ?? 0;
+        store.set(addNotificationAtom, {
+          id: crypto.randomUUID(),
+          level: NotificationLevel.INFO,
+          title: count > 0 ? `Updated ${count} ${count === 1 ? "link" : "links"}` : "Renamed successfully",
+          path: newPath,
+          timestamp: Date.now(),
+        });
         lease.release();
         if (!(await remapTaskBoardOrderAfterFileMove(oldFilePath, newPath, oldItem.isDirectory)))
           notifyTaskOrderRepairFailed(store);
@@ -625,7 +653,23 @@ export const useFileRename = (): UseFileRenameResult => {
         return { success: true as const, newPath };
       },
       (error) => ({ success: false as const, error }),
+      true,
     );
+    dismissIndicator();
+    if (
+      !outcome.success &&
+      outcome.error !== "Destination file already exists" &&
+      !store
+        .get(notificationsAtom)
+        .some(
+          (notification) =>
+            notification.level === NotificationLevel.ERROR &&
+            notification.message === outcome.error &&
+            notification.path === oldFilePath,
+        )
+    )
+      notifyFileOperationError(store, "Rename failed", outcome.error, oldFilePath);
+    return outcome;
   };
 
   const stopRenaming = (filePath: string) => {
