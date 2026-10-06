@@ -346,9 +346,11 @@ describe("useFileExplorerModel", () => {
     expect(options.unsafeCSS).not.toContain("transition: background-color");
     expect(options.unsafeCSS).toContain("[data-obim-markdown-file='true']");
     expect(options.unsafeCSS).toContain("background-color: var(--surface-selected)");
-    expect(options.unsafeCSS).toContain("box-shadow: inset 0 0 0 1px var(--focus-ring) !important");
-    expect(options.unsafeCSS).toContain("[data-item-type='folder'][data-item-focused='true']");
-    expect(options.unsafeCSS).toContain("box-shadow: none !important");
+    expect(options.unsafeCSS).toContain("--trees-focus-ring-width-override: 0px");
+    expect(options.unsafeCSS).not.toContain("box-shadow: inset 0 0 0 1px var(--focus-ring) !important");
+    expect(options.unsafeCSS).toMatch(
+      /\[data-type='item'\]\[data-item-focused='true'\]\s*\{[^}]*box-shadow: none !important;/,
+    );
     expect(options.unsafeCSS).not.toContain("[data-item-type='folder'][data-item-drag-target='true']");
     expect(options.unsafeCSS).toContain("[data-type='item'].obim-external-drop-target");
     expect(options.unsafeCSS).not.toContain(":host(.obim-internal-drop-root)");
