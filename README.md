@@ -72,6 +72,23 @@ Grab an installer for your platform from the
 | Windows  | `obim-*-setup.exe`           |
 | Linux    | `.AppImage`, `.deb` |
 
+### Opening obim on macOS
+
+The current beta is not signed with an Apple Developer ID or notarized by Apple,
+so macOS may block it on first launch. If you trust the release downloaded from
+this repository:
+
+1. Download the `arm64.dmg` for Apple Silicon or the `x64.dmg` for an Intel Mac.
+2. Open the disk image, drag obim into **Applications**, and try opening it.
+3. If macOS blocks it because the developer cannot be verified or Apple cannot
+   check it, dismiss the alert and open **System Settings → Privacy & Security**.
+4. Scroll to **Security**, click **Open Anyway** for obim, and confirm **Open**.
+   Authenticate if prompted.
+
+macOS saves this approval for the app, so subsequent launches can open normally.
+See [Apple’s instructions for opening an unnotarized app](https://support.apple.com/en-us/102445)
+for more detail.
+
 ## Build from source
 
 You need Node `26.7.0` (see [`.nvmrc`](.nvmrc)) and pnpm `11.19.0`.
