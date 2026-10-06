@@ -1,0 +1,70 @@
+.note-task-tree {
+  --task-tree-indent: 1.5rem;
+  --task-tree-checkbox-center: calc(0.375rem + 0.49em);
+  --task-tree-row-center: calc(0.25rem + 0.5lh);
+  --task-tree-connector: color-mix(in srgb, var(--border-strong) 62%, var(--surface-1));
+  --task-tree-elbow-radius: 0.25rem;
+
+  font-size: var(--text-ui-body);
+  line-height: var(--text-ui-body--line-height);
+}
+
+/* Center the shared checkbox inside the first text line, even for wrapped tasks. */
+.note-task-row > .cm-task-list-checkbox-shell {
+  height: 1lh;
+  margin: 0;
+}
+
+.note-task-node {
+  position: relative;
+  /* Keep spacing inside each branch so its vertical rail includes the gap. */
+  padding-bottom: 2px;
+}
+
+.note-task-tree-children {
+  padding-left: var(--task-tree-indent);
+}
+
+.note-task-tree-children > .note-task-node::before,
+.note-task-tree-children > .note-task-node::after,
+.note-task-row[data-branch]::after {
+  position: absolute;
+  pointer-events: none;
+  content: "";
+}
+
+.note-task-tree-children > .note-task-node::before {
+  top: 0;
+  bottom: 0;
+  left: calc(var(--task-tree-checkbox-center) - var(--task-tree-indent));
+  width: 1px;
+  background: var(--task-tree-connector);
+}
+
+.note-task-tree-children > .note-task-node:last-child::before {
+  bottom: auto;
+  height: calc(var(--task-tree-row-center) - var(--task-tree-elbow-radius));
+}
+
+.note-task-tree-children > .note-task-node::after {
+  top: 0;
+  left: calc(var(--task-tree-checkbox-center) - var(--task-tree-indent));
+  width: calc(var(--task-tree-indent) - 0.49em);
+  height: var(--task-tree-row-center);
+  border-bottom: 1px solid var(--task-tree-connector);
+  border-left: 1px solid var(--task-tree-connector);
+  border-bottom-left-radius: var(--task-tree-elbow-radius);
+}
+
+/* Join the parent's checkbox to its children, including wrapped parent rows. */
+.note-task-row[data-branch]::after {
+  top: calc(var(--task-tree-row-center) + 0.49em);
+  bottom: 0;
+  left: var(--task-tree-checkbox-center);
+  width: 1px;
+  background: var(--task-tree-connector);
+}
+
+.note-task-progress {
+  margin-top: calc((var(--text-ui-body) * var(--text-ui-body--line-height) - 1.25rem) / 2);
+}

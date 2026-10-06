@@ -1,0 +1,239 @@
+:root {
+  --dnd-overlay-opacity: 0.96;
+  --dnd-overlay-elevation: var(--shadow-2);
+  --dnd-insertion-size: 2px;
+  --dnd-split-size: 32px;
+  --dnd-split-target-size: 256px;
+  --dnd-transition-duration: 70ms;
+}
+
+[data-app-draggable="true"] {
+  cursor: grab;
+  -webkit-user-drag: element;
+}
+
+[data-app-drag-handle][data-app-draggable="true"] {
+  cursor: grab !important;
+}
+
+[data-app-draggable="true"][data-dragging="true"] {
+  cursor: grabbing !important;
+  opacity: 0.72;
+}
+
+.app-dnd-horizontal-insertion-line {
+  position: absolute;
+  z-index: 20;
+  right: 6px;
+  left: 6px;
+  height: var(--dnd-insertion-size);
+  background: var(--accent);
+  box-shadow: 0 0 0 1px var(--surface-1);
+  pointer-events: none;
+}
+
+.app-dnd-vertical-insertion-line {
+  position: absolute;
+  z-index: 20;
+  top: var(--dnd-vertical-line-top, 4px);
+  bottom: var(--dnd-vertical-line-bottom, 4px);
+  width: var(--dnd-insertion-size);
+  border-radius: 1px;
+  background: var(--accent);
+  pointer-events: none;
+  opacity: 0;
+}
+
+.app-dnd-vertical-insertion-line[data-side="before"] {
+  left: var(--dnd-vertical-line-offset, 0px);
+}
+
+.app-dnd-vertical-insertion-line[data-side="after"] {
+  right: var(--dnd-vertical-line-offset, 0px);
+}
+
+.app-dnd-vertical-insertion-line[data-active="true"] {
+  opacity: 1;
+}
+
+.app-dnd-widget-split-slot {
+  height: 1px;
+  background: transparent;
+  transition: height var(--dnd-transition-duration) ease-out;
+}
+
+.app-dnd-widget-split-slot::after {
+  content: "";
+  position: absolute;
+  inset: calc(var(--space-panel-gap) / -2) 0;
+}
+
+.app-dnd-widget-split-slot[data-drop-active="valid"] {
+  height: var(--dnd-split-size);
+}
+
+.app-dnd-widget-split-slot::before {
+  content: "";
+  position: absolute;
+  right: 0;
+  left: 0;
+  height: 1px;
+  background: var(--border-default);
+}
+
+.app-dnd-widget-split-slot:hover::before,
+.app-dnd-widget-split-slot:focus-visible::before {
+  background: var(--border-strong);
+}
+
+.app-dnd-widget-split-slot[data-drop-active="valid"]::before {
+  visibility: hidden;
+}
+
+.app-dnd-split-indicator {
+  position: relative;
+  z-index: 20;
+  flex: none;
+  align-self: stretch;
+  border: 2px dashed var(--destructive);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.app-dnd-split-indicator[data-split-orientation="horizontal"] {
+  width: 100%;
+  min-height: var(--dnd-split-size);
+  height: var(--dnd-split-size);
+  animation: app-dnd-split-enter-horizontal 120ms ease-out both;
+}
+
+.app-dnd-split-indicator[data-split-orientation="horizontal"][data-split-overlap="center"] {
+  margin-block: calc(var(--dnd-split-size) / -2);
+}
+
+.app-dnd-split-indicator[data-split-orientation="vertical"] {
+  min-width: var(--dnd-split-size);
+  width: var(--dnd-split-size);
+  height: auto;
+  animation: app-dnd-split-enter-vertical 120ms ease-out both;
+}
+
+.app-dnd-split-indicator[data-split-orientation="vertical"][data-split-overlap="center"] {
+  margin-inline: calc(var(--dnd-split-size) / -2);
+}
+
+.app-dnd-split-indicator[data-split-orientation="horizontal"][data-split-overlap="previous"] {
+  margin-block-start: calc(0px - var(--dnd-split-size));
+  transform-origin: center bottom;
+}
+
+.app-dnd-split-indicator[data-split-orientation="horizontal"][data-split-overlap="next"] {
+  margin-block-end: calc(0px - var(--dnd-split-size));
+  transform-origin: center top;
+}
+
+.app-dnd-split-indicator[data-split-orientation="vertical"][data-split-overlap="previous"] {
+  margin-inline-start: calc(0px - var(--dnd-split-size));
+  transform-origin: right center;
+}
+
+.app-dnd-split-indicator[data-split-orientation="vertical"][data-split-overlap="next"] {
+  margin-inline-end: calc(0px - var(--dnd-split-size));
+  transform-origin: left center;
+}
+
+@keyframes app-dnd-split-enter-horizontal {
+  from {
+    transform: scaleY(0.8);
+  }
+
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes app-dnd-split-enter-vertical {
+  from {
+    transform: scaleX(0.8);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.app-dnd-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 2147483647;
+  display: flex;
+  width: max-content;
+  max-width: min(18rem, calc(100vw - 24px));
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--border-default);
+  border-radius: 0;
+  color: var(--popover-foreground);
+  background: var(--popover);
+  box-shadow: var(--dnd-overlay-elevation);
+  opacity: var(--dnd-overlay-opacity);
+  pointer-events: none;
+  will-change: transform;
+}
+
+.app-dnd-overlay-icon {
+  flex: none;
+  margin-top: 1px;
+  color: var(--muted-foreground);
+}
+
+.app-dnd-overlay-copy,
+.app-dnd-overlay-title,
+.app-dnd-overlay-subtext {
+  display: block;
+  min-width: 0;
+}
+
+.app-dnd-overlay-title,
+.app-dnd-overlay-subtext {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-dnd-overlay-title {
+  font-size: var(--text-ui-control);
+  font-weight: 650;
+}
+
+.app-dnd-overlay-subtext {
+  margin-top: 2px;
+  color: var(--muted-foreground);
+  font-size: var(--text-ui-meta);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-app-draggable],
+  .app-dnd-horizontal-insertion-line,
+  .app-dnd-widget-split-slot,
+  .app-dnd-split-indicator,
+  .app-dnd-overlay {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* The sidebar's expanding split slot, oriented along a horizontal board. */
+.app-dnd-widget-split-slot[data-split-orientation="vertical"] {
+  height: auto;
+  width: 0;
+  min-width: 0;
+  flex: none;
+  position: relative;
+  transition: width var(--dnd-transition-duration) ease-out;
+}
+.app-dnd-widget-split-slot[data-split-orientation="vertical"][data-drop-active="valid"] { width: var(--dnd-split-size); }
+.app-dnd-widget-split-slot[data-split-orientation="vertical"]::before { display: none; }
+.app-dnd-widget-split-slot[data-split-orientation="vertical"]::after { inset: 0; }

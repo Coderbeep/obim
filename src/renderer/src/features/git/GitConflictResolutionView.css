@@ -1,0 +1,214 @@
+.git-conflict-view {
+  container-type: inline-size;
+  position: relative;
+  display: flex;
+  min-width: 0;
+  height: 100%;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--surface-1);
+  color: var(--foreground);
+}
+
+.git-conflict-toolbar {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 7px 7px 7px 10px;
+  border-bottom: 1px solid var(--border-default);
+  background: var(--surface-2);
+}
+
+.git-conflict-toolbar-title {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.git-conflict-toolbar-title > div {
+  min-width: 0;
+}
+
+.git-conflict-toolbar-title strong,
+.git-conflict-toolbar-title span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.git-conflict-toolbar-title strong {
+  font-size: var(--text-ui-body);
+}
+
+.git-conflict-toolbar-title span {
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: var(--text-ui-meta);
+}
+
+.git-conflict-comparison {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  background: var(--border-default);
+}
+
+.git-conflict-version {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  background: var(--surface-1);
+}
+
+.git-conflict-version-heading {
+  display: flex;
+  min-height: 38px;
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-2);
+  font-size: var(--text-ui-control);
+}
+
+.git-conflict-version-heading span {
+  margin-left: auto;
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: var(--text-ui-meta);
+}
+
+.git-conflict-document {
+  min-width: 0;
+  min-height: 100%;
+  margin: 0;
+  padding: var(--space-4);
+  overflow: auto;
+  background: var(--surface-1);
+  color: var(--foreground);
+  font-family: var(--font-mono);
+  font-size: var(--text-ui-meta);
+  line-height: var(--text-ui-meta--line-height);
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+  user-select: text;
+}
+
+.git-conflict-version-state,
+.git-conflict-state {
+  display: flex;
+  min-height: 12rem;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--space-5);
+  color: var(--muted-foreground);
+  font-size: var(--text-ui-meta);
+  line-height: var(--text-ui-meta--line-height);
+  text-align: center;
+}
+
+.git-conflict-version-state strong,
+.git-conflict-state strong {
+  color: var(--foreground);
+  font-size: var(--text-ui-body);
+}
+
+.git-conflict-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-4);
+  padding: 10px 12px;
+  border-top: 1px solid var(--border-default);
+  background: var(--surface-2);
+}
+
+.git-conflict-actions > div:first-child {
+  min-width: 0;
+  flex: 1;
+}
+
+.git-conflict-actions strong,
+.git-conflict-actions span {
+  display: block;
+}
+
+.git-conflict-actions strong {
+  font-size: var(--text-ui-control);
+}
+
+.git-conflict-actions span {
+  margin-top: 2px;
+  color: var(--muted-foreground);
+  font-size: var(--text-ui-meta);
+}
+
+.git-conflict-buttons {
+  display: flex;
+  flex: none;
+  gap: 6px;
+}
+
+.git-conflict-feedback {
+  position: absolute;
+  z-index: 3;
+  right: 12px;
+  bottom: 76px;
+  max-width: min(31rem, calc(100% - 24px));
+  margin: 0;
+  padding: 9px 11px;
+  border: 1px solid var(--border-default);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-2);
+  color: var(--status-success);
+  font-size: var(--text-ui-control);
+}
+
+.git-conflict-feedback[data-kind="error"] {
+  color: var(--status-danger);
+}
+
+@container (max-width: 700px) {
+  .git-conflict-comparison {
+    overflow-y: auto;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .git-conflict-version {
+    min-height: 15rem;
+  }
+
+  .git-conflict-actions {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .git-conflict-buttons {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .git-conflict-feedback {
+    bottom: 116px;
+  }
+}
+
+@container (max-width: 430px) {
+  .git-conflict-buttons {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

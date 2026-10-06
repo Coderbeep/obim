@@ -1,0 +1,136 @@
+.daily-notes-widget {
+  min-height: 0;
+  background: var(--surface-1);
+}
+
+.daily-notes-calendar-shell {
+  width: 100%;
+}
+
+.daily-notes-calendar.task-calendar {
+  --rdp-day-height: 40px;
+  width: 100%;
+  margin: 0;
+  padding-top: 0;
+  padding-inline: 8px;
+}
+
+.daily-notes-calendar .rdp-weekday,
+.daily-notes-calendar .rdp-day {
+  width: auto;
+  min-width: 0;
+  flex: 1 1 0;
+}
+
+.daily-notes-calendar .rdp-day_button {
+  width: calc(100% - 2px);
+  max-width: 38px;
+  margin-inline: auto;
+}
+
+.daily-note-dot {
+  display: inline-block;
+  flex: 0 0 4px;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.daily-notes-calendar .rdp-today .rdp-day_button,
+.daily-notes-calendar
+  .rdp-today.rdp-selected:not(.rdp-range_start):not(.rdp-range_middle):not(.rdp-range_end)
+  .rdp-day_button {
+  background: color-mix(in srgb, var(--accent) 28%, var(--surface-selected));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 48%, var(--border-strong));
+  font-weight: 650;
+}
+
+.daily-notes-calendar .rdp-today .rdp-day_button::after {
+  display: none;
+}
+
+.daily-notes-calendar .rdp-day.daily-note-opening .rdp-day_button {
+  opacity: 0.55;
+}
+
+.daily-notes-calendar .rdp-day_button {
+  height: 38px;
+  padding-bottom: 8px;
+}
+
+.daily-note-day-indicators {
+  position: absolute;
+  bottom: 2px;
+  left: 0;
+  right: 0;
+  height: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.daily-note-task-count {
+  color: var(--foreground);
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 11px;
+}
+
+.daily-note-calendar-legend {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 12px 8px;
+  color: var(--muted-foreground);
+  font-size: var(--text-ui-meta);
+}
+
+.daily-note-calendar-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.daily-note-day-tasks {
+  padding: 8px 12px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: var(--text-ui-control);
+}
+
+.daily-note-day-tasks h3 {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 600;
+}
+
+.daily-note-day-tasks h3 span,
+.daily-note-day-tasks p {
+  color: var(--muted-foreground);
+}
+
+.daily-note-day-tasks p {
+  margin-top: 6px;
+}
+.daily-note-day-tasks ul {
+  margin-top: 6px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+.daily-note-day-tasks button {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  width: 100%;
+  padding: 5px 4px;
+  border-radius: var(--radius-control);
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.daily-note-day-tasks button:hover {
+  background: var(--surface-hover);
+}
+.daily-note-day-tasks button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+}

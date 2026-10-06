@@ -1,0 +1,175 @@
+/* Shared interaction contract. Inset focus remains visible in clipped rows.
+   CodeMirror owns its caret, selection, and editor focus treatment. */
+:root :focus-visible:not(input, textarea, [contenteditable="true"], .cm-editor, .cm-editor *) {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.ui-button,
+.ui-input {
+  transition:
+    background-color var(--motion-press-duration) ease,
+    border-color var(--motion-press-duration) ease,
+    color var(--motion-press-duration) ease;
+}
+
+:root .ui-button-filled:focus-visible {
+  outline-color: var(--text-on-accent);
+  outline-offset: -3px;
+}
+
+.ui-button:active:not(:disabled) {
+  box-shadow: none;
+}
+
+.ui-button[aria-busy="true"] {
+  cursor: progress;
+}
+
+.ui-icon-button {
+  border-radius: var(--radius-control);
+}
+
+.compact-toolbar-search {
+  position: relative;
+  display: flex;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  align-items: center;
+  overflow: hidden;
+  transition: width var(--motion-panel-duration) var(--motion-panel-ease);
+}
+
+.compact-toolbar-search[data-expanded="true"] {
+  width: 12rem;
+  max-width: 40vw;
+}
+
+.compact-toolbar-search[data-expanded="true"]:focus-within {
+  border-radius: var(--radius-control);
+  box-shadow: inset 0 0 0 1px var(--focus-ring);
+}
+
+.compact-toolbar-search .compact-toolbar-search-trigger {
+  z-index: 1;
+  flex: none;
+  color: var(--text-secondary);
+}
+
+.compact-toolbar-search[data-expanded="true"] .compact-toolbar-search-trigger {
+  color: var(--text-primary);
+}
+
+.compact-toolbar-search .compact-toolbar-search-input {
+  flex: 1;
+  width: 0;
+  min-width: 0;
+  height: 28px;
+  padding: 0 26px 0 4px;
+  border: 0;
+  background: transparent;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 90ms ease;
+}
+
+.compact-toolbar-search[data-expanded="true"] .compact-toolbar-search-input {
+  opacity: 1;
+  pointer-events: auto;
+  transition-delay: 70ms;
+}
+
+.compact-toolbar-search-clear {
+  position: absolute;
+  right: 2px;
+  z-index: 1;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-control);
+}
+
+.ui-icon-button[aria-pressed="true"]:not(:disabled) {
+  background: var(--surface-selected-subtle);
+  color: var(--text-primary);
+}
+
+.ui-segmented-control > button:is([aria-selected="true"], [aria-checked="true"]):hover {
+  background: transparent;
+}
+
+.ui-segmented-control > button:active:not(:disabled) {
+  background: var(--surface-pressed);
+}
+
+:root .ui-input[aria-invalid="true"] {
+  border-color: var(--border-strong);
+  outline-color: var(--focus-ring);
+}
+
+.ui-input::placeholder {
+  color: var(--text-tertiary);
+  opacity: 1;
+}
+
+/* Text fields keep their resting border while editing. */
+:root :is(input, textarea, [contenteditable="true"]):focus {
+  outline: none;
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (forced-colors: active) {
+  :root :focus-visible:not(input, textarea, [contenteditable="true"], .cm-editor, .cm-editor *) {
+    outline-color: Highlight;
+  }
+
+  [aria-selected="true"],
+  [aria-pressed="true"],
+  [data-selected="true"],
+  [role="tab"][data-state="active"] {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+}
+
+/* A pill silhouette and explicit check make selection readable at a glance. */
+.ui-segmented-control {
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+.ui-segmented-control > span {
+  border-radius: 999px;
+  border-color: var(--border-default);
+  background: var(--surface-3);
+}
+.ui-segmented-control > button {
+  min-height: 32px;
+  border-radius: 999px;
+  padding-inline: 12px;
+  gap: 6px;
+}
+.ui-segmented-marker {
+  display: inline-block;
+  width: 10px;
+  color: var(--accent);
+}
+.ui-icon-button {
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-3);
+}
+.ui-icon-button[aria-pressed="true"]:not(:disabled) {
+  border-color: var(--border-selected);
+  background: var(--surface-selected-subtle);
+  color: var(--accent);
+}

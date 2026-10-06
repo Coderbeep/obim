@@ -1,0 +1,16 @@
+.cm-horizontal-rule-widget-container {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: calc(100% - 0.25rem);
+  margin-right: 0.25rem;
+  vertical-align: middle;
+}
+
+.cm-horizontal-rule-widget-container hr {
+  width: 100%;
+  border: none;
+  border-top: 2px solid var(--border);
+  margin: 0.45em 0;
+}

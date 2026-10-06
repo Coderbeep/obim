@@ -1,0 +1,138 @@
+.git-settings-refresh[data-refreshing="true"] svg {
+  animation: git-settings-refresh-spin 700ms linear infinite;
+}
+
+.settings-row.git-settings-remote-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  gap: var(--space-3);
+}
+
+.git-settings-remote-url {
+  width: 100%;
+  min-width: 0;
+}
+
+.git-settings-remote-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+}
+
+.git-settings-parent-url {
+  max-width: min(50%, 27rem);
+  overflow-wrap: anywhere;
+  color: var(--muted-foreground);
+  font-size: var(--text-ui-meta);
+}
+
+.git-settings-ignore-card {
+  display: grid;
+  gap: 8px;
+  padding: 10px 0;
+}
+
+.git-settings-ignore-patterns {
+  width: 100%;
+  min-height: 6rem;
+  resize: vertical;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  padding: 9px 10px;
+  background: var(--surface-3);
+  color: var(--foreground);
+  font-size: var(--text-ui-control);
+  line-height: 1.45;
+}
+
+.git-settings-card-actions {
+  display: flex;
+  justify-content: flex-start;
+  padding: 10px 0;
+}
+
+.git-settings-ignore-card .git-settings-card-actions {
+  padding: 0;
+}
+
+.git-settings-interval-control {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted-foreground);
+  font-size: var(--text-ui-control);
+}
+
+.git-settings-interval-control input {
+  width: 6rem;
+}
+
+.git-settings-conflict-choice {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  border: 0;
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 10px 0;
+}
+
+.git-settings-conflict-choice legend {
+  margin-bottom: 8px;
+  color: var(--foreground);
+  font-size: var(--text-ui-body);
+  font-weight: 600;
+}
+
+.git-settings-conflict-choice label {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  cursor: pointer;
+  padding: 8px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+}
+
+.git-settings-conflict-choice input {
+  margin-top: 3px;
+  accent-color: var(--accent);
+}
+
+.git-settings-conflict-choice label > span {
+  display: grid;
+  gap: 2px;
+}
+
+.git-settings-conflict-choice small {
+  color: var(--muted-foreground);
+  font-size: var(--text-ui-meta);
+}
+
+.git-settings-conflict-choice:disabled {
+  opacity: var(--opacity-disabled);
+}
+
+@keyframes git-settings-refresh-spin {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .git-settings-refresh[data-refreshing="true"] svg {
+    animation: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .git-settings-parent-url {
+    max-width: 100%;
+  }
+}
+
+.git-settings-conflict-choice label:has(:checked) {
+  background: var(--surface-selected-subtle);
+  border-color: var(--border-selected);
+}

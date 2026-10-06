@@ -1,0 +1,20 @@
+/* Surface ownership for the workspace. Palette values live in globals.css.
+ * Keep these roles separate from reversible layout/shape experiments. */
+.app-shell.workspace-soft-experiment .pane-tabs-group,
+.app-shell .sidebar-soft-experiment .sidebar-actions-group,
+.app-shell .sidebar-soft-experiment .file-explorer-toolbar,
+.app-shell .sidebar-soft-experiment .file-explorer-section,
+.app-shell .sidebar-soft-experiment .source-control,
+.app-shell .task-board-inspector [data-widget-pane] {
+  background: var(--surface-panel);
+}
+
+/* The calendar belongs to its widget; it is not a separate elevated sheet. */
+.app-shell .task-board-inspector .daily-notes-widget {
+  background: transparent;
+}
+
+/* In dark mode, preserve the column hue without lifting it above its cards. */
+.dark .task-board-column {
+  background: color-mix(in srgb, var(--taskboard-column-accent) 7%, var(--surface-inset));
+}

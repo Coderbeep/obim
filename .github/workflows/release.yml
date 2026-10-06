@@ -1,0 +1,163 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v[0-9]*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check release version and main ancestry
+        id: version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+          node <<'NODE'
+          const fs = require('node:fs');
+          const { version } = require('./package.json');
+          if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version) || process.env.RELEASE_TAG !== `v${version}`) {
+            throw new Error('The version tag must match package.json, for example v0.9.0-beta-1.');
+          }
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${version}\nprerelease=${version.includes('-')}\n`);
+          NODE
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run verify
+
+  installers:
+    needs: verify
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos
+            os: macos-latest
+            command: pnpm exec electron-builder --mac dmg --arm64 --x64 --config.mac.identity=- --config.mac.entitlements=build/entitlements.mac.beta.plist --config.mac.entitlementsInherit=build/entitlements.mac.beta.plist --config.mac.notarize=false --config.dmg.artifactName='${name}-${version}-${arch}.${ext}' --publish never
+            artifacts: dist/*.dmg
+          - platform: windows
+            os: windows-latest
+            command: pnpm exec electron-builder --win nsis --x64 --publish never
+            artifacts: dist/*-setup.exe
+          - platform: linux
+            os: ubuntu-latest
+            command: pnpm exec electron-builder --linux AppImage deb --x64 --publish never
+            artifacts: |
+              dist/*.AppImage
+              dist/*.deb
+    runs-on: ${{ matrix.os }}
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
+      - name: Build installers
+        run: ${{ matrix.command }}
+      - name: Verify macOS app signatures
+        if: matrix.platform == 'macos'
+        run: |
+          codesign --verify --deep --strict --verbose=2 dist/mac-arm64/obim.app
+          codesign --verify --deep --strict --verbose=2 dist/mac/obim.app
+      - uses: actions/upload-artifact@v7
+        with:
+          name: installers-${{ matrix.platform }}
+          path: ${{ matrix.artifacts }}
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+  draft-release:
+    needs: [verify, installers]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: ${{ github.ref_name }}
+      RELEASE_VERSION: ${{ needs.verify.outputs.version }}
+      PRERELEASE: ${{ needs.verify.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: installers-*
+          path: assets
+          merge-multiple: true
+      - name: Verify installer set and generate checksums
+        working-directory: assets
+        run: |
+          test -s "obim-$RELEASE_VERSION-arm64.dmg"
+          test -s "obim-$RELEASE_VERSION-x64.dmg"
+          test -s "obim-$RELEASE_VERSION-setup.exe"
+          test -s "obim-$RELEASE_VERSION.AppImage"
+          compgen -G '*.deb' > /dev/null
+          sha256sum -- *.dmg *.exe *.AppImage *.deb > SHA256SUMS
+      - name: Create draft release and upload installers
+        run: |
+          if gh release view "$RELEASE_TAG" > /dev/null 2>&1; then
+            test "$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft)" = true || {
+              echo 'Refusing to replace assets on an already published release.' >&2
+              exit 1
+            }
+          else
+            flags=()
+            if [ "$PRERELEASE" = true ]; then flags+=(--prerelease); fi
+            {
+              if [ "$PRERELEASE" = true ]; then
+                echo 'This is an early beta and is expected to be buggy. Features may behave unexpectedly, and bugs or crashes may occur. Keep backups of important workspaces and report issues on GitHub.'
+                echo
+              fi
+              echo 'Installers: macOS Apple Silicon and Intel, Windows x64, and Linux x64 (AppImage and deb).'
+              echo 'Windows and Linux builds are unsigned. macOS builds use ad-hoc signing and are not notarized; macOS may require approval in Privacy & Security.'
+              echo
+              node <<'NODE'
+          const fs = require('node:fs');
+          const changelog = fs.readFileSync('CHANGELOG.md', 'utf8');
+          const heading = `## ${process.env.RELEASE_VERSION}`;
+          const section = changelog.split('\n').findIndex(line => line === heading || line.startsWith(`${heading} - `));
+          if (section < 0) throw new Error(`Missing changelog section for ${process.env.RELEASE_VERSION}`);
+          const lines = changelog.split('\n').slice(section + 1);
+          const next = lines.findIndex(line => line.startsWith('## '));
+          console.log(lines.slice(0, next < 0 ? undefined : next).join('\n').trim());
+          NODE
+            } > release-notes.txt
+            gh release create "$RELEASE_TAG" --verify-tag --draft --title "obim $RELEASE_VERSION" --notes-file release-notes.txt "${flags[@]}"
+          fi
+          gh release upload "$RELEASE_TAG" assets/* --clobber

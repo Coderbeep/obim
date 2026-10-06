@@ -1,0 +1,58 @@
+.ui-switch {
+  position: relative;
+  display: block;
+  width: 40px;
+  height: 22px;
+  flex: 0 0 auto;
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  padding: 2px;
+  background: var(--surface-disabled);
+  transition:
+    border-color var(--motion-press-duration) ease,
+    background var(--motion-press-duration) ease;
+}
+
+.ui-switch > span {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--border-default);
+  border-radius: 50%;
+  background: var(--surface-3);
+  box-shadow: var(--shadow-control);
+  transition:
+    transform var(--motion-press-duration) ease,
+    background var(--motion-press-duration) ease;
+}
+
+.ui-switch[aria-checked="true"] {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.ui-switch[aria-checked="true"] > span {
+  border-color: color-mix(in srgb, var(--accent-foreground) 70%, transparent);
+  background: var(--accent-foreground);
+  transform: translateX(18px);
+}
+
+.ui-switch:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  background: var(--surface-selected);
+}
+
+.ui-switch[aria-checked="true"]:hover:not(:disabled) {
+  border-color: var(--accent-hover);
+  background: var(--accent-hover);
+}
+
+.ui-switch:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.ui-switch:disabled {
+  cursor: not-allowed;
+  opacity: var(--opacity-disabled);
+}

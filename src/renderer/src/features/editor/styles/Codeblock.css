@@ -1,0 +1,119 @@
+.cm-formatting-inline-code {
+  background-color: var(--editor-inline-code-background) !important;
+  border-radius: var(--radius-md);
+  padding: 0.04em 0.3em;
+  color: inherit;
+}
+
+.cm-formatting-inline-code-text {
+  background: transparent !important;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit !important;
+}
+
+.cm-formatting-inline-code-mark {
+  color: var(--editor-formatting-mark) !important;
+  font-style: normal;
+  font-weight: 400;
+}
+
+.editor-comp
+  .cm-line:is(
+    .cm-formatting-codeblock-line-begin,
+    .cm-formatting-codeblock-line,
+    .cm-formatting-codeblock-line-end,
+    .cm-formatting-codeblock-line-single,
+    .cm-formatting-codeblock-line-content-begin,
+    .cm-formatting-codeblock-line-unclosed-end
+  ) {
+  position: relative;
+  background-color: transparent !important;
+
+  &:not(.cm-blockquote-line)::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-color: var(--editor-widget-background);
+    pointer-events: none;
+
+    /* Below CodeMirror's selection layer, above the scroller background. */
+    z-index: -3;
+  }
+}
+
+/* 
+ * Styling for the opening line of markdown code blocks.
+ * No need for active state styling because the opening line 
+ * is replaced with a widget.
+ */
+.cm-formatting-codeblock-line-begin,
+.cm-formatting-codeblock-line-single {
+  @apply rounded-t-lg! border-t! border-l! border-r!;
+  border-color: var(--border) !important;
+  @apply h-6;
+}
+
+.cm-formatting-codeblock-line-content-begin {
+  @apply rounded-t-lg! border-t! border-l! border-r!;
+  border-color: var(--border) !important;
+}
+
+/* 
+ * Styling for the closing line of markdown code blocks.
+ * The text inside the line becomes transparent when inactive.
+ */
+.cm-formatting-codeblock-line-end,
+.cm-formatting-codeblock-line-single,
+.cm-formatting-codeblock-line-unclosed-end {
+  @apply rounded-b-lg! border-b! border-l! border-r!;
+  border-color: var(--border) !important;
+}
+
+.cm-formatting-codeblock-line-end {
+  &:not(.active) {
+    @apply text-transparent!;
+  }
+}
+
+.cm-formatting-codeblock-line {
+  @apply border-l! border-r!;
+  border-color: var(--border) !important;
+}
+
+.cm-blockquote-line.cm-formatting-codeblock-line-begin,
+.cm-blockquote-line.cm-formatting-codeblock-line,
+.cm-blockquote-line.cm-formatting-codeblock-line-end,
+.cm-blockquote-line.cm-formatting-codeblock-line-single,
+.cm-blockquote-line.cm-formatting-codeblock-line-content-begin,
+.cm-blockquote-line.cm-formatting-codeblock-line-unclosed-end {
+  background-color: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+}
+
+.cm-blockquote-line .cm-formatting-codeblock-language-container {
+  text-indent: 0;
+}
+
+.editor-comp .cm-line[data-code-line-number] {
+  position: relative;
+
+  &::before {
+    position: absolute;
+    right: calc(100% + 0.5rem);
+    width: 2.5rem;
+    color: var(--muted-foreground);
+    content: attr(data-code-line-number);
+    font-size: 12px;
+    font-weight: 400;
+    pointer-events: none;
+    text-align: right;
+  }
+
+  &[data-code-line-number-quoted]::before {
+    transform: translateX(2rem);
+  }
+}
+@reference "tailwindcss";

@@ -1,0 +1,209 @@
+/* Opaque soft fills cover the rail beneath each scrollbar thumb. */
+:root {
+  --scrollbar-thumb: color-mix(in srgb, rgb(70 65 68) 25%, var(--surface-panel));
+  --scrollbar-thumb-hover: color-mix(in srgb, rgb(70 65 68) 42%, var(--surface-panel));
+}
+
+.dark {
+  --scrollbar-thumb: color-mix(in srgb, rgb(215 215 220) 23%, var(--surface-panel));
+  --scrollbar-thumb-hover: color-mix(in srgb, rgb(215 215 220) 38%, var(--surface-panel));
+}
+
+.file-explorer {
+  --trees-scrollbar-thumb-override: var(--scrollbar-thumb);
+}
+
+/* Use the rounded WebKit thumb in Electron, including previously thin widgets. */
+.app-shell .task-board-inspector .task-agenda-content {
+  scrollbar-width: auto;
+}
+
+.app-shell.workspace-soft-experiment .content,
+.app-shell .sidebar-soft-experiment .sidebar-inner,
+.app-shell .sidebar-soft-experiment .sidebar-actions-pane,
+.app-shell .task-board-inspector {
+  padding-bottom: 2px;
+}
+
+/* Match the explorer toolbar's 34px row and 28px controls.
+ * The pane frame adds a 1px top border, accounted for by the top inset. */
+.app-shell.workspace-soft-experiment .pane-tabs-group {
+  height: 34px;
+  padding: 2px 3px 3px;
+}
+
+.app-shell.workspace-soft-experiment .pane-tabs-tablist,
+.app-shell.workspace-soft-experiment .pane-tabs-apps,
+.app-shell.workspace-soft-experiment .pane-tabs-row,
+.app-shell.workspace-soft-experiment .pane-tab,
+.app-shell.workspace-soft-experiment .pane-tabs-overflow,
+.app-shell.workspace-soft-experiment .pane-tabs-start,
+.app-shell.workspace-soft-experiment .pane-tabs-end,
+.app-shell.workspace-soft-experiment .pane-tabs-start button,
+.app-shell.workspace-soft-experiment .pane-tabs-end button {
+  height: 28px;
+}
+
+.app-shell.workspace-soft-experiment .pane-tab-app {
+  width: 28px;
+  min-width: 28px;
+  max-width: 28px;
+  flex-basis: 28px;
+}
+
+.app-shell.workspace-soft-experiment .pane-tab-label {
+  font-size: var(--text-ui-control);
+  font-weight: 600;
+  padding-block: 0;
+}
+
+.app-shell.workspace-soft-experiment .pane-tabs-start button,
+.app-shell.workspace-soft-experiment .pane-tabs-end button,
+.app-shell.workspace-soft-experiment .pane-tabs-overflow {
+  width: 28px;
+  flex-basis: 28px;
+}
+
+/* Workspace identity first; quiet actions share the same toolbar surface. */
+.app-shell .sidebar-soft-experiment .file-explorer-toolbar {
+  gap: 8px;
+}
+
+.app-shell .sidebar-soft-experiment .file-explorer-toolbar-actions {
+  gap: 2px;
+  padding-left: 5px;
+  border-left: 1px solid var(--border-subtle);
+}
+
+.app-shell .sidebar-soft-experiment .file-explorer-toolbar-action {
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.app-shell .sidebar-soft-experiment .file-explorer-toolbar-action:hover,
+.app-shell .sidebar-soft-experiment .file-explorer-toolbar-action[data-state="open"] {
+  background: var(--surface-hover);
+}
+
+.app-shell .sidebar-soft-experiment button.file-explorer-workspace {
+  cursor: pointer;
+}
+
+/* Shared file-row treatment; tree height remains 24px for virtualization. */
+.app-shell .file-explorer-shortcut {
+  color: var(--text-primary);
+  gap: 7px;
+  cursor: pointer;
+}
+
+/* Match the Files tree's hand cursor only where clicking performs an action. */
+.app-shell button.source-control-change-open:not(:disabled),
+.app-shell button.source-control-change-action:not(:disabled) {
+  cursor: pointer;
+}
+
+.app-shell button.source-control-change-open:disabled,
+.app-shell button.source-control-change-action:disabled,
+.app-shell .file-explorer-shortcut:disabled {
+  cursor: default;
+}
+
+.app-shell .sidebar-soft-experiment .source-control-change:not(.source-control-application-change) {
+  height: 24px;
+}
+
+.app-shell .sidebar-soft-experiment .source-control-change-action {
+  width: 24px;
+  height: 24px;
+  flex-basis: 24px;
+}
+/* The note navigation bar belongs to the document surface. */
+.app-shell .pane-card-header {
+  min-height: 34px;
+  padding: 2px 6px;
+  gap: 8px;
+  background: var(--surface-content);
+  border-bottom-color: var(--border-subtle);
+}
+
+.app-shell .pane-card-header > div:first-child {
+  gap: 2px;
+}
+
+.app-shell .pane-card-header .ui-icon-button {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.app-shell .pane-card-header .ui-icon-button:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.app-shell .pane-card-header .ui-icon-button:disabled {
+  color: var(--text-tertiary);
+  opacity: 0.45;
+}
+
+.app-shell .pane-card-header .pane-card-title {
+  font-size: var(--text-ui-control);
+  font-weight: 500;
+}
+
+.app-shell .pane-card-header .pane-card-breadcrumb-part,
+.app-shell .pane-card-header .pane-card-breadcrumb-current {
+  border-radius: 6px;
+  font-size: var(--text-ui-control);
+}
+
+/* Counts are secondary text, not another layer of buttons or chips. */
+.app-shell
+  .root-layout
+  :is(
+    .file-explorer-section-count,
+    .source-control-section-count,
+    .task-board-column-count,
+    .task-board-filter-count,
+    .task-agenda-group h3 > span
+  ) {
+  min-width: 0;
+  width: auto;
+  height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-tertiary);
+  font-family: var(--font-sans);
+  font-size: var(--text-ui-meta);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+  text-align: right;
+}
+/* Include the sidebar's 6px inner padding and 1px frame in the visible gap.
+ * Keep the resize target centered between surfaces, including reversed layout. */
+.app-shell.workspace-soft-experiment .sidebar-resize-divider {
+  --sidebar-surface-inset: 7px;
+  top: 4px;
+  bottom: 2px;
+  width: calc(var(--space-panel-gap) + var(--sidebar-surface-inset));
+  transform: translateX(calc(100% - var(--sidebar-surface-inset)));
+}
+
+.app-shell.workspace-soft-experiment .sidebar-resize-divider-left {
+  transform: translateX(calc(-100% + var(--sidebar-surface-inset)));
+}
+
+.app-shell.workspace-soft-experiment .sidebar-shell .sidebar-resize-divider-left {
+  left: -1px;
+}
+
+.app-shell.workspace-soft-experiment .right-sidebar-shell .sidebar-resize-divider:not(.sidebar-resize-divider-left) {
+  right: 0;
+}

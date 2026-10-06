@@ -1,0 +1,223 @@
+.task-calendar.rdp-root {
+  --rdp-accent-background-color: var(--selection-track);
+  --rdp-accent-color: var(--surface-selected);
+  --rdp-day-height: 32px;
+  --rdp-day-width: 32px;
+  --rdp-day_button-border: 1px solid transparent;
+  --rdp-day_button-border-radius: var(--radius-control);
+  --rdp-day_button-height: 30px;
+  --rdp-day_button-width: 30px;
+  --rdp-disabled-opacity: 0.35;
+  --rdp-months-gap: 0;
+  --rdp-nav-height: 30px;
+  --rdp-nav_button-height: 28px;
+  --rdp-nav_button-width: 28px;
+  --rdp-outside-opacity: 0.42;
+  --rdp-range_end-color: var(--foreground);
+  --rdp-range_end-date-background-color: var(--surface-selected);
+  --rdp-range_middle-background-color: color-mix(
+    in srgb,
+    var(--surface-selected) 65%,
+    var(--surface-raised)
+  );
+  --rdp-range_middle-color: var(--foreground);
+  --rdp-range_start-color: var(--foreground);
+  --rdp-range_start-date-background-color: var(--surface-selected);
+  --rdp-selected-border: 1px solid var(--border-strong);
+  --rdp-today-color: var(--foreground);
+  --rdp-weekday-opacity: 1;
+  --rdp-weekday-padding: 0;
+
+  width: 244px;
+  padding: 9px 10px 10px;
+  color: var(--foreground);
+  font-size: var(--text-ui-control);
+}
+
+.task-calendar .rdp-months,
+.task-calendar .rdp-month,
+.task-calendar .rdp-month_grid {
+  width: 100%;
+  max-width: none;
+}
+
+.task-calendar .rdp-months {
+  display: block;
+}
+
+.task-calendar .rdp-month_caption {
+  height: var(--rdp-nav-height);
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 5px;
+  font-size: var(--text-ui-control);
+  font-weight: 650;
+}
+
+.task-calendar .rdp-caption_label {
+  z-index: 0;
+}
+
+.task-calendar .rdp-nav {
+  inset: 0 auto auto 50%;
+  width: 176px;
+  max-width: calc(100% - 20px);
+  height: var(--rdp-nav-height);
+  justify-content: space-between;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.task-calendar .rdp-button_previous,
+.task-calendar .rdp-button_next {
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  color: var(--muted-foreground);
+  pointer-events: auto;
+}
+
+.task-calendar .rdp-button_previous:hover,
+.task-calendar .rdp-button_next:hover {
+  border-color: var(--border-default);
+  color: var(--foreground);
+  background: var(--surface-hover);
+}
+
+.task-calendar .rdp-button_previous:focus-visible,
+.task-calendar .rdp-button_next:focus-visible,
+.task-calendar .rdp-day_button:focus-visible {
+  z-index: 2;
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.task-calendar .rdp-chevron {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}
+
+.task-calendar .rdp-weekdays,
+.task-calendar .rdp-week {
+  display: flex;
+  width: 100%;
+}
+
+.task-calendar .rdp-weekday {
+  width: var(--rdp-day-width);
+  height: 25px;
+  color: var(--muted-foreground);
+  font-size: var(--text-ui-meta);
+  font-weight: 550;
+  line-height: 25px;
+}
+
+.task-calendar .rdp-day {
+  position: relative;
+  padding: 0;
+  color: var(--foreground);
+}
+
+.task-calendar .rdp-day_button {
+  position: relative;
+  z-index: 1;
+  margin: 1px;
+  color: inherit;
+  transition: border-color 80ms ease, background-color 80ms ease, color 80ms ease;
+}
+
+.task-calendar .rdp-day:not(.rdp-selected) .rdp-day_button:hover {
+  border-color: var(--border-default);
+  background: var(--surface-hover);
+}
+
+.task-calendar .rdp-outside {
+  color: var(--muted-foreground);
+}
+
+.task-calendar .rdp-disabled .rdp-day_button {
+  cursor: not-allowed;
+}
+
+.task-calendar .rdp-selected {
+  font-size: inherit;
+  font-weight: 600;
+}
+
+.task-calendar .rdp-range_start,
+.task-calendar .rdp-range_middle,
+.task-calendar .rdp-range_end {
+  background: transparent;
+}
+
+.task-calendar .rdp-range_start::before,
+.task-calendar .rdp-range_middle::before,
+.task-calendar .rdp-range_end::before {
+  position: absolute;
+  z-index: 0;
+  top: 1px;
+  bottom: 1px;
+  background: var(--rdp-range_middle-background-color);
+  content: "";
+}
+
+.task-calendar .rdp-range_start::before {
+  right: 0;
+  left: 50%;
+}
+
+.task-calendar .rdp-range_middle::before {
+  right: 0;
+  left: 0;
+}
+
+.task-calendar .rdp-range_end::before {
+  right: 50%;
+  left: 0;
+}
+
+.task-calendar .rdp-range_start.rdp-range_end::before {
+  display: none;
+}
+
+.task-calendar
+  .rdp-selected:not(.rdp-range_start):not(.rdp-range_middle):not(.rdp-range_end)
+  .rdp-day_button {
+  color: var(--foreground);
+  background: var(--surface-selected);
+  font-weight: 650;
+}
+
+.task-calendar .rdp-range_start .rdp-day_button,
+.task-calendar .rdp-range_middle .rdp-day_button,
+.task-calendar .rdp-range_end .rdp-day_button {
+  border: var(--rdp-day_button-border);
+}
+
+.task-calendar .rdp-range_start .rdp-day_button,
+.task-calendar .rdp-range_end .rdp-day_button {
+  font-weight: 650;
+}
+
+.task-calendar .rdp-range_start:not(.rdp-range_end) .rdp-day_button {
+  border-radius: var(--radius-control) 0 0 var(--radius-control);
+}
+
+.task-calendar .rdp-range_end:not(.rdp-range_start) .rdp-day_button {
+  border-radius: 0 var(--radius-control) var(--radius-control) 0;
+}
+
+.task-calendar .rdp-today .rdp-day_button::after {
+  position: absolute;
+  right: 5px;
+  bottom: 3px;
+  left: 5px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--muted-foreground);
+  content: "";
+}
+
+.task-calendar .rdp-hidden {
+  visibility: hidden;
+}

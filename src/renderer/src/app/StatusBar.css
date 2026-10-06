@@ -1,0 +1,76 @@
+.app-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex: 0 0 26px;
+  min-width: 0;
+  padding: 0 10px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font-family: var(--font-mono, monospace);
+  font-size: var(--text-ui-meta);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.app-status-group,
+.app-status-git,
+.app-status-save,
+.app-status-bar button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.app-status-group {
+  gap: 14px;
+  min-width: 0;
+  flex-shrink: 0;
+}
+.app-status-context {
+  flex-shrink: 1;
+}
+.app-status-git svg {
+  color: var(--accent);
+  flex: none;
+}
+.app-status-save[data-attention] {
+  color: var(--destructive);
+}
+.app-status-bar button {
+  height: 25px;
+  padding: 0 5px;
+  cursor: pointer;
+}
+.app-status-bar button:hover {
+  background: var(--surface-hover);
+  color: var(--foreground);
+}
+.app-status-bar button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+.app-status-bar kbd {
+  font: inherit;
+  color: var(--text-secondary);
+}
+@media (max-width: 1000px) {
+  .app-status-extra,
+  .app-status-bar .app-status-help {
+    display: none;
+  }
+  .app-status-bar {
+    gap: 10px;
+  }
+  .app-status-group {
+    gap: 10px;
+  }
+}
+@media (max-width: 720px) {
+  .app-status-commands kbd,
+  .app-status-commands span {
+    display: none;
+  }
+}

@@ -1,0 +1,15 @@
+.cm-formatting-bold-text {
+  font-weight: 700 !important;
+  color: var(--accent);
+}
+
+.cm-formatting-italic-text {
+  font-style: italic;
+  color: var(--chart-2);
+}
+
+.cm-formatting-emphasis-mark {
+  color: var(--editor-formatting-mark) !important;
+  font-style: normal !important;
+  font-weight: 400 !important;
+}

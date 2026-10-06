@@ -1,0 +1,247 @@
+.shortcut-settings {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+  container-type: inline-size;
+}
+.shortcut-settings-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  background: var(--surface-3);
+  color: var(--text-tertiary);
+}
+.shortcut-settings-search:focus-within {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.settings-dialog .shortcut-settings-search .ui-input {
+  height: var(--control-height-large);
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  box-shadow: none;
+}
+:root .settings-dialog .shortcut-settings-search .ui-input:focus-visible {
+  outline: 0;
+}
+.shortcut-settings-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.shortcut-settings-hint {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-ui-meta);
+  line-height: 1.5;
+}
+.shortcut-settings-toolbar .ui-button {
+  flex: none;
+  padding-inline: var(--space-2);
+  font-size: var(--text-ui-meta);
+}
+.shortcut-settings-group {
+  min-width: 0;
+}
+.settings-dialog .shortcut-settings-group > h3 {
+  margin: 0 0 var(--space-2);
+  color: var(--text-primary);
+  font-size: var(--text-ui-body);
+  font-weight: 600;
+}
+.shortcut-settings-list {
+  overflow: hidden;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
+  background: var(--surface-1);
+}
+.shortcut-settings-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(155px, 0.8fr);
+  align-items: center;
+  column-gap: var(--space-2);
+  min-height: 58px;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.shortcut-settings-row:last-child {
+  border-bottom: 0;
+}
+.shortcut-settings-identity {
+  min-width: 0;
+}
+.shortcut-settings-identity strong {
+  display: block;
+  color: var(--foreground);
+  font-size: var(--text-ui-body);
+  font-weight: 600;
+  line-height: 1.35;
+}
+.shortcut-settings-identity p {
+  margin: 2px 0 0;
+  color: var(--text-secondary);
+  font-size: var(--text-ui-control);
+  line-height: 1.35;
+}
+.shortcut-settings-bindings {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.shortcut-settings-binding {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 0;
+  gap: 0;
+}
+.shortcut-settings-binding .shortcut-settings-edit {
+  position: relative;
+  flex: 0 1 auto;
+  justify-content: flex-start;
+  min-width: 0;
+  height: var(--control-height);
+  padding: 0 var(--space-1);
+  overflow: hidden;
+  border: 1px solid transparent;
+  transition:
+    flex-grow var(--motion-panel-duration) var(--motion-panel-ease),
+    border-color var(--motion-panel-duration) var(--motion-panel-ease),
+    background-color var(--motion-panel-duration) var(--motion-panel-ease),
+    padding var(--motion-panel-duration) var(--motion-panel-ease);
+}
+:root .shortcut-settings-binding .shortcut-settings-edit:focus-visible {
+  outline: 0;
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+.shortcut-settings-current {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  opacity: 1;
+  transition: opacity var(--motion-fade-out-duration) ease;
+}
+.shortcut-settings-prompt {
+  position: absolute;
+  left: var(--space-2);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--motion-fade-in-duration) ease;
+}
+.shortcut-settings-binding[data-recording="true"] .shortcut-settings-edit {
+  flex-grow: 1;
+  padding-inline: var(--space-2);
+  border-color: var(--border-default);
+  background: var(--surface-3);
+}
+.shortcut-settings-binding[data-recording="true"] .shortcut-settings-current {
+  opacity: 0;
+}
+.shortcut-settings-binding[data-recording="true"] .shortcut-settings-prompt {
+  opacity: 1;
+}
+.shortcut-settings kbd {
+  display: inline-block;
+  padding: 2px 7px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--text-ui-control);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.shortcut-settings-binding .ui-button svg {
+  color: var(--text-tertiary);
+}
+.shortcut-settings-binding .ui-button:hover svg {
+  color: var(--text-primary);
+}
+.shortcut-settings-unassigned {
+  color: var(--text-tertiary);
+  font-size: var(--text-ui-control);
+}
+@media (forced-colors: active) {
+  :root .shortcut-settings-binding .shortcut-settings-edit:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+}
+.shortcut-settings-binding .shortcut-settings-remove {
+  flex: 0 0 var(--control-height-compact);
+  width: var(--control-height-compact);
+  height: var(--control-height-compact);
+  margin-left: auto;
+  padding: 0;
+  overflow: hidden;
+  opacity: 1;
+  transition:
+    flex-basis var(--motion-panel-duration) var(--motion-panel-ease),
+    width var(--motion-panel-duration) var(--motion-panel-ease),
+    opacity var(--motion-fade-out-duration) ease;
+}
+.shortcut-settings-binding[data-recording="true"] .shortcut-settings-remove {
+  flex-basis: 0;
+  width: 0;
+  opacity: 0;
+}
+.shortcut-settings-binding .shortcut-settings-cancel {
+  flex: 0 0 0;
+  width: 0;
+  min-width: 0;
+  margin-left: 0;
+  padding: 0;
+  overflow: hidden;
+  opacity: 0;
+  white-space: nowrap;
+  transition:
+    flex-basis var(--motion-panel-duration) var(--motion-panel-ease),
+    width var(--motion-panel-duration) var(--motion-panel-ease),
+    margin-left var(--motion-panel-duration) var(--motion-panel-ease),
+    opacity var(--motion-fade-in-duration) ease;
+}
+.shortcut-settings-binding[data-recording="true"] .shortcut-settings-cancel {
+  flex-basis: 3.5rem;
+  width: 3.5rem;
+  margin-left: var(--space-2);
+  opacity: 1;
+}
+.shortcut-settings-binding .shortcut-settings-error {
+  flex: 0 0 100%;
+  margin-top: var(--space-1);
+}
+.shortcut-settings-error {
+  margin: 0;
+  color: var(--destructive);
+  font-size: var(--text-ui-meta);
+}
+.shortcut-settings-empty {
+  margin: 0;
+  padding: var(--space-5);
+  color: var(--text-secondary);
+  text-align: center;
+}
+@container (max-width: 490px) {
+  .shortcut-settings-row {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: var(--space-1);
+  }
+}
+@container (max-width: 360px) {
+  .shortcut-settings-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+}

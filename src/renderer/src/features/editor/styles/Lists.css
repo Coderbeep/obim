@@ -1,0 +1,329 @@
+.cm-list-line {
+  --cm-list-guide-color: color-mix(in srgb, currentColor 18%, transparent);
+}
+
+.cm-list-bullet {
+  display: inline-block;
+  width: 1ch;
+  color: var(--text-secondary);
+  text-align: center;
+  text-indent: 0;
+}
+
+.cm-task-list-checkbox-shell {
+  position: relative;
+  display: inline-flex;
+  width: 2ch;
+  height: 1em;
+  align-items: center;
+  justify-content: flex-start;
+  margin: 0;
+  text-indent: 0;
+  vertical-align: -0.16em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cm-task-list-checkbox-shell::before {
+  position: absolute;
+  z-index: 3;
+  inset: -0.28em -0.38em;
+  border-radius: 0.5em;
+  content: "";
+}
+
+.cm-task-list-checkbox {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.cm-task-list-checkbox-visual {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  width: 0.98em;
+  height: 0.98em;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transform: translateY(0) scale(1);
+  transform-origin: center;
+  transition:
+    color 130ms ease-out,
+    filter 160ms ease-out,
+    transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.cm-task-list-checkbox-face,
+.cm-task-list-checkbox-halo,
+.cm-task-list-checkbox-check {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  border-radius: 0.3em;
+  pointer-events: none;
+}
+
+.cm-task-list-checkbox-face {
+  z-index: 1;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  transition:
+    background 150ms ease-out,
+    border-color 150ms ease-out;
+}
+
+.cm-task-list-checkbox-halo {
+  z-index: 0;
+  border: 1px solid var(--accent);
+  opacity: 0;
+}
+
+.cm-task-list-checkbox-check {
+  z-index: 2;
+  fill: none;
+  opacity: 0;
+  stroke: var(--accent-foreground);
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.9;
+  transform: scale(0.82);
+  transform-origin: center;
+}
+
+.cm-task-list-checkbox-shell:hover .cm-task-list-checkbox-visual {
+  color: var(--accent);
+  filter: saturate(1.08);
+  transform: translateY(-0.5px) scale(1.045);
+}
+
+.cm-task-list-checkbox-shell:hover .cm-task-list-checkbox-face {
+  border-color: currentcolor;
+  background: var(--surface-hover);
+}
+
+.cm-task-list-checkbox-shell:active .cm-task-list-checkbox-visual {
+  filter: none;
+  transform: translateY(0.5px) scale(0.78, 0.72);
+  transition-duration: 70ms;
+}
+
+.cm-task-list-checkbox:focus-visible + .cm-task-list-checkbox-visual {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: 0.34em;
+}
+
+.cm-task-list-checkbox:checked + .cm-task-list-checkbox-visual,
+.cm-task-list-checkbox[data-task="x"] + .cm-task-list-checkbox-visual {
+  color: var(--accent);
+}
+
+.cm-task-list-checkbox:checked + .cm-task-list-checkbox-visual .cm-task-list-checkbox-face,
+.cm-task-list-checkbox[data-task="x"] + .cm-task-list-checkbox-visual .cm-task-list-checkbox-face {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.cm-task-list-checkbox:checked + .cm-task-list-checkbox-visual .cm-task-list-checkbox-check,
+.cm-task-list-checkbox[data-task="x"] + .cm-task-list-checkbox-visual .cm-task-list-checkbox-check {
+  opacity: 1;
+  stroke-dashoffset: 0;
+  transform: scale(1);
+}
+
+.cm-task-list-checkbox-shell[data-transition="checking"] .cm-task-list-checkbox-visual {
+  animation: cm-task-checkbox-seal 360ms cubic-bezier(0.2, 0.9, 0.25, 1.15) both;
+}
+
+.cm-task-list-checkbox-shell[data-transition="checking"] .cm-task-list-checkbox-halo {
+  animation: cm-task-checkbox-halo 440ms 55ms ease-out both;
+}
+
+.cm-task-list-checkbox-shell[data-transition="checking"] .cm-task-list-checkbox-check {
+  animation: cm-task-checkbox-check-draw 240ms 80ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.cm-task-list-checkbox-shell[data-transition="unchecking"] .cm-task-list-checkbox-visual {
+  animation: cm-task-checkbox-release 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.cm-task-list-checkbox-shell[data-transition="unchecking"] .cm-task-list-checkbox-face {
+  animation: cm-task-checkbox-face-release 220ms ease-out both;
+}
+
+.cm-task-list-checkbox-shell[data-transition="unchecking"] .cm-task-list-checkbox-check {
+  animation: cm-task-checkbox-check-undraw 170ms ease-in both;
+}
+
+.cm-formatting-task-marker {
+  color: var(--editor-formatting-mark) !important;
+}
+
+.cm-task-list-content-checked {
+  color: color-mix(in srgb, currentcolor 68%, transparent);
+  background-image: linear-gradient(currentcolor, currentcolor);
+  background-position: left 55%;
+  background-repeat: no-repeat;
+  background-size: 100% 1.5px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+.cm-task-list-content-checking {
+  animation: cm-task-content-strike 190ms 45ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+:is(
+  .cm-task-list-content-checked .cm-formatting-inline-code,
+  .cm-formatting-inline-code:has(.cm-task-list-content-checked),
+  .cm-task-list-content-checked.cm-formatting-inline-code
+) {
+  background-image: linear-gradient(currentcolor, currentcolor);
+  background-position: left 55%;
+  background-repeat: no-repeat;
+  background-size: 100% 1.5px;
+}
+
+:is(
+  .cm-task-list-content-checking .cm-formatting-inline-code,
+  .cm-formatting-inline-code:has(.cm-task-list-content-checking),
+  .cm-task-list-content-checking.cm-formatting-inline-code
+) {
+  animation: cm-task-inline-code-strike 190ms 45ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes cm-task-checkbox-seal {
+  0% {
+    transform: scale(1.08);
+  }
+
+  42% {
+    transform: scale(0.76, 0.72);
+  }
+
+  74% {
+    transform: scale(1.07, 1.04);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes cm-task-checkbox-halo {
+  0% {
+    opacity: 0.42;
+    transform: scale(0.84);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.68);
+  }
+}
+
+@keyframes cm-task-checkbox-check-draw {
+  0% {
+    stroke-dashoffset: 1;
+    transform: scale(0.82);
+  }
+
+  100% {
+    stroke-dashoffset: 0;
+    transform: scale(1);
+  }
+}
+
+@keyframes cm-task-checkbox-release {
+  0% {
+    transform: scale(1);
+  }
+
+  42% {
+    transform: scale(0.8, 0.75);
+  }
+
+  76% {
+    transform: scale(1.04, 1.02);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes cm-task-checkbox-face-release {
+  0% {
+    border-color: var(--accent);
+    background: var(--accent);
+  }
+
+  100% {
+    border-color: var(--border-strong);
+    background: var(--surface-2);
+  }
+}
+
+@keyframes cm-task-checkbox-check-undraw {
+  0% {
+    opacity: 1;
+    stroke-dashoffset: 0;
+    transform: scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    stroke-dashoffset: 1;
+    transform: scale(0.76);
+  }
+}
+
+@keyframes cm-task-content-strike {
+  0% {
+    background-size: 0 1.5px;
+  }
+
+  100% {
+    background-size: 100% 1.5px;
+  }
+}
+
+@keyframes cm-task-inline-code-strike {
+  0% {
+    background-size: 0 1.5px;
+  }
+
+  100% {
+    background-size: 100% 1.5px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cm-task-list-checkbox-visual,
+  .cm-task-list-checkbox-face,
+  .cm-task-list-checkbox-halo,
+  .cm-task-list-checkbox-check,
+  .cm-task-list-content-checked,
+  .cm-task-list-content-checking .cm-formatting-inline-code,
+  .cm-formatting-inline-code:has(.cm-task-list-content-checking) {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .cm-task-list-checkbox-shell:hover .cm-task-list-checkbox-visual,
+  .cm-task-list-checkbox-shell:active .cm-task-list-checkbox-visual {
+    transform: none;
+  }
+}

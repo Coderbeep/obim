@@ -1,0 +1,10 @@
+allowBuilds:
+  electron-winstaller: true
+  esbuild: true
+patchedDependencies:
+  codemirror-markdown-tables@1.0.1: patches/codemirror-markdown-tables@1.0.1.patch
+# Packaging tools pin these vulnerable versions; keep replacements within the same major.
+overrides:
+  fast-uri@3.1.6: ^3.1.8
+  js-yaml@4.3.1: ^4.3.2
+  undici@6.28.0: ^6.29.0

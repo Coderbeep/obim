@@ -1,0 +1,83 @@
+:root {
+  --motion-panel-duration: 180ms;
+  --motion-panel-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-fade-in-duration: 140ms;
+  --motion-fade-out-duration: 100ms;
+  --motion-press-duration: 100ms;
+  --motion-panel-offset: 4px;
+}
+
+/* Shared by Radix surfaces; presence waits for the closing animation. */
+.motion-overlay {
+  animation-duration: var(--motion-panel-duration);
+  animation-timing-function: var(--motion-panel-ease);
+}
+
+.motion-overlay[data-state="closed"] {
+  animation-duration: var(--motion-fade-out-duration);
+}
+
+.motion-panel-toggle {
+  transition:
+    background-color var(--motion-press-duration) ease,
+    color var(--motion-press-duration) ease,
+    scale var(--motion-press-duration) var(--motion-panel-ease);
+}
+
+.motion-panel-toggle:active {
+  scale: 0.98;
+}
+
+.motion-disclosure {
+  overflow: hidden;
+}
+
+.motion-disclosure[data-state="open"] {
+  animation: motion-disclosure-open var(--motion-panel-duration) var(--motion-panel-ease);
+}
+
+.motion-disclosure[data-state="closed"] {
+  pointer-events: none;
+  animation: motion-disclosure-close var(--motion-panel-duration) var(--motion-panel-ease);
+}
+
+@keyframes motion-disclosure-open {
+  from {
+    height: 0;
+    opacity: 0;
+  }
+  to {
+    height: var(--radix-collapsible-content-height);
+    opacity: 1;
+  }
+}
+
+@keyframes motion-disclosure-close {
+  from {
+    height: var(--radix-collapsible-content-height);
+    opacity: 1;
+  }
+  to {
+    height: 0;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-panel-duration: 0ms;
+    --motion-fade-in-duration: 0ms;
+    --motion-fade-out-duration: 0ms;
+    --motion-press-duration: 0ms;
+    --motion-panel-offset: 0px;
+  }
+
+  .motion-overlay,
+  .motion-disclosure[data-state] {
+    animation: none;
+  }
+
+  .motion-panel-toggle:active {
+    scale: 1;
+  }
+}

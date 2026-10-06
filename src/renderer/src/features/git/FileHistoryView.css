@@ -1,0 +1,400 @@
+.file-history-view {
+  container-type: inline-size;
+  position: relative;
+  display: flex;
+  min-width: 0;
+  height: 100%;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--surface-1);
+  color: var(--foreground);
+}
+
+.file-history-toolbar {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 7px 2px 7px 10px;
+  border-bottom: 1px solid var(--border-default);
+  background: var(--surface-2);
+}
+
+.file-history-refresh {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  border-radius: 0;
+}
+
+.file-history-toolbar-title {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.file-history-toolbar-title > div {
+  min-width: 0;
+}
+
+.file-history-toolbar-title strong,
+.file-history-toolbar-title span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-history-toolbar-title strong {
+  font-size: var(--text-ui-body);
+  line-height: var(--text-ui-body--line-height);
+}
+
+.file-history-toolbar-title span {
+  color: var(--muted-foreground);
+  font-size: var(--text-ui-meta);
+  line-height: var(--text-ui-meta--line-height);
+}
+
+.file-history-content {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  grid-template-columns: minmax(210px, 260px) minmax(0, 1fr);
+}
+
+.file-history-section-toolbar {
+  box-sizing: border-box;
+  height: 50px;
+  min-height: 50px;
+}
+
+.file-history-timeline {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  border-right: 1px solid var(--border-default);
+  background: var(--surface-2);
+}
+
+.file-history-timeline-heading {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-2);
+}
+
+.file-history-timeline-heading strong,
+.file-history-timeline-heading span {
+  display: block;
+}
+
+.file-history-timeline-heading strong {
+  font-size: var(--text-ui-control);
+  letter-spacing: 0.06em;
+  line-height: var(--text-ui-control--line-height);
+  text-transform: uppercase;
+}
+
+.file-history-timeline-heading span {
+  margin-top: 2px;
+  color: var(--muted-foreground);
+  font-size: var(--text-ui-meta);
+  line-height: var(--text-ui-meta--line-height);
+}
+
+.file-history-revisions {
+  position: relative;
+  padding: 5px 0;
+}
+
+.file-history-revisions::before {
+  position: absolute;
+  top: 20px;
+  bottom: 20px;
+  left: 20px;
+  width: 1px;
+  background: var(--border-default);
+  content: "";
+}
+
+.file-history-revision {
+  position: relative;
+  display: grid;
+  width: 100%;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 7px;
+  padding: 8px 12px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.file-history-revision:hover {
+  background: var(--surface-hover);
+}
+
+.file-history-revision[aria-selected="true"] {
+  background: var(--surface-selected);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.file-history-revision-dot {
+  z-index: 1;
+  width: 7px;
+  height: 7px;
+  margin: 5px 0 0 5px;
+  border: 2px solid var(--surface-2);
+  border-radius: 999px;
+  background: var(--text-tertiary);
+  box-shadow: 0 0 0 1px var(--text-tertiary);
+}
+
+.file-history-revision[aria-selected="true"] .file-history-revision-dot {
+  border-color: var(--surface-selected);
+  background: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.file-history-revision-content,
+.file-history-revision-content strong,
+.file-history-revision-content span {
+  display: block;
+  min-width: 0;
+}
+
+.file-history-revision-content strong {
+  overflow: hidden;
+  font-size: var(--text-ui-body);
+  line-height: var(--text-ui-body--line-height);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-history-revision-content span {
+  margin-top: 2px;
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: var(--text-ui-meta);
+  line-height: var(--text-ui-meta--line-height);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-history-revision-content .file-history-revision-kind {
+  color: var(--accent);
+}
+
+.file-history-load-older {
+  width: calc(100% - 16px);
+  margin: 4px 8px 10px;
+}
+
+.file-history-inspector {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  background: var(--surface-1);
+}
+
+.file-history-inspector-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--border-default);
+  background: var(--surface-2);
+}
+
+.file-history-selected-title {
+  min-width: 0;
+  flex: 1;
+}
+
+.file-history-selected-title strong,
+.file-history-selected-title span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-history-selected-title strong {
+  font-size: var(--text-ui-body);
+  line-height: var(--text-ui-body--line-height);
+}
+
+.file-history-selected-title span {
+  margin-top: 2px;
+  color: var(--muted-foreground);
+  font-size: var(--text-ui-meta);
+  line-height: var(--text-ui-meta--line-height);
+}
+
+.file-history-inspection-body {
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+  padding: var(--space-3);
+  user-select: text;
+}
+
+.file-history-document {
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-default);
+  background: var(--surface-1);
+  color: var(--foreground);
+  font-family: var(--font-mono);
+  font-size: var(--text-ui-meta);
+  line-height: var(--text-ui-meta--line-height);
+}
+
+.file-history-comparison {
+  display: grid;
+  min-width: 0;
+  min-height: 100%;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.file-history-comparison > section {
+  display: grid;
+  min-width: 0;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 5px;
+}
+
+.file-history-comparison > section > strong {
+  color: var(--muted-foreground);
+  font-size: var(--text-ui-meta);
+  line-height: var(--text-ui-meta--line-height);
+}
+
+.file-history-comparison-state {
+  display: flex;
+  min-height: 10rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-default);
+  color: var(--muted-foreground);
+  font-size: var(--text-ui-meta);
+}
+
+.file-history-document {
+  min-height: 100%;
+  padding: 14px;
+  overflow-wrap: break-word;
+  word-break: normal;
+  white-space: pre-wrap;
+}
+
+.file-history-state,
+.file-history-inspection-state {
+  display: flex;
+  min-height: 14rem;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 5px;
+  padding: var(--space-5);
+  color: var(--muted-foreground);
+  text-align: center;
+}
+
+.file-history-state {
+  flex: 1;
+}
+
+.file-history-state strong,
+.file-history-inspection-state strong {
+  color: var(--foreground);
+  font-size: var(--text-ui-body);
+  line-height: var(--text-ui-body--line-height);
+}
+
+.file-history-state span,
+.file-history-inspection-state span,
+.file-history-inspection-state {
+  font-size: var(--text-ui-meta);
+  line-height: var(--text-ui-meta--line-height);
+}
+
+.file-history-feedback {
+  position: absolute;
+  z-index: 3;
+  right: 12px;
+  bottom: 12px;
+  max-width: min(28rem, calc(100% - 24px));
+  margin: 0;
+  padding: 9px 11px;
+  border: 1px solid var(--border-default);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-2);
+  color: var(--muted-foreground);
+  font-size: var(--text-ui-control);
+  line-height: var(--text-ui-control--line-height);
+}
+
+.file-history-feedback[data-kind="error"] {
+  color: var(--status-danger);
+}
+
+@container (max-width: 620px) {
+  .file-history-content {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .file-history-timeline {
+    max-height: 190px;
+    border-right: 0;
+    border-bottom: 1px solid var(--border-default);
+  }
+
+  .file-history-revisions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .file-history-revisions::before,
+  .file-history-revision-dot,
+  .file-history-revision-content .file-history-revision-kind {
+    display: none;
+  }
+
+  .file-history-revision {
+    display: block;
+    min-width: 0;
+    padding: 8px;
+  }
+
+  .file-history-inspector-toolbar {
+    flex-wrap: wrap;
+  }
+
+  .file-history-selected-title {
+    flex-basis: calc(100% - 6rem);
+  }
+
+  .file-history-comparison {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@container (max-width: 390px) {
+  .file-history-revisions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

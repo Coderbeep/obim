@@ -1,0 +1,267 @@
+.task-agenda-content {
+  padding: 8px;
+}
+.task-agenda-heading {
+  margin: 0 2px 12px;
+}
+.task-agenda-group {
+  margin-bottom: 16px;
+}
+.task-agenda-group h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 2px 8px;
+}
+.task-agenda-group h3 span {
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.task-agenda-group[aria-label="Overdue"] h3 {
+  color: var(--danger);
+}
+.task-agenda-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.task-agenda-row {
+  margin-bottom: 6px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-card);
+  background: var(--surface-3);
+  transition:
+    background-color 40ms,
+    border-color 40ms;
+}
+.task-agenda-row:hover {
+  border-color: var(--border-strong);
+}
+.task-agenda-row-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 24px;
+  align-items: start;
+  gap: 8px;
+}
+.task-agenda-open {
+  min-width: 0;
+  padding: 0;
+  text-align: left;
+  border-radius: var(--radius-sm);
+}
+.task-agenda-open:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.task-agenda-task-title {
+  overflow-wrap: anywhere;
+}
+.task-agenda-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 4px;
+  margin-top: 4px;
+}
+.task-agenda-project,
+.task-agenda-chip {
+  display: inline-flex;
+  min-height: 20px;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  border-radius: var(--radius-control);
+  font-size: var(--text-ui-meta);
+  font-weight: 550;
+}
+.task-agenda-project {
+  border: 1px solid color-mix(in srgb, var(--task-agenda-project-color) 24%, transparent);
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--task-agenda-project-color) 13%, transparent);
+}
+.task-agenda-stage {
+  display: inline-flex;
+  min-height: 20px;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-secondary);
+  font-size: var(--text-ui-meta);
+  font-weight: 550;
+}
+.task-agenda-stage-dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--task-agenda-stage-color);
+}
+.task-agenda-chip {
+  color: var(--text-secondary);
+  background: var(--chip-neutral);
+}
+.task-agenda-more {
+  margin-left: 0;
+}
+.task-agenda-empty,
+.task-agenda-error {
+  margin: 8px 2px;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.task-agenda-error {
+  color: var(--danger);
+}
+.task-agenda-error button {
+  display: block;
+}
+.task-agenda-link {
+  color: inherit;
+  font-size: inherit;
+}
+@media (prefers-reduced-motion: reduce) {
+  .task-agenda-row {
+    transition: none;
+  }
+}
+@media (hover: none) {
+  .task-agenda-note {
+    opacity: 1;
+  }
+}
+
+/* Reversible Task Board sidebar experiment; other inspectors keep their styling. */
+.right-sidebar-inner:has(.task-board-inspector) {
+  border-color: transparent;
+  background: transparent;
+}
+
+.task-board-inspector {
+  height: 100%;
+  min-height: 0;
+  padding: 4px 6px 6px;
+}
+
+.task-board-inspector [data-widget-pane] {
+  border-radius: 14px;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--border-default) 55%, transparent);
+}
+
+.task-board-inspector [data-widget-pane] > div > div:has(> [role="tablist"]) {
+  height: 42px;
+  padding: 7px 9px 3px;
+  border-bottom: 0;
+  background: transparent;
+}
+
+.task-board-inspector [role="tablist"] {
+  height: 30px;
+  gap: 4px;
+}
+
+.task-board-inspector [data-widget-tab] {
+  width: auto;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+}
+
+.task-board-inspector [data-widget-tab]:has([aria-selected="true"]) {
+  background: color-mix(in srgb, var(--text-primary) 5%, transparent);
+}
+
+.task-board-inspector [role="tab"] {
+  gap: 7px;
+  padding-inline: 8px;
+  border-radius: 8px;
+  color: var(--text-secondary);
+}
+
+.task-board-inspector [role="tab"][aria-selected="true"] {
+  color: var(--text-primary);
+}
+
+.task-board-inspector [role="tab"][aria-selected="true"]::after {
+  content: attr(aria-label);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-board-inspector [data-widget-field-separator] {
+  flex-basis: 12px;
+  height: 12px;
+  background: transparent;
+}
+
+.task-board-inspector [data-widget-field-separator][data-drop-active="valid"] {
+  flex-basis: var(--dnd-split-size);
+  height: var(--dnd-split-size);
+}
+
+.task-board-inspector [data-widget-field-separator]:not([data-drop-active="valid"])::before {
+  left: calc(50% - 14px);
+  right: auto;
+  width: 28px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--border-subtle);
+}
+
+.task-board-inspector [data-widget-field-separator]:hover::before,
+.task-board-inspector [data-widget-field-separator]:focus-visible::before {
+  background: var(--border-strong);
+}
+
+.task-board-inspector .task-agenda-content {
+  padding: 4px 10px 10px;
+  scrollbar-width: thin;
+}
+
+/* The active tab now supplies the visible title, as well as the panel label. */
+.task-board-inspector .task-agenda-heading {
+  display: none;
+}
+
+.task-board-inspector .task-agenda-group {
+  margin-bottom: 12px;
+}
+
+.task-board-inspector .task-agenda-group h3 {
+  justify-content: space-between;
+  margin: 8px 4px 7px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.task-board-inspector .task-agenda-group h3 span {
+  min-width: 20px;
+  text-align: center;
+  font-size: 11px;
+  line-height: 20px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--text-primary) 4%, transparent);
+}
+
+.task-board-inspector .task-agenda-group[aria-label="Overdue"]:has(.task-agenda-row) h3 {
+  color: var(--danger);
+}
+
+.task-board-inspector .task-agenda-row {
+  padding: 10px 9px;
+  border-radius: 11px;
+}
+
+.task-board-inspector .task-agenda-row-main {
+  gap: 6px;
+}
+
+.task-board-inspector .task-agenda-meta {
+  font-size: 11px;
+  column-gap: 7px;
+}

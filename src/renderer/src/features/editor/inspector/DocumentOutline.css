@@ -1,0 +1,166 @@
+.outline-tree-children {
+  --outline-tree-connector: color-mix(in srgb, var(--border-strong) 62%, var(--surface-1));
+  --outline-tree-elbow-height: 0.875rem;
+  --outline-tree-elbow-radius: 0.25rem;
+  --outline-tree-indent: 0.75rem;
+
+  margin-left: var(--outline-tree-indent);
+  padding-left: var(--outline-tree-indent);
+}
+
+.outline-tree-children > .outline-tree-node {
+  --outline-tree-target-offset: 1.5rem;
+
+  position: relative;
+}
+
+.outline-tree-children > .outline-tree-node-branch {
+  --outline-tree-target-offset: 0.375rem;
+}
+
+.outline-tree-children > .outline-tree-node::before {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  bottom: 0;
+  left: calc(-1 * var(--outline-tree-indent));
+  width: 1px;
+  background: var(--outline-tree-connector);
+  content: "";
+  pointer-events: none;
+}
+
+.outline-tree-children > .outline-tree-node:last-child::before {
+  bottom: auto;
+  height: calc(var(--outline-tree-elbow-height) - var(--outline-tree-elbow-radius));
+}
+
+.outline-tree-children > .outline-tree-node::after {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  left: calc(-1 * var(--outline-tree-indent));
+  width: calc(var(--outline-tree-indent) + var(--outline-tree-target-offset));
+  height: var(--outline-tree-elbow-height);
+  border-bottom: 1px solid var(--outline-tree-connector);
+  border-left: 1px solid var(--outline-tree-connector);
+  border-bottom-left-radius: var(--outline-tree-elbow-radius);
+  content: "";
+  pointer-events: none;
+}
+
+.outline-heading-level {
+  --outline-heading-color: var(--editor-heading-1);
+
+  color: var(--outline-heading-color);
+  background: color-mix(in srgb, var(--outline-heading-color) 7%, transparent);
+  border-color: color-mix(in srgb, var(--outline-heading-color) 38%, var(--border-default));
+}
+
+.outline-heading-level[data-level="2"] {
+  --outline-heading-color: var(--editor-heading-2);
+}
+
+.outline-heading-level[data-level="3"] {
+  --outline-heading-color: var(--editor-heading-3);
+}
+
+.outline-heading-level[data-level="4"] {
+  --outline-heading-color: var(--editor-heading-4);
+}
+
+.outline-heading-level[data-level="5"] {
+  --outline-heading-color: var(--editor-heading-5);
+}
+
+.outline-heading-level[data-level="6"] {
+  --outline-heading-color: var(--editor-heading-6);
+}
+
+.outline-heading-level[data-active="true"] {
+  background: color-mix(in srgb, var(--outline-heading-color) 13%, transparent);
+  border-color: color-mix(in srgb, var(--outline-heading-color) 62%, var(--border-default));
+}
+
+/* Match the shared widget and file-row treatment. */
+.document-outline .outline-row {
+  border-radius: 7px;
+  background: transparent;
+  transition: background-color var(--motion-press-duration) ease;
+}
+
+.document-outline .outline-row:hover {
+  background: var(--surface-hover);
+}
+
+.document-outline .outline-row[data-active="true"] {
+  background: var(--surface-selected);
+}
+
+.document-outline .outline-row button,
+.document-outline .outline-toolbar button {
+  border-radius: 6px;
+  cursor: pointer;
+  background: transparent;
+}
+
+.document-outline .outline-toolbar button:hover:not(:disabled),
+.document-outline .outline-row > button:first-child:hover {
+  background: var(--surface-hover);
+}
+
+.document-outline .outline-toolbar button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.document-outline .outline-row button[aria-current],
+.document-outline .outline-row button[title] {
+  font-size: var(--text-ui-control);
+}
+
+.document-outline .outline-heading-level {
+  border: 0;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-family: var(--font-sans);
+  font-weight: 400;
+}
+
+.document-outline .outline-heading-level[data-active="true"] {
+  color: var(--text-secondary);
+}
+
+.document-outline .outline-tree-children {
+  --outline-tree-connector: var(--border-subtle);
+}
+
+.document-outline .outline-tree-node::after {
+  display: none;
+}
+
+.document-outline .outline-line-number {
+  opacity: 0;
+}
+
+.document-outline .outline-row:hover .outline-line-number,
+.document-outline .outline-row:focus-within .outline-line-number {
+  opacity: 1;
+}
+
+.document-outline .outline-empty {
+  border-radius: 10px;
+  background: var(--surface-inset);
+}
+
+@media (hover: none) {
+  .document-outline .outline-line-number {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .document-outline .outline-row {
+    transition: none;
+  }
+}

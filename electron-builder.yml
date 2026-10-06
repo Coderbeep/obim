@@ -1,0 +1,39 @@
+appId: io.github.coderbeep.obim
+productName: obim
+directories:
+  buildResources: build
+files:
+  - out/**
+  - package.json
+win:
+  executableName: obim
+  icon: build/icons/icon.ico
+nsis:
+  artifactName: ${name}-${version}-setup.${ext}
+  shortcutName: ${productName}
+  uninstallDisplayName: ${productName}
+  createDesktopShortcut: always
+mac:
+  icon: build/icons/icon.icns
+  category: public.app-category.productivity
+  hardenedRuntime: true
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  extendInfo:
+    NSDocumentsFolderUsageDescription: Obim opens and saves the notes in your selected workspace.
+    NSDownloadsFolderUsageDescription: Obim imports the files you choose into your workspace.
+  notarize: true
+dmg:
+  artifactName: ${name}-${version}.${ext}
+linux:
+  maintainer: Coderbeep <77514091+Coderbeep@users.noreply.github.com>
+  icon: build/icons/icon.png
+  target:
+    - AppImage
+    - snap
+    - deb
+  category: Utility
+appImage:
+  artifactName: ${name}-${version}.${ext}
+npmRebuild: false
+publish: null

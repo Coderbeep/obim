@@ -1,0 +1,73 @@
+.note-properties {
+  min-width: 0;
+  padding: 0 2px;
+}
+.note-properties dl {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.note-property-row {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-2);
+  font-size: var(--text-ui-body);
+  line-height: var(--text-ui-body--line-height);
+}
+.note-property-row dt {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 20px;
+  color: var(--text-secondary);
+}
+.note-property-row dt svg {
+  flex: none;
+}
+.note-property-row dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.note-property-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+}
+.note-property-tag {
+  max-width: 100%;
+}
+.note-property-tag > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.note-property-tag button {
+  flex: none;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+.note-property-tag button:hover {
+  background: var(--surface-hover);
+}
+.note-property-tag button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+}
+.note-property-add {
+  width: 22px;
+  padding: 0;
+}
+.note-property-status {
+  max-width: 100%;
+  height: auto;
+  min-height: 20px;
+  padding: 0 5px;
+  margin-left: -5px;
+  white-space: normal;
+  text-align: left;
+  justify-content: start;
+  color: var(--foreground);
+  font-weight: 500;
+}

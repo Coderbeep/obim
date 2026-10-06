@@ -1,0 +1,49 @@
+.color-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.color-swatch-option {
+  width: 24px;
+  height: 24px;
+  padding: 4px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.color-swatch-option:hover,
+.color-swatch-option[aria-pressed="true"] {
+  border-color: var(--border-strong);
+  background: var(--surface-hover);
+}
+
+.color-swatch-option:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.color-swatch-option:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.color-swatch {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 4px;
+}
+
+.color-swatch[data-empty] {
+  border: 1px solid var(--border-strong);
+  background-image: linear-gradient(
+    135deg,
+    transparent 43%,
+    var(--text-secondary) 44%,
+    var(--text-secondary) 56%,
+    transparent 57%
+  );
+}

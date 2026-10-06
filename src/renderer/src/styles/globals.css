@@ -1,0 +1,580 @@
+@import "tw-animate-css";
+
+@theme {
+  --color-amber-*: initial;
+  --color-lime-*: initial;
+  --color-emerald-*: initial;
+  --color-teal-*: initial;
+  --color-sky-*: initial;
+  --color-indigo-*: initial;
+  --color-violet-*: initial;
+  --color-fuchsia-*: initial;
+  --color-pink-*: initial;
+  --color-rose-*: initial;
+  --color-slate-*: initial;
+  --color-zinc-*: initial;
+  --color-neutral-*: initial;
+  --color-stone-*: initial;
+
+  --color-black: #100f0f;
+  --color-paper: #fffcf0;
+  --color-base-50: rgb(242, 240, 229);
+  --color-base-100: rgb(230, 228, 217);
+  --color-base-150: rgb(218, 216, 206);
+  --color-base-200: rgb(206, 205, 195);
+  --color-base-300: rgb(183, 181, 172);
+  --color-base-400: rgb(159, 157, 150);
+  --color-base-500: #878580;
+  --color-base-600: #6f6e69;
+  --color-base-700: #4b4e56;
+  --color-base-800: #42454c;
+  --color-base-850: #3a3c42;
+  --color-base-900: #32343a;
+  --color-base-950: #282a2e;
+  --color-red-50: #ffe1d5;
+  --color-red-100: #ffcabb;
+  --color-red-150: #fdb2a2;
+  --color-red-200: #f89a8a;
+  --color-red-300: #e8705f;
+  --color-red-400: #d14d41;
+  --color-red-500: #c03e35;
+  --color-red-600: #af3029;
+  --color-red-700: #942822;
+  --color-red-800: #6c201c;
+  --color-red-850: #551b18;
+  --color-red-900: #3e1715;
+  --color-red-950: #261312;
+  --color-orange-50: #ffe7ce;
+  --color-orange-100: #fed3af;
+  --color-orange-150: #fcc192;
+  --color-orange-200: #f9ae77;
+  --color-orange-300: #ec8b49;
+  --color-orange-400: #da702c;
+  --color-orange-500: #cb6120;
+  --color-orange-600: #bc5215;
+  --color-orange-700: #9d4310;
+  --color-orange-800: #71320d;
+  --color-orange-850: #59290d;
+  --color-orange-900: #40200d;
+  --color-orange-950: #27180e;
+  --color-yellow-50: #faeec6;
+  --color-yellow-100: #f6e2a0;
+  --color-yellow-150: #f1d67e;
+  --color-yellow-200: #eccb60;
+  --color-yellow-300: #dfb431;
+  --color-yellow-400: #d0a215;
+  --color-yellow-500: #be9207;
+  --color-yellow-600: #ad8301;
+  --color-yellow-700: #8e6b01;
+  --color-yellow-800: #664d01;
+  --color-yellow-850: #503d02;
+  --color-yellow-900: #3a2d04;
+  --color-yellow-950: #241e08;
+  --color-green-50: #edeecf;
+  --color-green-100: #dde2b2;
+  --color-green-150: #cdd597;
+  --color-green-200: #bec97e;
+  --color-green-300: #a0af54;
+  --color-green-400: #879a39;
+  --color-green-500: #768d21;
+  --color-green-600: #66800b;
+  --color-green-700: #536907;
+  --color-green-800: #3d4c07;
+  --color-green-850: #313d07;
+  --color-green-900: #252d09;
+  --color-green-950: #1a1e0c;
+  --color-cyan-50: #ddf1e4;
+  --color-cyan-100: #bfe8d9;
+  --color-cyan-150: #a2dece;
+  --color-cyan-200: #87d3c3;
+  --color-cyan-300: #5abdac;
+  --color-cyan-400: #3aa99f;
+  --color-cyan-500: #2f968d;
+  --color-cyan-600: #24837b;
+  --color-cyan-700: #1c6c66;
+  --color-cyan-800: #164f4a;
+  --color-cyan-850: #143f3c;
+  --color-cyan-900: #122f2c;
+  --color-cyan-950: #101f1d;
+  --color-blue-50: #e1eceb;
+  --color-blue-100: #c6dde8;
+  --color-blue-150: #abcfe2;
+  --color-blue-200: #92bfdb;
+  --color-blue-300: #66a0c8;
+  --color-blue-400: #4385be;
+  --color-blue-500: #3171b2;
+  --color-blue-600: #205ea6;
+  --color-blue-700: #1a4f8c;
+  --color-blue-800: #163b66;
+  --color-blue-850: #133051;
+  --color-blue-900: #12253b;
+  --color-blue-950: #101a24;
+  --color-purple-50: #f0eaec;
+  --color-purple-100: #e2d9e9;
+  --color-purple-150: #d3cae6;
+  --color-purple-200: #c4b9e0;
+  --color-purple-300: #a699d0;
+  --color-purple-400: #8b7ec8;
+  --color-purple-500: #735eb5;
+  --color-purple-600: #5e409d;
+  --color-purple-700: #4f3685;
+  --color-purple-800: #3c2a62;
+  --color-purple-850: #31234e;
+  --color-purple-900: #261c39;
+  --color-purple-950: #1a1623;
+  --color-magenta-50: #fee4e5;
+  --color-magenta-100: #fccfda;
+  --color-magenta-150: #f9b9cf;
+  --color-magenta-200: #f4a4c2;
+  --color-magenta-300: #e47da8;
+  --color-magenta-400: #ce5d97;
+  --color-magenta-500: #b74583;
+  --color-magenta-600: #a02f6f;
+  --color-magenta-700: #87285e;
+  --color-magenta-800: #641f46;
+  --color-magenta-850: #4f1b39;
+  --color-magenta-900: #39172b;
+  --color-magenta-950: #24131d;
+  --text-ui-heading: 1rem;
+  --text-ui-heading--line-height: 1.25;
+  --text-ui-section: 0.875rem;
+  --text-ui-section--line-height: 1.2;
+  --text-ui-item: 0.8125rem;
+  --text-ui-item--line-height: 1.28;
+  --text-ui-body: 0.8125rem;
+  --text-ui-body--line-height: 1.42;
+  --text-ui-control: 0.75rem;
+  --text-ui-control--line-height: 1rem;
+  --text-ui-meta: 0.6875rem;
+  --text-ui-meta--line-height: 1rem;
+}
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Styling architecture:
+ * - Raw palette tokens stay in @theme or the primitive --neutral-* ramp.
+ * - Shared semantic tokens live in :root/.dark as --surface-*, --text-*,
+ *   --border-*, --chip-*, --status-*, and --shadow-* roles.
+ * - shadcn/ui tokens remain the public contract and map to the semantic layer.
+ * SCSS and component classes should consume semantic or shadcn tokens instead of
+ * hardcoding colors, radii, borders, or shadows.
+ */
+
+:root {
+  --reference-yellow: var(--color-yellow-400);
+  --reference-green: var(--color-green-400);
+  --reference-blue: var(--color-blue-400);
+  --reference-purple: var(--color-purple-400);
+  --reference-red: var(--color-red-400);
+
+  color-scheme: light;
+  --font-sans:
+    "Lato", "Segoe UI Variable Text", "Segoe UI", "Noto Sans", "Liberation Sans", sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-mono: "Cascadia Mono", "Cascadia Code", "Menlo", "Consolas", "Liberation Mono", "Courier New", monospace;
+  --radius: 0.5rem;
+
+  /* Neutral canvas, white working surfaces, and gray selection fills. */
+  --neutral-0: #ffffff;
+  --neutral-50: #f6f6f5;
+  --neutral-100: #f2f2f0;
+  --neutral-150: #e8dfe1;
+  --neutral-200: #d9cccf;
+  --neutral-300: #c2b3b6;
+  --neutral-400: #98878b;
+  --neutral-500: #806d71;
+  --neutral-600: #69575b;
+  --neutral-700: #493a3e;
+  --neutral-900: #211a1c;
+
+  /* Surface roles: window < panel < content < card < floating.
+   * Inset is a recessed region, not another elevation level.
+   * Legacy numbered tokens remain aliases for existing component consumers. */
+  --surface-canvas: #e9e9e6;
+  --surface-panel: #f4f4f1;
+  --surface-inset: #eeeeeb;
+  --surface-content: #fdfdfb;
+  --surface-card: #ffffff;
+  --surface-floating: #ffffff;
+  --surface-1: var(--surface-content);
+  --surface-2: var(--surface-inset);
+  --surface-3: var(--surface-card);
+  --surface-raised: var(--surface-floating);
+  --surface-overlay: rgb(24 20 17 / 0.52);
+  --surface-hover: color-mix(in srgb, var(--text-primary) 7.5%, transparent);
+  --surface-pressed: color-mix(in srgb, var(--text-primary) 12%, transparent);
+  --surface-selected: #e8e8e6;
+  --surface-selected-subtle: #f1f1ef;
+  --selection-track: color-mix(in srgb, var(--surface-selected-subtle) 50%, var(--surface-1));
+  --selection-selected: var(--surface-selected-subtle);
+  --switcher-track: var(--selection-track);
+  --switcher-selected: var(--selection-selected);
+  --surface-disabled: color-mix(in oklch, var(--surface-1) 88%, var(--text-disabled));
+
+  --border-subtle: #ececea;
+  --border-default: #d8d8d5;
+  --border-strong: #bdbdb8;
+  --border-panel: var(--border-default);
+  --border-selected: var(--border-strong);
+
+  --text-primary: var(--neutral-900);
+  --text-secondary: var(--neutral-600);
+  --text-tertiary: #6e6467;
+  --text-disabled: var(--neutral-300);
+  --text-on-accent: var(--neutral-0);
+  --icon-primary: var(--text-primary);
+  --icon-secondary: var(--text-secondary);
+
+  --accent: oklch(0.55 0.12 20);
+  --accent-hover: oklch(0.5 0.12 20);
+  --accent-muted: color-mix(in oklch, var(--accent) 16%, transparent);
+  --focus-ring: #666666;
+  --danger: #b42332;
+  --warning: oklch(0.5 0.12 65);
+  --success: oklch(0.48 0.11 145);
+  --info: oklch(0.5 0.11 250);
+
+  --chip-neutral: var(--selection-selected);
+  --chip-neutral-hover: var(--surface-selected);
+  --chip-category: color-mix(in oklch, var(--text-secondary) 9%, var(--surface-3));
+  --chip-selected: var(--selection-selected);
+  --chip-status: color-mix(in oklch, var(--info) 13%, var(--surface-3));
+  --chip-warning: color-mix(in oklch, var(--warning) 15%, var(--surface-3));
+  --chip-danger: oklch(0.94 0.04 25);
+  --chip-disabled: var(--surface-disabled);
+
+  /* Three elevation levels; embedded surfaces have no shadow. */
+  --shadow-1: 0 1px 2px rgb(47 39 32 / 0.08), 0 4px 10px rgb(47 39 32 / 0.05);
+  --shadow-2: 0 2px 6px rgb(47 39 32 / 0.12), 0 10px 26px -8px rgb(47 39 32 / 0.24);
+  --shadow-3: 0 6px 16px rgb(47 39 32 / 0.15), 0 22px 52px -14px rgb(47 39 32 / 0.34);
+
+  --opacity-muted: 0.72;
+  --opacity-subtle: 0.42;
+  --opacity-disabled: 0.5;
+  --editor-formatting-mark: color-mix(in oklch, var(--text-secondary) 62%, var(--surface-1));
+
+  --background: var(--surface-1);
+  --foreground: var(--text-primary);
+  --card: var(--surface-3);
+  --card-foreground: var(--text-primary);
+  --popover: var(--surface-raised);
+  --popover-foreground: var(--text-primary);
+  --primary: var(--accent);
+  --primary-foreground: var(--text-on-accent);
+  --secondary: var(--chip-neutral);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--surface-2);
+  --muted-foreground: var(--text-secondary);
+  --accent-foreground: var(--text-on-accent);
+  --destructive: var(--danger);
+  --destructive-foreground: var(--text-on-accent);
+  --border: var(--border-default);
+  --input: var(--border-default);
+  --ring: var(--focus-ring);
+  --chart-1: var(--color-light-bl);
+  --chart-2: var(--color-light-cy);
+  --chart-3: var(--color-light-or);
+  --chart-4: var(--color-light-pu);
+  --chart-5: var(--color-light-gr);
+  --sidebar: var(--surface-1);
+  --sidebar-foreground: var(--text-primary);
+  --sidebar-primary: var(--accent);
+  --sidebar-primary-foreground: var(--text-on-accent);
+  --sidebar-accent: var(--chip-neutral);
+  --sidebar-accent-foreground: var(--text-primary);
+  --sidebar-border: var(--border-subtle);
+  --sidebar-ring: var(--focus-ring);
+
+  --radius-xs: 2px;
+  --radius-control: var(--radius-md);
+  --radius-card: var(--radius-lg);
+  --radius-panel: var(--radius-lg);
+  --radius-overlay: var(--radius-lg);
+  --radius-pill: 999px;
+
+  /* 4px rhythm; 2px is reserved for optical alignment and compact rails. */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --control-height-compact: 1.75rem;
+  --control-height: 2rem;
+  --control-height-large: 2.5rem;
+  --icon-size-small: 0.875rem;
+  --icon-size: 1rem;
+  --shadow-control: 0 1px 1px rgb(0 0 0 / 0.08);
+  --space-app-padding: 0.375rem;
+  --space-panel-gap: var(--space-2);
+  --space-panel-padding: var(--space-3);
+  --space-control-x: var(--space-2);
+  --space-control-y: var(--space-1);
+
+  --editor-accent: var(--info);
+  --editor-caret: var(--text-primary);
+  --editor-link: var(--editor-accent);
+  --editor-link-external: var(--info);
+  --editor-selection: var(--surface-selected);
+  --editor-widget-background: var(--selection-track);
+  --editor-inline-code-background: var(--editor-widget-background);
+  --editor-widget-background-hover: var(--selection-selected);
+  --editor-blockquote-background: var(--selection-track);
+  --editor-table-header: var(--selection-track);
+  --editor-table-border: var(--border-default);
+  --editor-table-border-hover: var(--border-selected);
+  --editor-table-outline: var(--border-strong);
+  --editor-table-menu-background: var(--popover);
+  --editor-table-menu-border: var(--border-subtle);
+  --editor-table-menu-text: var(--popover-foreground);
+  --editor-table-menu-hover-background: var(--selection-track);
+  --editor-table-menu-hover-text: var(--foreground);
+  --editor-heading-1: light-dark(var(--color-red-400), var(--color-red-300));
+  --editor-heading-2: light-dark(var(--color-orange-400), var(--color-orange-300));
+  --editor-heading-3: light-dark(var(--color-yellow-400), var(--color-yellow-300));
+  --editor-heading-4: light-dark(var(--color-green-400), var(--color-green-300));
+  --editor-heading-5: light-dark(var(--color-blue-400), var(--color-blue-300));
+  --editor-heading-6: light-dark(var(--color-purple-400), var(--color-purple-300));
+
+  --syntax-comment: var(--text-tertiary);
+  --syntax-variable: var(--danger);
+  --syntax-number: var(--warning);
+  --syntax-type: var(--warning);
+  --syntax-string: var(--success);
+  --syntax-operator: var(--info);
+  --syntax-function: var(--info);
+  --syntax-keyword: var(--accent);
+  --syntax-punctuation: var(--text-secondary);
+
+  --status-info: var(--info);
+  --status-info-background: color-mix(in oklch, var(--info) 12%, var(--surface-raised));
+  --status-info-border: color-mix(in oklch, var(--info) 34%, var(--surface-raised));
+  --status-warning: var(--warning);
+  --status-warning-background: color-mix(in oklch, var(--warning) 14%, var(--surface-raised));
+  --status-warning-border: color-mix(in oklch, var(--warning) 36%, var(--surface-raised));
+  --status-danger: var(--danger);
+  --status-danger-background: color-mix(in oklch, var(--danger) 12%, var(--surface-raised));
+  --status-danger-border: color-mix(in oklch, var(--danger) 34%, var(--surface-raised));
+  --status-success: var(--success);
+  --status-success-background: color-mix(in oklch, var(--success) 12%, var(--surface-raised));
+  --status-success-border: color-mix(in oklch, var(--success) 34%, var(--surface-raised));
+  --git-file-glyph-size: 1rem;
+  --git-status-marker-width: 1rem;
+  --git-status-marker-font-size: var(--text-ui-control);
+  --git-status-marker-font-weight: 650;
+  --git-status-added: var(--status-success);
+  --git-status-deleted: var(--status-danger);
+  --git-status-modified: var(--status-warning);
+  --git-status-renamed: var(--status-warning);
+  --git-status-untracked: var(--status-success);
+  --task-project-red: light-dark(var(--color-red-400), var(--color-red-300));
+  --task-project-orange: light-dark(var(--color-orange-400), var(--color-orange-300));
+  --task-project-green: light-dark(var(--color-green-400), var(--color-green-300));
+  --task-project-cyan: light-dark(var(--color-cyan-400), var(--color-cyan-300));
+  --task-project-blue: light-dark(var(--color-blue-400), var(--color-blue-300));
+  --task-project-purple: light-dark(var(--color-purple-400), var(--color-purple-300));
+  --task-stage-backlog: var(--text-tertiary);
+  --task-stage-doing: light-dark(var(--color-blue-500), var(--color-blue-300));
+  --task-stage-review: light-dark(var(--color-orange-500), var(--color-orange-300));
+  --task-stage-done: light-dark(var(--color-green-500), var(--color-green-300));
+  --task-priority-high: var(--danger);
+}
+
+/* Neutral charcoal surfaces keep the working area deep and floating UI legible. */
+.dark {
+  --reference-yellow: var(--color-yellow-300);
+  --reference-green: var(--color-green-300);
+  --reference-blue: var(--color-blue-300);
+  --reference-purple: var(--color-purple-300);
+  --reference-red: var(--color-red-300);
+
+  color-scheme: dark;
+  --surface-canvas: #171717;
+  --surface-panel: #232323;
+  --surface-inset: #202020;
+  --surface-content: #1c1c1c;
+  --surface-card: #292929;
+  --surface-floating: #2b2b2b;
+  --surface-1: var(--surface-content);
+  --surface-2: var(--surface-inset);
+  --surface-3: var(--surface-card);
+  --surface-raised: var(--surface-floating);
+  --surface-overlay: rgb(0 0 0 / 0.7);
+  --surface-hover: color-mix(in srgb, var(--text-primary) 6%, transparent);
+  --surface-pressed: color-mix(in srgb, var(--text-primary) 10%, transparent);
+  --surface-selected: #383838;
+  --surface-selected-subtle: #303030;
+  --selection-track: var(--surface-2);
+  --selection-selected: var(--surface-selected-subtle);
+  --switcher-track: var(--selection-track);
+  --switcher-selected: var(--selection-selected);
+  --surface-disabled: color-mix(in oklch, var(--surface-1) 86%, var(--text-disabled));
+
+  --border-subtle: rgb(255 255 255 / 0.07);
+  --border-default: rgb(255 255 255 / 0.13);
+  --border-strong: rgb(255 255 255 / 0.25);
+  --border-panel: var(--border-default);
+  --border-selected: var(--border-strong);
+
+  --text-primary: #f0f0f0;
+  --text-secondary: #bcbcbc;
+  --text-tertiary: #a2a2a2;
+  --text-disabled: #707070;
+  --text-on-accent: #211a1c;
+  --icon-primary: var(--text-primary);
+  --icon-secondary: var(--text-secondary);
+
+  --accent: #d28c8d;
+  --accent-hover: #d98a8b;
+  --accent-muted: color-mix(in oklch, var(--accent) 20%, transparent);
+  --focus-ring: #aaaaaa;
+  --danger: #ef969c;
+  --warning: oklch(0.78 0.12 70);
+  --success: oklch(0.75 0.12 145);
+  --info: oklch(0.75 0.1 250);
+
+  --chip-neutral: var(--selection-selected);
+  --chip-neutral-hover: var(--surface-hover);
+  --chip-category: color-mix(in oklch, var(--text-secondary) 11%, var(--surface-3));
+  --chip-selected: var(--selection-selected);
+  --chip-status: color-mix(in oklch, var(--info) 17%, var(--surface-3));
+  --chip-warning: color-mix(in oklch, var(--warning) 18%, var(--surface-3));
+  --chip-danger: oklch(0.34 0.055 25);
+  --chip-disabled: var(--surface-disabled);
+
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.28), 0 5px 12px rgb(0 0 0 / 0.2);
+  --shadow-2: 0 2px 7px rgb(0 0 0 / 0.38), 0 12px 30px -8px rgb(0 0 0 / 0.58);
+  --shadow-3: 0 7px 18px rgb(0 0 0 / 0.42), 0 24px 58px -14px rgb(0 0 0 / 0.72);
+
+  --opacity-muted: 0.76;
+  --opacity-subtle: 0.48;
+  --opacity-disabled: 0.5;
+  --chart-1: var(--color-dark-bl);
+  --chart-2: var(--color-dark-cy);
+  --chart-3: var(--color-dark-or);
+  --chart-4: var(--color-dark-pu);
+  --chart-5: var(--color-dark-gr);
+  --editor-caret: var(--text-primary);
+  --editor-widget-background-hover: var(--selection-selected);
+  --editor-inline-code-background: color-mix(in srgb, var(--text-primary) 7%, var(--surface-1));
+  --editor-table-outline: var(--border-strong);
+  --status-info-background: color-mix(in oklch, var(--info) 18%, var(--surface-raised));
+  --status-info-border: color-mix(in oklch, var(--info) 38%, var(--surface-raised));
+  --status-warning-background: color-mix(in oklch, var(--warning) 18%, var(--surface-raised));
+  --status-warning-border: color-mix(in oklch, var(--warning) 40%, var(--surface-raised));
+  --status-danger-background: color-mix(in oklch, var(--danger) 18%, var(--surface-raised));
+  --status-danger-border: color-mix(in oklch, var(--danger) 38%, var(--surface-raised));
+  --status-success-background: color-mix(in oklch, var(--success) 18%, var(--surface-raised));
+  --status-success-border: color-mix(in oklch, var(--success) 38%, var(--surface-raised));
+  --task-priority-high: var(--danger);
+}
+
+@theme inline {
+  --color-light-bg: #ffffff;
+  --color-light-bg-2: #f1f3f5;
+  --color-light-tx: #292a2e;
+  --color-light-tx-2: #505258; /* muted text color */
+  --color-light-tx-3: #6b6e76; /* faint text color */
+  --color-light-ui: #f1f3f5;
+  --color-light-ui-2: #e5e7eb;
+  --color-light-ui-3: #d1d5db;
+  --color-dark-bg: var(--color-black);
+  --color-dark-bg-2: var(--color-base-950);
+  --color-dark-tx: #e2e3e4;
+  --color-dark-tx-2: #b7b9be;
+  --color-dark-tx-3: #8c8f97;
+  --color-dark-ui: var(--color-base-900);
+  --color-dark-ui-2: var(--color-base-850);
+  --color-dark-ui-3: var(--color-base-800);
+  --color-light-re: var(--color-red-600);
+  --color-light-or: var(--color-orange-600);
+  --color-light-ye: var(--color-yellow-600);
+  --color-light-gr: var(--color-green-600);
+  --color-light-cy: var(--color-cyan-600);
+  --color-light-bl: var(--color-blue-600);
+  --color-light-pu: var(--color-purple-600);
+  --color-light-ma: var(--color-magenta-600);
+  --color-dark-re: var(--color-red-400);
+  --color-dark-or: var(--color-orange-400);
+  --color-dark-ye: var(--color-yellow-400);
+  --color-dark-gr: var(--color-green-400);
+  --color-dark-cy: var(--color-cyan-400);
+  --color-dark-bl: var(--color-blue-400);
+  --color-dark-pu: var(--color-purple-400);
+  --color-dark-ma: var(--color-magenta-400);
+  --color-light-re-2: var(--color-red-400);
+  --color-light-or-2: var(--color-orange-400);
+  --color-light-ye-2: var(--color-yellow-400);
+  --color-light-gr-2: var(--color-green-400);
+  --color-light-cy-2: var(--color-cyan-400);
+  --color-light-bl-2: var(--color-blue-400);
+  --color-light-pu-2: var(--color-purple-400);
+  --color-light-ma-2: var(--color-magenta-400);
+  --color-dark-re-2: var(--color-red-600);
+  --color-dark-or-2: var(--color-orange-600);
+  --color-dark-ye-2: var(--color-yellow-600);
+  --color-dark-gr-2: var(--color-green-600);
+  --color-dark-cy-2: var(--color-cyan-600);
+  --color-dark-bl-2: var(--color-blue-600);
+  --color-dark-pu-2: var(--color-purple-600);
+  --color-dark-ma-2: var(--color-magenta-600);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: var(--radius);
+  --radius-xl: var(--radius);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  :where(*:not(.cm-editor, .cm-editor *)) {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    line-height: 1.45;
+    letter-spacing: 0;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+}

@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+out/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Local tooling and personal workspace
+.agents/
+.codex
+personal/
+specs/
+docs/
+advisor-plans/
+AGENTS.md
+agents.md
+TASKS.md
+STYLE_GUIDE.md
+STYLEGUIDE
+STYLEGUIDE.md
+
+# macOS Finder metadata
+.DS_Store

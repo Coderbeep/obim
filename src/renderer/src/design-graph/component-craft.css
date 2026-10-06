@@ -1,0 +1,308 @@
+.craft-page {
+  min-height: 100vh;
+  padding: 40px clamp(20px, 4vw, 64px);
+  background: var(--surface-canvas);
+  color: var(--text-primary);
+}
+.craft-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  max-width: 1200px;
+  margin: 0 auto 32px;
+}
+.craft-kicker {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--text-secondary);
+}
+.craft-heading h1 {
+  margin: 10px 0;
+  font-size: 30px;
+  line-height: 1.2;
+  font-weight: 500;
+  letter-spacing: -0.8px;
+}
+.craft-heading p,
+.craft-footnote {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.craft-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  max-width: 1200px;
+  margin: auto;
+}
+.craft-specimen {
+  min-width: 0;
+  background: var(--surface-1);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+.craft-specimen > header {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.craft-specimen > header > span {
+  float: right;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+.craft-specimen h2 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 500;
+}
+.craft-specimen header p {
+  max-width: 430px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.craft-sample {
+  padding: 24px;
+  min-height: 132px;
+}
+.craft-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.craft-caption {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 11px;
+  margin-top: 12px;
+}
+.craft-note.editor-comp {
+  min-height: 0;
+  height: auto;
+  background: transparent;
+}
+.craft-summary {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 0;
+  border-radius: var(--radius-control);
+  padding: 8px;
+  background: var(--surface-2);
+  text-align: left;
+}
+.craft-note dl {
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr);
+  gap: 12px;
+  margin: 12px 8px;
+  font-size: 12px;
+}
+.craft-note dt {
+  color: var(--text-secondary);
+}
+.craft-note dd {
+  overflow-wrap: anywhere;
+}
+.craft-source-list {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  overflow: hidden;
+}
+.craft-detail {
+  padding: 0;
+  gap: 0;
+}
+.craft-detail > header {
+  padding: 20px 48px 16px 24px;
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.craft-detail-body {
+  padding: 24px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.craft-detail-body label {
+  display: block;
+  margin-top: 12px;
+}
+.craft-detail-body input {
+  accent-color: var(--accent);
+}
+.craft-footnote {
+  max-width: 1200px;
+  margin: 24px auto;
+}
+@media (max-width: 760px) {
+  .craft-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .craft-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .craft-sample {
+    padding: 16px;
+  }
+}
+
+.craft-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+.craft-comparison {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.craft-before,
+.craft-sample {
+  padding: 24px;
+  min-width: 0;
+}
+.craft-before {
+  border-right: 1px solid var(--border-subtle);
+}
+.craft-state-label {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  margin-bottom: 22px;
+}
+.craft-sample > .craft-state-label {
+  color: var(--accent);
+}
+.before-segments {
+  display: inline-flex;
+  background: var(--surface-2);
+  border-radius: 6px;
+  padding: 2px;
+  font-size: 12px;
+}
+.before-segments span {
+  padding: 6px 8px;
+}
+.before-segments span:first-child {
+  background: var(--surface-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+}
+.before-segments span:last-child {
+  color: var(--text-disabled);
+}
+.before-chip {
+  border-radius: 999px;
+  background: var(--chip-neutral);
+  padding: 2px 8px;
+  font-size: 11px;
+}
+.before-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 12px;
+  padding: 8px;
+  background: var(--surface-2);
+  border-radius: 6px;
+}
+.before-summary span {
+  color: var(--text-secondary);
+}
+.before-icons {
+  gap: 16px;
+}
+.before-icons > span {
+  padding: 5px;
+  background: var(--surface-selected-subtle);
+  border-radius: 6px;
+}
+.before-composer {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
+  padding: 12px;
+  font-size: 12px;
+  background: var(--surface-3);
+}
+.before-metadata {
+  display: grid;
+  grid-template-columns: 1fr 120px;
+  gap: 4px;
+  margin: 10px 0;
+  padding: 8px;
+  background: var(--surface-2);
+}
+.before-metadata span {
+  border: 1px solid var(--border-default);
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+.before-wide {
+  grid-column: 1/-1;
+}
+.before-composer footer {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 8px;
+  text-align: right;
+}
+.before-composer footer span {
+  display: inline-block;
+  margin-left: 10px;
+  background: var(--accent);
+  color: var(--text-on-accent);
+  padding: 4px 8px;
+  border-radius: 5px;
+}
+.before-sources > div {
+  position: relative;
+  padding: 16px 65px 16px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.before-sources > div:first-child {
+  background: var(--surface-selected-subtle);
+}
+.before-sources strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+}
+.before-sources small {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.before-sources span {
+  position: absolute;
+  right: 12px;
+  top: 24px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.before-detail {
+  padding: 20px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-overlay);
+  font-size: 13px;
+}
+.before-detail p {
+  margin: 12px 0;
+  color: var(--text-secondary);
+}
+.before-detail hr {
+  border: 0;
+  border-top: 1px solid var(--border-subtle);
+}
+@media (max-width: 760px) {
+  .craft-comparison {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .craft-before {
+    border-right: 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+}

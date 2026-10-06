@@ -1,0 +1,93 @@
+.cm-math-widget {
+  cursor: pointer;
+}
+
+.cm-formatting-math-mark {
+  color: var(--editor-formatting-mark) !important;
+  font-style: normal;
+  font-weight: 400;
+}
+
+.cm-math-widget-block {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  contain: layout paint;
+  font-size: 0.9em;
+  user-select: none;
+  -webkit-user-select: none;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-card);
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease;
+
+  &:hover {
+    border-color: color-mix(in srgb, var(--muted-foreground) 45%, transparent);
+    background-color: var(--editor-widget-background);
+  }
+
+  .katex-error {
+    display: block;
+    width: 100%;
+    text-align: center;
+  }
+
+  .katex-display {
+    margin: 0;
+  }
+}
+
+.cm-math-widget-blockquote {
+  position: relative;
+  padding-left: calc(0.9rem + 10px);
+  border: 0;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+
+  &::before {
+    width: 3px;
+  }
+
+  &:hover {
+    background-color: transparent;
+  }
+}
+
+.cm-math-blockquote-marker {
+  color: transparent;
+}
+
+.cm-math-widget-inline {
+  display: inline-block;
+  text-indent: 0;
+  font-size: 0.9em;
+  border-radius: var(--radius-sm);
+  padding: 0 2px;
+  transition: background-color 140ms ease;
+
+  &:hover {
+    background-color: var(--editor-widget-background-hover);
+  }
+}
+
+.cm-math-widget-display-inline {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  text-align: center;
+
+  .katex-display {
+    margin: 0;
+  }
+}
+
+.cm-math-widget-live-preview {
+  cursor: default;
+
+  &:hover {
+    border-color: transparent;
+    background-color: transparent;
+  }
+}

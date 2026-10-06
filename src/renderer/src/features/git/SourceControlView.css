@@ -1,0 +1,496 @@
+@reference "tailwindcss";
+
+.source-control {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  color: var(--text-secondary);
+  background: var(--surface-1);
+}
+
+.source-control-header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+  border-bottom: 1px solid var(--border-default);
+  background: var(--surface-2);
+}
+
+.source-control-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 0 10px;
+  color: var(--text-primary);
+  font-size: var(--text-ui-control);
+  font-weight: 650;
+}
+
+.source-control-refresh {
+  width: 31px;
+  height: 31px;
+  border-left: 1px solid var(--border-subtle);
+  border-radius: 0;
+}
+
+.source-control-refresh[data-refreshing="true"] svg {
+  animation: source-control-refresh-spin 700ms linear infinite;
+}
+
+@keyframes source-control-refresh-spin {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+.source-control-notice,
+.source-control-feedback {
+  margin: 0;
+  padding: 10px;
+  color: var(--text-tertiary);
+  font-size: var(--text-ui-meta);
+  line-height: 1.45;
+}
+
+.source-control-notice {
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--status-warning);
+}
+
+.source-control-reconciliation {
+  display: flex;
+  flex: none;
+  min-height: 48px;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px 7px 10px;
+  border-bottom: 1px solid var(--border-default);
+  background: var(--surface-2);
+}
+
+.source-control-reconciliation > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.source-control-reconciliation strong,
+.source-control-reconciliation span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.source-control-reconciliation strong {
+  color: var(--text-primary);
+  font-size: var(--text-ui-control);
+}
+
+.source-control-reconciliation span {
+  margin-top: 1px;
+  color: var(--text-tertiary);
+  font-size: var(--text-ui-meta);
+}
+
+.source-control-feedback {
+  flex: none;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--surface-2);
+}
+
+.source-control-feedback[data-kind="error"] {
+  color: var(--status-danger);
+}
+
+.source-control-feedback[data-kind="success"] {
+  color: var(--status-success);
+}
+
+.source-control-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 28px 18px;
+  color: var(--text-tertiary);
+  font-size: var(--text-ui-meta);
+  text-align: center;
+}
+
+.source-control-empty strong {
+  color: var(--text-primary);
+  font-size: var(--text-ui-control);
+}
+
+.source-control-section-count {
+  margin-left: auto;
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.source-control-commit-box {
+  display: grid;
+  flex: none;
+  gap: 6px;
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.source-control-conflicts {
+  display: grid;
+  gap: var(--space-1);
+  padding: 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--status-warning);
+  font-size: var(--text-ui-meta);
+}
+
+.source-control-conflicts strong {
+  color: var(--status-danger);
+}
+
+.source-control-conflicts ul {
+  display: grid;
+  gap: 2px;
+  margin: 3px 0 0;
+  padding-left: 17px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+}
+
+.source-control-remote {
+  display: grid;
+  flex: none;
+  gap: 6px;
+  padding: 9px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-2);
+  font-size: var(--text-ui-meta);
+}
+
+.source-control-remote-summary {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-primary);
+}
+
+.source-control-remote-branch {
+  overflow: hidden;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.source-control-remote p {
+  margin: 0;
+  color: var(--text-tertiary);
+  line-height: 1.4;
+}
+
+.source-control-remote p[data-state="behind"],
+.source-control-remote p[data-state="diverged"],
+.source-control-remote p[data-state="branch-missing"],
+.source-control-remote p[data-state="unavailable"] {
+  color: var(--status-warning);
+}
+
+.source-control-remote-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 5px;
+}
+
+.source-control-remote-actions > button {
+  min-width: 0;
+  padding-inline: 8px;
+}
+
+.source-control-controls {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.source-control-controls > .source-control-sections {
+  min-height: 0;
+}
+
+.source-control-commit-input {
+  width: 100%;
+  height: 30px;
+  min-width: 0;
+  padding: 0 9px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  outline: none;
+  background: var(--surface-3);
+  color: var(--text-primary);
+  font-size: var(--text-ui-control);
+}
+
+.source-control-commit-input:hover {
+  border-color: var(--border-strong);
+}
+
+
+.source-control-commit-button {
+  width: 100%;
+}
+
+.source-control-sections {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.source-control-section {
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.source-control-section-heading {
+  display: flex;
+  align-items: center;
+  height: 27px;
+  padding-left: 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.source-control-heading-action {
+  width: 27px;
+  height: 27px;
+  margin-left: 4px;
+  border-left: 1px solid var(--border-subtle);
+  border-radius: 0;
+}
+
+.source-control-section-heading-without-action .source-control-section-count {
+  display: inline-flex;
+  width: var(--git-status-marker-width);
+  flex: 0 0 var(--git-status-marker-width);
+  align-items: center;
+  justify-content: center;
+  margin-inline-end: 5px;
+}
+
+.source-control-change-list {
+  padding: 2px 0 4px;
+}
+
+.source-control-change {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  height: 27px;
+}
+
+.source-control-change:hover,
+.source-control-change:focus-within {
+  background: var(--surface-hover);
+}
+
+.source-control-change-open {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 0 4px 0 9px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text-secondary);
+  text-align: left;
+}
+
+.source-control-change-open > svg {
+  flex: 0 0 var(--git-file-glyph-size);
+  width: var(--git-file-glyph-size);
+  height: var(--git-file-glyph-size);
+}
+
+.source-control-change-open:disabled {
+  cursor: default;
+}
+
+.source-control-change-open:focus-visible {
+  box-shadow: inset 0 0 0 1px var(--focus-ring);
+}
+
+.source-control-change-label {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.source-control-change-name,
+.source-control-change-directory {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.source-control-change-name {
+  flex: 0 1 auto;
+  color: var(--text-primary);
+  font-size: var(--text-ui-control);
+}
+
+.source-control-change-directory {
+  flex: 1 1 auto;
+  color: var(--text-tertiary);
+  font-size: 0.625rem;
+}
+
+.source-control-change-status {
+  display: inline-flex;
+  flex: 0 0 var(--git-status-marker-width);
+  align-self: center;
+  align-items: center;
+  justify-content: center;
+  width: var(--git-status-marker-width);
+  height: var(--git-file-glyph-size);
+  margin-inline-end: 5px;
+  color: var(--git-status-modified);
+  font-family: var(--font-mono);
+  font-size: var(--git-status-marker-font-size);
+  font-weight: var(--git-status-marker-font-weight);
+  line-height: 1;
+  text-align: center;
+}
+
+.source-control-change[data-kind="added"] .source-control-change-status {
+  color: var(--git-status-added);
+}
+
+.source-control-change[data-kind="renamed"] .source-control-change-status {
+  color: var(--git-status-renamed);
+}
+
+.source-control-change[data-kind="untracked"] .source-control-change-status {
+  color: var(--git-status-untracked);
+}
+
+.source-control-change[data-kind="deleted"] .source-control-change-status {
+  color: var(--git-status-deleted);
+}
+
+.source-control-change[data-kind="conflicted"] .source-control-change-status {
+  color: var(--status-danger);
+}
+
+.source-control-application-change {
+  min-height: 38px;
+  height: 38px;
+  margin: 2px 6px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--surface-3) 78%, var(--accent) 4%);
+}
+
+.source-control-application-change:hover,
+.source-control-application-change:focus-within {
+  border-color: var(--border-default);
+  background: var(--surface-hover);
+}
+
+.source-control-application-change .source-control-change-action {
+  align-self: center;
+}
+
+.source-control-application-summary {
+  padding-left: 7px;
+}
+
+.source-control-application-summary > svg {
+  color: var(--accent);
+}
+
+.source-control-application-summary .source-control-change-label {
+  display: grid;
+  align-content: center;
+  gap: 1px;
+}
+
+.source-control-application-summary .source-control-change-name,
+.source-control-application-summary .source-control-change-directory {
+  display: block;
+  line-height: 1.1;
+}
+
+.source-control-application-badge {
+  flex: none;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  background: var(--chip-neutral);
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.source-control-section-empty {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  color: var(--text-tertiary);
+  font-size: var(--text-ui-meta);
+}
+
+.source-control-section-empty > svg {
+  color: var(--status-success);
+}
+
+.source-control-change-action {
+  flex: 0 0 27px;
+  width: 27px;
+  height: 27px;
+  border-radius: 0;
+  opacity: 0;
+}
+
+.source-control-revert-action:hover,
+.source-control-revert-action:focus-visible {
+  color: var(--status-danger);
+}
+
+.source-control-change:hover .source-control-change-action,
+.source-control-change:focus-within .source-control-change-action {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .source-control-refresh[data-refreshing="true"] svg {
+    animation: none;
+  }
+
+  .source-control-change-action {
+    transition: none;
+  }
+}

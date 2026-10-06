@@ -1,0 +1,142 @@
+/* Reversible companion to the softened workspace and explorer. */
+.app-shell .sidebar-shell.sidebar-soft-experiment .source-control {
+  gap: 8px;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.sidebar-soft-experiment .source-control .source-control-header {
+  height: 34px;
+  padding: 3px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--surface-panel);
+}
+
+.sidebar-soft-experiment .source-control-title {
+  padding-inline: 6px;
+  font-weight: 600;
+}
+
+.sidebar-soft-experiment .source-control .source-control-refresh {
+  width: 28px;
+  height: 28px;
+  background: transparent;
+}
+
+.sidebar-soft-experiment .source-control-refresh:hover {
+  background: var(--surface-hover);
+}
+
+.sidebar-soft-experiment .source-control-controls {
+  gap: 8px;
+  border: 0;
+}
+
+.sidebar-soft-experiment .source-control-remote,
+.sidebar-soft-experiment .source-control-commit-box,
+.sidebar-soft-experiment .source-control-section,
+.sidebar-soft-experiment .source-control-reconciliation,
+.sidebar-soft-experiment .source-control-conflicts,
+.sidebar-soft-experiment .source-control-notice,
+.sidebar-soft-experiment .source-control-feedback,
+.sidebar-soft-experiment .source-control-empty {
+  border: 0;
+  border-radius: 12px;
+  background: var(--surface-panel);
+}
+
+.sidebar-soft-experiment .source-control-remote,
+.sidebar-soft-experiment .source-control-commit-box {
+  gap: 8px;
+  padding: 10px;
+}
+
+.sidebar-soft-experiment .source-control-commit-input {
+  height: 32px;
+  border-radius: 8px;
+  border-color: var(--border-subtle);
+  background: var(--surface-content);
+}
+
+.sidebar-soft-experiment .source-control-commit-input:focus-visible {
+  border-color: var(--focus-ring);
+  box-shadow: 0 0 0 1px var(--focus-ring);
+}
+
+.sidebar-soft-experiment .source-control-commit-button,
+.sidebar-soft-experiment .source-control-remote-actions > button {
+  border-radius: 8px;
+}
+
+.source-control .source-control-commit-button:disabled {
+  background: var(--surface-inset);
+  color: var(--text-tertiary);
+  box-shadow: none;
+  font-weight: 500;
+}
+
+.sidebar-soft-experiment .source-control-section {
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.sidebar-soft-experiment .source-control-section:last-child {
+  margin-bottom: 0;
+}
+
+.sidebar-soft-experiment .source-control-section-heading {
+  height: 32px;
+  padding-inline: 9px 4px;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: var(--text-ui-control);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.sidebar-soft-experiment .source-control-section-count {
+  min-width: 22px;
+  padding-inline: 4px;
+  border-radius: 6px;
+  background: var(--surface-inset);
+  line-height: 19px;
+  text-align: center;
+}
+
+.sidebar-soft-experiment .source-control-heading-action {
+  width: 26px;
+  height: 26px;
+  margin-left: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+}
+
+.sidebar-soft-experiment .source-control-change-list {
+  padding: 2px 5px 5px;
+}
+
+.sidebar-soft-experiment .source-control-change,
+.sidebar-soft-experiment .source-control-change-open {
+  border-radius: 7px;
+}
+
+.sidebar-soft-experiment .source-control-change-action {
+  border-radius: 6px;
+  background: transparent;
+}
+
+.sidebar-soft-experiment .source-control .source-control-heading-action:hover,
+.sidebar-soft-experiment .source-control .source-control-change-action:hover {
+  background: var(--surface-hover);
+}
+
+.sidebar-soft-experiment .source-control-application-change {
+  margin: 3px 0;
+  background: var(--surface-card);
+}

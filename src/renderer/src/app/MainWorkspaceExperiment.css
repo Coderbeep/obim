@@ -1,0 +1,104 @@
+/* Reversible workspace frame experiment; see .agents/docs/design/main-workspace-experiment.md. */
+.workspace-soft-experiment .window-title-bar {
+  border-bottom-color: transparent;
+  background: transparent;
+}
+
+.workspace-soft-experiment .content {
+  padding: 4px 0 6px;
+}
+
+.workspace-soft-experiment .pane-workspace {
+  padding-bottom: 0;
+}
+
+.workspace-soft-experiment .pane-column {
+  border-color: var(--border-subtle);
+  border-radius: 14px;
+}
+
+.workspace-soft-experiment .pane-tabs-group {
+  height: 40px;
+  padding: 4px;
+  gap: 4px;
+  border-bottom-color: transparent;
+  background: var(--surface-2);
+}
+
+.workspace-soft-experiment .pane-tabs-tablist {
+  height: 30px;
+  gap: 4px;
+}
+
+.workspace-soft-experiment .pane-tabs-apps {
+  height: 30px;
+  gap: 3px;
+  padding-right: 4px;
+  border-right-color: var(--border-subtle);
+  background: transparent;
+}
+
+.workspace-soft-experiment .pane-tabs-row {
+  height: 30px;
+  gap: 3px;
+  border-radius: 8px;
+}
+
+.workspace-soft-experiment .pane-tab {
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+}
+
+.workspace-soft-experiment .pane-tab-active {
+  background: var(--surface-1);
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
+}
+
+.workspace-soft-experiment .pane-tab-active .pane-tab-label {
+  color: var(--text-primary);
+}
+
+.workspace-soft-experiment .pane-tab:focus-within {
+  box-shadow: inset 0 0 0 1px var(--focus-ring);
+}
+
+.workspace-soft-experiment .pane-tab-close {
+  border-radius: 5px;
+}
+
+.workspace-soft-experiment .pane-tabs-overflow,
+.workspace-soft-experiment .pane-tabs-start,
+.workspace-soft-experiment .pane-tabs-end {
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+}
+
+.workspace-soft-experiment .pane-tabs-start button,
+.workspace-soft-experiment .pane-tabs-end button {
+  height: 30px;
+  width: 30px;
+  border-radius: 8px;
+}
+
+.workspace-soft-experiment .pane-tabs-overflow:hover {
+  background: var(--surface-hover);
+}
+
+.workspace-soft-experiment .pane-resize-handle::before {
+  height: 28px;
+  width: 3px;
+  border-radius: 999px;
+}
+
+.workspace-soft-experiment .app-status-bar {
+  border-top-color: transparent;
+  background: transparent;
+}
+
+.workspace-soft-experiment .app-status-bar button {
+  height: 22px;
+  border-radius: 6px;
+}
