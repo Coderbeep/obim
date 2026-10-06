@@ -55,6 +55,7 @@ export interface WorkspaceSessionTab {
 }
 
 export interface WorkspaceSessionTaskBoardPreferences {
+  selectedProject: string;
   activeSavedFilterId: string | null;
   collapsedSubtaskPaths: string[];
   dueDateEndFilter: string;
@@ -267,6 +268,8 @@ export const parseWorkspaceSession = (value: unknown): WorkspaceSession | null =
       !isOneOf(taskBoard.priorityFilter, ["all", "high", "medium", "low", "none"] as const)) ||
     (taskBoard.savedView !== undefined &&
       !isOneOf(taskBoard.savedView, ["all", "custom", "due-soon", "high-priority", "untagged"] as const)) ||
+    (taskBoard.selectedProject !== undefined &&
+      (typeof taskBoard.selectedProject !== "string" || taskBoard.selectedProject.length > 8192)) ||
     (taskBoard.searchQuery !== undefined &&
       (typeof taskBoard.searchQuery !== "string" || taskBoard.searchQuery.length > 200)) ||
     (taskBoard.tagFilter !== undefined &&
@@ -339,6 +342,7 @@ export const parseWorkspaceSession = (value: unknown): WorkspaceSession | null =
     recentFilePaths: value.recentFilePaths,
     tabs,
     taskBoard: {
+      selectedProject: taskBoard.selectedProject ?? "",
       activeSavedFilterId,
       collapsedSubtaskPaths: taskBoard.collapsedSubtaskPaths ?? [],
       dueDateEndFilter: dateRange.dueDateEndFilter,

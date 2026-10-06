@@ -1,3 +1,4 @@
+import { taskBoardPreferencesAtom } from "../src/renderer/src/store/taskBoardPreferencesStore";
 import { fileLoadStatesByPathAtom } from "../src/renderer/src/store/fileLoadStore";
 import { fileBuffersByPathAtom } from "../src/renderer/src/store/fileBufferStore";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
@@ -35,6 +36,7 @@ const session = {
   explorerSections: { bookmarks: true, files: true, recent: false },
   explorerSectionSizes: { bookmarks: 1, files: 2, recent: 1 },
   taskBoard: {
+    selectedProject: "Research",
     activeSavedFilterId: null,
     collapsedSubtaskPaths: [],
     dueDateEndFilter: "",
@@ -75,6 +77,17 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("workspace restoration lifetime", () => {
+  it("restores the selected project and saves later selections", async () => {
+    const { store } = setup();
+    await waitFor(() => expect(store.get(taskBoardPreferencesAtom).selectedProject).toBe("Research"));
+    act(() => store.set(taskBoardPreferencesAtom, (current) => ({ ...current, selectedProject: "Writing" })));
+    await waitFor(() =>
+      expect(vi.mocked(window.config.saveWorkspaceSession).mock.lastCall?.[0].taskBoard.selectedProject).toBe(
+        "Writing",
+      ),
+    );
+  });
+
   it("survives tree refresh during restoration and enables later session persistence", async () => {
     const load = deferred();
     vi.mocked(window.config.readWorkspaceSession).mockReturnValue(load.promise);

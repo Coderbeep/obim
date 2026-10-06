@@ -186,5 +186,9 @@ it("reveals an agenda task in a hidden project without changing its project sett
     document.querySelector<HTMLElement>('[data-task-path="/notes/2026-09-08.md"]')?.dataset.agendaHighlighted,
   ).toBe("true");
   expect("hidden" in board.projects[0] ? board.projects[0].hidden : false).toBe(true);
-  expect(board.setPreferences).not.toHaveBeenCalled();
+  const lastUpdate = board.setPreferences.mock.lastCall?.[0];
+  expect(typeof lastUpdate === "function" ? lastUpdate(board.preferences) : lastUpdate).toEqual({
+    ...board.preferences,
+    selectedProject: "Hidden",
+  });
 });

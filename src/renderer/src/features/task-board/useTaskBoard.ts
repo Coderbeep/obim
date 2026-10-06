@@ -237,19 +237,34 @@ export const useTaskBoardPreferences = (
 };
 
 export const useTaskBoardView = ({
+  preferences,
+  setPreferences,
+  hasLoaded,
   tasks,
   projects,
   filters,
   sortRules,
   today,
 }: {
+  preferences: TaskBoardPreferences;
+  setPreferences: SetTaskBoardPreferences;
+  hasLoaded: boolean;
   tasks: readonly TaskBoardTask[];
   projects: TaskBoardProject[];
   filters: TaskFilters;
   sortRules: readonly TaskBoardSortRule[];
   today: Date;
 }) => {
-  const [selectedProject, setSelectedProject] = useState("");
+  const selectedProject = preferences.selectedProject;
+  const setSelectedProject = useCallback<Dispatch<SetStateAction<string>>>(
+    (next) => {
+      setPreferences((current) => {
+        const selectedProject = typeof next === "function" ? next(current.selectedProject) : next;
+        return selectedProject === current.selectedProject ? current : { ...current, selectedProject };
+      });
+    },
+    [setPreferences],
+  );
   const [revealedProject, setRevealedProject] = useState<string | null>(null);
   const visibleProjects = useMemo(
     () =>
@@ -260,10 +275,12 @@ export const useTaskBoardView = ({
     [projects, revealedProject],
   );
   useEffect(() => {
+    if (!hasLoaded) return;
     if (visibleProjects.some(({ name }) => taskBoardProjectNameKey(name) === taskBoardProjectNameKey(selectedProject)))
       return;
-    setSelectedProject(visibleProjects[0]?.name ?? "");
-  }, [selectedProject, visibleProjects]);
+    const fallback = visibleProjects[0]?.name ?? "";
+    if (selectedProject !== fallback) setSelectedProject(fallback);
+  }, [hasLoaded, selectedProject, setSelectedProject, visibleProjects]);
   const filteredTasks = useMemo(() => filterTaskBoardTasks(tasks, filters, today), [tasks, filters, today]);
   const columns = useMemo(
     () =>
@@ -284,16 +301,22 @@ export const useTaskBoardView = ({
         .sort((left, right) => left.localeCompare(right)),
     [tasks],
   );
-  const revealProject = useCallback((name: string) => {
-    setRevealedProject(name);
-    setSelectedProject(name);
-  }, []);
+  const revealProject = useCallback(
+    (name: string) => {
+      setRevealedProject(name);
+      setSelectedProject(name);
+    },
+    [setSelectedProject],
+  );
   const clearRevealedProject = useCallback(() => setRevealedProject(null), []);
-  const projectRenamed = useCallback((from: string, to: string) => {
-    setSelectedProject((current) =>
-      taskBoardProjectNameKey(current) === taskBoardProjectNameKey(from) ? to : current,
-    );
-  }, []);
+  const projectRenamed = useCallback(
+    (from: string, to: string) => {
+      setSelectedProject((current) =>
+        taskBoardProjectNameKey(current) === taskBoardProjectNameKey(from) ? to : current,
+      );
+    },
+    [setSelectedProject],
+  );
   return {
     columns,
     visibleProjects,

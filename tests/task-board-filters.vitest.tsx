@@ -1,6 +1,6 @@
 import { act, cleanup, render, renderHook, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createStore, Provider } from "jotai";
+import { createStore, Provider, useAtom } from "jotai";
 import { useRef, useState, type ReactNode } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 import { TaskBoardFilters } from "../src/renderer/src/features/task-board/TaskBoardFilters";
@@ -20,6 +20,7 @@ import { filterTaskBoardTasks } from "../src/renderer/src/features/task-board/ta
 import { type TaskBoardTask } from "../src/renderer/src/features/task-board/taskBoardModel";
 import {
   DEFAULT_TASK_BOARD_PREFERENCES,
+  taskBoardPreferencesAtom,
   type TaskBoardPreferences,
 } from "../src/renderer/src/store/taskBoardPreferencesStore";
 import {
@@ -204,7 +205,19 @@ it("recomputes date views when the local day changes and retains stable sorted t
   const filters = { ...emptyTaskFilters(), dueFilter: "today" as const };
   const sortRules = [{ field: "title" as const, direction: "ascending" as const }];
   const { result, rerender } = renderHook(
-    ({ today }) => useTaskBoardView({ tasks, projects, filters, sortRules, today }),
+    ({ today }) => {
+      const [current, setPreferences] = useState(preferences());
+      return useTaskBoardView({
+        preferences: current,
+        setPreferences,
+        hasLoaded: true,
+        tasks,
+        projects,
+        filters,
+        sortRules,
+        today,
+      });
+    },
     { initialProps: { today: new Date(2026, 8, 27) } },
   );
   expect(result.current.columns[0].tasks.map(({ id }) => id)).toEqual(["first", "second"]);
@@ -232,6 +245,9 @@ it("reveals a hidden project once, preserving sorts and collapse state and allow
       const [current, setPreferences] = useState(preferences({ searchQuery: "no match", lifecycleView: "closed" }));
       const controls = useTaskBoardPreferences(current, setPreferences);
       const view = useTaskBoardView({
+        preferences: current,
+        setPreferences,
+        hasLoaded: true,
         tasks,
         projects,
         filters: controls.filters,
@@ -308,4 +324,46 @@ it("keeps a pending replacement draft local until its value is chosen and restor
   await user.click(screen.getByRole("button", { name: "paper" }));
   expect(onChange).toHaveBeenCalledWith({ priorityFilters: [], tagFilters: ["paper"] });
   expect(document.activeElement).toBe(screen.getByRole("button", { name: "Filter value 1: paper" }));
+});
+
+it("remembers the project across board mounts and waits for project loading before falling back", () => {
+  const store = createStore();
+  const projects: { name: string; colorId: string; hidden?: boolean }[] = [
+    { name: "Writing", colorId: "teal" },
+    { name: "Research", colorId: "blue" },
+  ];
+  const wrapper = ({ children }: { children: ReactNode }) => <Provider store={store}>{children}</Provider>;
+  const useView = ({ loaded, projects: currentProjects }: { loaded: boolean; projects: typeof projects }) => {
+    const [current, setPreferences] = useAtom(taskBoardPreferencesAtom);
+    return useTaskBoardView({
+      preferences: current,
+      setPreferences,
+      hasLoaded: loaded,
+      tasks: [],
+      projects: currentProjects,
+      filters: emptyTaskFilters(),
+      sortRules: [],
+      today: new Date(2026, 9, 6),
+    });
+  };
+  const first = renderHook(useView, { wrapper, initialProps: { loaded: true, projects } });
+  act(() => first.result.current.setSelectedProject("Research"));
+  expect(store.get(taskBoardPreferencesAtom).selectedProject).toBe("Research");
+  first.unmount();
+  const reopened = renderHook(useView, { wrapper, initialProps: { loaded: false, projects: [] as typeof projects } });
+  expect(store.get(taskBoardPreferencesAtom).selectedProject).toBe("Research");
+  reopened.rerender({ loaded: true, projects });
+  expect(reopened.result.current.selectedProject).toBe("Research");
+  act(() => {
+    reopened.result.current.projectRenamed("Research", "Science");
+    reopened.rerender({ loaded: true, projects: [projects[0], { ...projects[1], name: "Science" }] });
+  });
+  expect(reopened.result.current.selectedProject).toBe("Science");
+  reopened.rerender({ loaded: true, projects: [projects[0], { ...projects[1], name: "Science", hidden: true }] });
+  expect(reopened.result.current.selectedProject).toBe("Writing");
+  act(() => reopened.result.current.setSelectedProject("Research"));
+  reopened.rerender({ loaded: true, projects: [projects[0]] });
+  expect(reopened.result.current.selectedProject).toBe("Writing");
+  reopened.rerender({ loaded: true, projects: [] });
+  expect(store.get(taskBoardPreferencesAtom).selectedProject).toBe("");
 });

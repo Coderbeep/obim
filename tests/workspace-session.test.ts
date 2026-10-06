@@ -64,6 +64,7 @@ const session = (): WorkspaceSession => ({
     },
   ],
   taskBoard: {
+    selectedProject: "Research",
     activeSavedFilterId: "saved-weekly",
     collapsedSubtaskPaths: [note.path],
     dueDateEndFilter: "",
@@ -93,6 +94,17 @@ const session = (): WorkspaceSession => ({
 });
 
 describe("workspace session", () => {
+  test("round-trips the selected project and accepts older sessions without it", () => {
+    const current = session();
+    assert.equal(parseWorkspaceSession(JSON.parse(JSON.stringify(current)))?.taskBoard.selectedProject, "Research");
+    const older = { ...current, taskBoard: { ...current.taskBoard } };
+    delete (older.taskBoard as Partial<WorkspaceSession["taskBoard"]>).selectedProject;
+    assert.equal(parseWorkspaceSession(older)?.taskBoard.selectedProject, "");
+    for (const selectedProject of [42, null, "x".repeat(8193)]) {
+      assert.equal(parseWorkspaceSession({ ...current, taskBoard: { ...current.taskBoard, selectedProject } }), null);
+    }
+  });
+
   test("restores bounded collapsed subtask paths and defaults older sessions to expanded", () => {
     const current = session();
     assert.deepEqual(parseWorkspaceSession(current)?.taskBoard.collapsedSubtaskPaths, [note.path]);

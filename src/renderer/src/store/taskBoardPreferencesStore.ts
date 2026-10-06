@@ -6,6 +6,7 @@ import type { WorkspaceSessionTaskBoardPreferences } from "@shared/workspace-ses
 export type TaskBoardPreferences = WorkspaceSessionTaskBoardPreferences;
 
 export const DEFAULT_TASK_BOARD_PREFERENCES: TaskBoardPreferences = {
+  selectedProject: "",
   activeSavedFilterId: null,
   collapsedSubtaskPaths: [],
   dueDateEndFilter: "",

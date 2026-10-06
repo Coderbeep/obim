@@ -43,6 +43,9 @@ export const TaskBoard = () => {
   const [projectsOpen, setProjectsOpen] = useState(false);
   const controls = useTaskBoardPreferences(board.preferences, board.setPreferences);
   const view = useTaskBoardView({
+    preferences: board.preferences,
+    setPreferences: board.setPreferences,
+    hasLoaded: board.hasLoaded,
     tasks: board.allTasks,
     projects: board.projects,
     filters: controls.filters,
