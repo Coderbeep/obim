@@ -208,7 +208,6 @@ Another way to explain is that multiplying random variable by some value makes t
   const frontmatter = "---\ncssclasses:\n- justify\n---\n";
   assert.ok(doc.startsWith(frontmatter));
   const bodyFrom = frontmatter.length;
-  const firstVisibleBodyPosition = doc.indexOf("The forward process");
   const cursorPositions = [doc.indexOf("forward process"), doc.indexOf("otherwise"), doc.indexOf("so the"), doc.length];
 
   await waitForEditorFrames();
@@ -234,7 +233,7 @@ Another way to explain is that multiplying random variable by some value makes t
       { anchor: view.state.selection.main.anchor, head: view.state.selection.main.head },
       { anchor: bodyFrom, head: doc.length },
     );
-    assert.deepEqual(nativeSelectionPositions(view), { anchor: firstVisibleBodyPosition, head: doc.length });
+    assert.deepEqual(nativeSelectionPositions(view), { anchor: bodyFrom, head: doc.length });
     assert.equal(
       view.state.sliceDoc(view.state.selection.main.from, view.state.selection.main.to),
       doc.slice(bodyFrom),

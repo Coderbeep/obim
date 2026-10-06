@@ -163,7 +163,8 @@ const createFrontmatterDecorations = (state: EditorState) => {
       to === state.doc.length && state.doc.sliceString(to - trailingNewline.length, to) === trailingNewline
         ? to - trailingNewline.length
         : to;
-    return Decoration.set([Decoration.replace({ block: true }).range(from, hiddenTo)]);
+    // The first body line's decorations belong outside the hidden YAML range.
+    return Decoration.set([Decoration.replace({ block: true, inclusiveEnd: false }).range(from, hiddenTo)]);
   }
 
   if (parsed.kind === "valid" && !editingSource) {
@@ -208,6 +209,7 @@ const protectFrontmatterInput = (transaction: Transaction) => {
     !/[\r\n]$/.test(transaction.startState.doc.sliceString(0, bodyFrom));
   const changes: ChangeSpec[] = [];
   let corrected = false;
+  let addedBodyLineBreak = false;
   transaction.changes.iterChanges((from, to, _fromB, _toB, insert) => {
     if (from < bodyFrom) {
       corrected = true;
@@ -219,6 +221,7 @@ const protectFrontmatterInput = (transaction: Transaction) => {
     if (from === bodyFrom && needsBodyLineBreak && insert.length && !/^[\r\n]/.test(insert.toString())) {
       insert = transaction.startState.toText(frontmatter.envelope.newline + insert.toString());
       corrected = true;
+      addedBodyLineBreak = true;
     }
     changes.push({ from, to, insert });
   });
@@ -228,7 +231,13 @@ const protectFrontmatterInput = (transaction: Transaction) => {
   const correction = transaction.changes.invert(transaction.startState.doc).compose(replacement);
   // Compose the correction before publishing one transaction, retaining the
   // original annotations/effects and a single undo entry for delete + insert.
-  return transaction.startState.update(transaction, { changes: correction, sequential: true, filter: false });
+  return transaction.startState.update(transaction, {
+    changes: correction,
+    // Keep the caret after input when its correction adds the body separator.
+    ...(addedBodyLineBreak ? { selection: transaction.newSelection.map(correction, 1) } : {}),
+    sequential: true,
+    filter: false,
+  });
 };
 
 export const editableBodyStart = (state: EditorState) => {
