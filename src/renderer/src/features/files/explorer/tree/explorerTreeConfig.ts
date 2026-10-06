@@ -19,7 +19,7 @@ export const TREE_UNSAFE_CSS = `
     --trees-fg-override: var(--text-primary);
     --trees-fg-muted-override: var(--text-secondary);
     --trees-focus-ring-color-override: var(--border-strong);
-    --trees-focus-ring-width-override: 1px;
+    --trees-focus-ring-width-override: 0px;
     --trees-focus-ring-offset-override: 0px;
     --trees-selected-bg-override: var(--surface-selected-subtle);
   }
@@ -112,10 +112,6 @@ export const TREE_UNSAFE_CSS = `
     background-color: ${OPEN_FILE_HIGHLIGHT_COLOR} !important;
     border-left-color: transparent !important;
     --truncate-marker-background-overlay-color: ${OPEN_FILE_HIGHLIGHT_COLOR} !important;
-    box-shadow: inset 0 0 0 1px var(--focus-ring) !important;
-  }
-
-  [data-type='item'][data-item-type='folder'][data-item-focused='true'] {
     box-shadow: none !important;
   }
 

@@ -1,8 +1,9 @@
-/* Shared interaction contract. Inset focus remains visible in clipped rows.
-   CodeMirror owns its caret, selection, and editor focus treatment. */
-:root :focus-visible:not(input, textarea, [contenteditable="true"], .cm-editor, .cm-editor *) {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: -2px;
+/* Focus keeps the existing background/text treatment without a border or ring.
+   Override component styles and utility rings consistently across the app. */
+:root :is(:focus, :focus-visible, :focus-within),
+:root .cm-task-list-checkbox:focus-visible + .cm-task-list-checkbox-visual {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .ui-button,
@@ -11,11 +12,6 @@
     background-color var(--motion-press-duration) ease,
     border-color var(--motion-press-duration) ease,
     color var(--motion-press-duration) ease;
-}
-
-:root .ui-button-filled:focus-visible {
-  outline-color: var(--text-on-accent);
-  outline-offset: -3px;
 }
 
 .ui-button:active:not(:disabled) {
@@ -48,7 +44,6 @@
 
 .compact-toolbar-search[data-expanded="true"]:focus-within {
   border-radius: var(--radius-control);
-  box-shadow: inset 0 0 0 1px var(--focus-ring);
 }
 
 .compact-toolbar-search .compact-toolbar-search-trigger {
@@ -126,20 +121,6 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
-  }
-}
-
-@media (forced-colors: active) {
-  :root :focus-visible:not(input, textarea, [contenteditable="true"], .cm-editor, .cm-editor *) {
-    outline-color: Highlight;
-  }
-
-  [aria-selected="true"],
-  [aria-pressed="true"],
-  [data-selected="true"],
-  [role="tab"][data-state="active"] {
-    outline: 2px solid Highlight;
-    outline-offset: -2px;
   }
 }
 

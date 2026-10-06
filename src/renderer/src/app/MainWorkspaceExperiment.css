@@ -52,15 +52,11 @@
 
 .workspace-soft-experiment .pane-tab-active {
   background: var(--surface-1);
-  box-shadow: inset 0 0 0 1px var(--border-subtle);
+  box-shadow: none;
 }
 
 .workspace-soft-experiment .pane-tab-active .pane-tab-label {
   color: var(--text-primary);
-}
-
-.workspace-soft-experiment .pane-tab:focus-within {
-  box-shadow: inset 0 0 0 1px var(--focus-ring);
 }
 
 .workspace-soft-experiment .pane-tab-close {
