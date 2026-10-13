@@ -43,17 +43,20 @@ const MarkdownFilePane = ({
   isMarkdown,
   openLinkedFile,
   paneId,
+  tabId,
 }: {
   file: FileWorkspaceItem["file"];
   isMarkdown: boolean;
   openLinkedFile: OpenLinkedFile;
   paneId: string;
+  tabId?: string;
 }) => {
   const openResource = useCallback((path: string) => openLinkedFile(path, file.path), [file.path, openLinkedFile]);
 
   return (
     <FileBufferBoundary filePath={file.path}>
       <ObimEditor
+        tabId={tabId}
         paneId={paneId}
         fileId={file.id}
         filePath={file.path}
@@ -136,7 +139,7 @@ export const createWorkspaceItemViews = ({
         !isLargeTextFile(item.file) &&
         ["image", "pdf"].includes(getFileHandlingMode(item.file.mimeType, item.file.path)),
       renderHeader,
-      render: (item, paneId) => {
+      render: (item, paneId, tabId) => {
         if (!isFileWorkspaceItem(item)) return null;
         const handlingMode = getFileHandlingMode(item.file.mimeType, item.file.path);
         if (isLargeTextFile(item.file)) return <LargeFilePreview key={item.file.path} file={item.file} />;
@@ -153,8 +156,10 @@ export const createWorkspaceItemViews = ({
               }
             >
               <MarkdownFilePane
+                key={tabId ? JSON.stringify([tabId, item.key]) : undefined}
                 file={item.file}
                 paneId={paneId}
+                tabId={tabId}
                 isMarkdown={handlingMode === "markdown"}
                 openLinkedFile={openLinkedFile}
               />
@@ -177,7 +182,8 @@ export const createWorkspaceItemViews = ({
               }
             >
               <PdfFileViewer
-                key={item.file.id}
+                key={JSON.stringify([tabId, item.key])}
+                tabId={tabId}
                 file={item.file}
                 readerId={pdfReaderId(paneId, item.key)}
               />

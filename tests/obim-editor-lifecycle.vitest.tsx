@@ -1,12 +1,21 @@
 import type { LinkStatusPort } from "../src/renderer/src/features/editor/extensions/shared/linkStatus";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { editorHeadingRequestAtom } from "../src/renderer/src/store/editorPaneStore";
+import { EditorSelection, EditorState } from "@codemirror/state";
+import { EditorView } from "@codemirror/view";
+import { createEditorTab, workspaceTabsByIdAtom } from "../src/renderer/src/store/editorTabStore";
+import { workspaceViewPositionsAtom } from "../src/renderer/src/store/workspaceViewStateStore";
 import { Provider, createStore } from "jotai";
 import { createElement, useEffect, useRef } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const codeMirrorState = vi.hoisted(() => {
-  const editorView = { dispatch: vi.fn(), focus: vi.fn() };
+  const editorView = {
+    dispatch: vi.fn(),
+    focus: vi.fn(),
+    state: undefined as unknown as import("@codemirror/state").EditorState,
+    scrollSnapshot: vi.fn(),
+  };
   return {
     editorView,
     createNoteHeaderExtension: vi.fn<
@@ -138,6 +147,8 @@ beforeEach(() => {
   codeMirrorState.navigateToHeading.mockReset().mockReturnValue(true);
   codeMirrorState.onChange = undefined;
   codeMirrorState.editorView.dispatch.mockClear();
+  codeMirrorState.editorView.state = EditorState.create({ doc: "body" });
+  codeMirrorState.editorView.scrollSnapshot.mockReturnValue(EditorView.scrollIntoView(2, { y: "start" }));
   codeMirrorState.editorView.focus.mockClear();
   codeMirrorState.createEditorExtensions.mockClear();
   fileActionState.stopRenaming.mockClear();
@@ -150,6 +161,85 @@ afterEach(() => {
 });
 
 describe("ObimEditor lifecycle", () => {
+  it.each(["text/markdown", "text/plain"])(
+    "restores independent cursor and scroll positions for %s tabs",
+    async (mimeType) => {
+      const item = { ...file("/notes/position.md"), mimeType };
+      const resource = createFileWorkspaceItem(item);
+      const store = createStore();
+      store.set(fileBuffersByPathAtom, { [item.path]: { savedText: "body", editorText: "body" } });
+      store.set(workspaceTabsByIdAtom, {
+        a: createEditorTab("a", resource.key),
+        b: createEditorTab("b", resource.key),
+      });
+      const views = createWorkspaceItemViews({
+        openWorkspaceItem: vi.fn(),
+        openLinkedFile: vi.fn(),
+        resolveWorkspaceItem: vi.fn(),
+      });
+      const content = (tabId: string) => (
+        <Provider store={store}>{views.file.render(resource, "pane-1", tabId)}</Provider>
+      );
+      const { rerender } = render(content("a"));
+      await screen.findByTestId("code-mirror");
+      codeMirrorState.editorView.state = EditorState.create({ doc: "body", selection: EditorSelection.single(1, 3) });
+      const scrollA = EditorView.scrollIntoView(3, { y: "start", yMargin: 17 });
+      codeMirrorState.editorView.scrollSnapshot.mockReturnValue(scrollA);
+      rerender(content("b"));
+      await waitFor(() =>
+        expect(store.get(workspaceViewPositionsAtom).a?.[resource.key]).toMatchObject({ kind: "editor" }),
+      );
+      codeMirrorState.editorView.state = EditorState.create({ doc: "body", selection: { anchor: 4 } });
+      const scrollB = EditorView.scrollIntoView(4, { y: "start", yMargin: 22 });
+      codeMirrorState.editorView.scrollSnapshot.mockReturnValue(scrollB);
+      codeMirrorState.editorView.dispatch.mockClear();
+      rerender(content("a"));
+      await waitFor(() =>
+        expect(codeMirrorState.editorView.dispatch).toHaveBeenCalledWith({
+          selection: EditorSelection.single(1, 3),
+          effects: scrollA,
+        }),
+      );
+      codeMirrorState.editorView.dispatch.mockClear();
+      rerender(content("b"));
+      await waitFor(() =>
+        expect(codeMirrorState.editorView.dispatch).toHaveBeenCalledWith({
+          selection: EditorSelection.single(4),
+          effects: scrollB,
+        }),
+      );
+    },
+  );
+
+  it("clamps a saved selection when a document becomes shorter while its tab is inactive", async () => {
+    const resource = createFileWorkspaceItem(file("/notes/shortened.md"));
+    const store = createStore();
+    store.set(fileBuffersByPathAtom, { [resource.file.path]: { savedText: "body", editorText: "body" } });
+    store.set(workspaceTabsByIdAtom, { a: createEditorTab("a", resource.key) });
+    store.set(workspaceViewPositionsAtom, {
+      a: {
+        [resource.key]: {
+          kind: "editor",
+          doc: EditorState.create({ doc: "a much longer body" }).doc,
+          selection: EditorSelection.single(8, 15),
+          scroll: EditorView.scrollIntoView(15),
+        },
+      },
+    });
+    const views = createWorkspaceItemViews({
+      openWorkspaceItem: vi.fn(),
+      openLinkedFile: vi.fn(),
+      resolveWorkspaceItem: vi.fn(),
+    });
+    render(<Provider store={store}>{views.file.render(resource, "pane-1", "a")}</Provider>);
+    await waitFor(() =>
+      expect(codeMirrorState.editorView.dispatch).toHaveBeenCalledWith({
+        selection: EditorSelection.single(4),
+        effects: expect.anything(),
+      }),
+    );
+  });
+
   it("consumes a section request once the destination editor is mounted", async () => {
     const item = file("/notes/target.md");
     const store = createStore();

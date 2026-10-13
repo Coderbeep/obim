@@ -127,6 +127,9 @@ import { dispatchPdfReferenceHover } from "../src/renderer/src/shared/pdfReferen
 import type { FileItem } from "../src/shared/file-item";
 import { fileTreeAtom } from "../src/renderer/src/store/fileExplorerStore";
 import { fileBuffersByPathAtom } from "../src/renderer/src/store/fileBufferStore";
+import { createEditorTab, workspaceTabsByIdAtom } from "../src/renderer/src/store/editorTabStore";
+import { workspaceViewPositionsAtom } from "../src/renderer/src/store/workspaceViewStateStore";
+import { createFileWorkspaceItemKey } from "../src/shared/workspace";
 import { NotificationLevel, notificationsAtom } from "../src/renderer/src/store/NotificationsStore";
 
 const originalRangeClientRects = Object.getOwnPropertyDescriptor(Range.prototype, "getClientRects");
@@ -324,6 +327,86 @@ const mockPdfPageLayout = () => {
 };
 
 describe("PDFViewer", () => {
+  it("restores each PDF tab's page, within-page position and zoom independently", async () => {
+    const resetLayout = mockPdfPageLayout();
+    const store = createStore();
+    const key = createFileWorkspaceItemKey(file.path);
+    store.set(workspaceTabsByIdAtom, { a: createEditorTab("a", key), b: createEditorTab("b", key) });
+    const content = (tabId: string, scale?: number) => (
+      <Provider store={store}>
+        <PDFViewer
+          key={tabId}
+          tabId={tabId}
+          file={file}
+          initialViewState={scale ? { scale, zoomMode: "custom" } : undefined}
+        />
+      </Provider>
+    );
+    try {
+      const { rerender } = render(content("a", 2));
+      await waitFor(() => expect(document.querySelector<HTMLElement>(".pdf-page")?.style.height).toBe("1600px"));
+      // Navigation establishes that initial restoration has completed.
+      fireEvent.click(screen.getByRole("button", { name: "Next page" }));
+      const viewport = screen.getByLabelText(/PDF pages/) as HTMLElement;
+      const scrollA = document.querySelector<HTMLElement>('[data-page-number="2"]')!.offsetTop + 200;
+      viewport.scrollTop = scrollA;
+      fireEvent.scroll(viewport);
+      rerender(content("b", 1));
+      await waitFor(() => expect(document.querySelector<HTMLElement>(".pdf-page")?.style.height).toBe("800px"));
+      fireEvent.click(screen.getByRole("button", { name: "Next page" }));
+      const scrollB = document.querySelector<HTMLElement>('[data-page-number="2"]')!.offsetTop + 50;
+      (screen.getByLabelText(/PDF pages/) as HTMLElement).scrollTop = scrollB;
+      rerender(content("a"));
+      await waitFor(() => expect(document.querySelector<HTMLElement>(".pdf-page")?.style.height).toBe("1600px"));
+      await waitFor(() =>
+        expect((screen.getByLabelText(/PDF pages/) as HTMLElement).scrollTop).toBeCloseTo(scrollA, 4),
+      );
+      expect((screen.getByRole("textbox", { name: "Page number" }) as HTMLInputElement).value).toBe("2");
+      rerender(content("b"));
+      await waitFor(() => expect(document.querySelector<HTMLElement>(".pdf-page")?.style.height).toBe("800px"));
+      await waitFor(() =>
+        expect((screen.getByLabelText(/PDF pages/) as HTMLElement).scrollTop).toBeCloseTo(scrollB, 4),
+      );
+    } finally {
+      cleanup();
+      resetLayout();
+    }
+  });
+
+  it("lets an explicit PDF link override a tab's saved reading position", async () => {
+    const resetLayout = mockPdfPageLayout();
+    const store = createStore();
+    const key = createFileWorkspaceItemKey(file.path);
+    store.set(workspaceTabsByIdAtom, { a: createEditorTab("a", key) });
+    store.set(workspaceViewPositionsAtom, {
+      a: {
+        [key]: {
+          kind: "pdf",
+          page: 2,
+          anchor: { pageNumber: 2, pageX: 0.5, pageY: 0.5, localX: 450, localY: 350 },
+          scale: 1,
+          zoomMode: "custom",
+          spreadMode: "none",
+        },
+      },
+    });
+    dispatchPdfDeepLink({ path: file.path, readerId: "reader-a", page: 1 });
+    try {
+      render(
+        <Provider store={store}>
+          <PDFViewer tabId="a" readerId="reader-a" file={file} />
+        </Provider>,
+      );
+      await waitFor(() =>
+        expect(screen.getByRole<HTMLInputElement>("textbox", { name: "Page number" }).value).toBe("1"),
+      );
+      await waitFor(() => expect((screen.getByLabelText(/PDF pages/) as HTMLElement).scrollTop).toBe(0));
+    } finally {
+      cleanup();
+      resetLayout();
+    }
+  });
+
   it("preserves the viewport anchor when changed PDF bytes reload the same file", async () => {
     const resetLayout = mockPdfPageLayout();
     pdfMocks.getDocument.mockImplementation(() =>

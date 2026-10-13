@@ -25,6 +25,9 @@ import {
   type RenderTask,
 } from "pdfjs-dist";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import { useWorkspaceViewPosition } from "@renderer/features/workspace/useWorkspaceViewPosition";
+import type { PdfViewportAnchor, PdfViewPosition } from "@renderer/store/workspaceViewStateStore";
+import { createFileWorkspaceItemKey } from "@shared/workspace";
 import {
   memo,
   useCallback,
@@ -97,13 +100,9 @@ GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 type PdfFile = Extract<FileItem, { isDirectory: false }>;
 type PdfTextContent = Awaited<ReturnType<PDFPageProxy["getTextContent"]>>;
-export type PdfViewerZoomMode = "width" | "page" | "custom";
-export type PdfViewerSpreadMode = "none" | "odd" | "even";
-export interface PdfViewerViewState {
-  scale: number;
-  spreadMode: PdfViewerSpreadMode;
-  zoomMode: PdfViewerZoomMode;
-}
+export type PdfViewerZoomMode = PdfViewPosition["zoomMode"];
+export type PdfViewerSpreadMode = PdfViewPosition["spreadMode"];
+export type PdfViewerViewState = Pick<PdfViewPosition, "scale" | "spreadMode" | "zoomMode">;
 type PageSize = { width: number; height: number };
 
 interface SearchResult {
@@ -123,6 +122,7 @@ interface PageHighlight extends PdfItemMatchRange {
 }
 
 export interface PdfViewerProps {
+  tabId?: string;
   readerId?: string;
   file: PdfFile;
   initialPage?: number;
@@ -838,6 +838,7 @@ const PDFPage = memo(function PDFPage({
 });
 
 export const PDFViewer = ({
+  tabId,
   readerId,
   file,
   initialPage,
@@ -846,6 +847,10 @@ export const PDFViewer = ({
   onViewStateChange,
 }: PdfViewerProps) => {
   const store = useStore();
+  const { initialPosition, savePosition } = useWorkspaceViewPosition(tabId, createFileWorkspaceItemKey(file.path));
+  const savedPosition = initialPosition?.kind === "pdf" ? initialPosition : undefined;
+  const restoredPage = initialPage ?? savedPosition?.anchor.pageNumber ?? savedPosition?.page;
+  const restoredView = initialViewState ?? savedPosition;
   const fileTree = useAtomValue(fileTreeAtom);
   const { open } = useFileOpen();
   const [activeAnnotation, setActiveAnnotation] = useState<{ reference: PdfNoteReference; bounds: DOMRect } | null>(
@@ -895,12 +900,12 @@ export const PDFViewer = ({
   }, []);
   const initialPageByFileRef = useRef({
     filePath: file.path,
-    page: normalizePageNumber(initialPage),
+    page: normalizePageNumber(restoredPage),
   });
   if (initialPageByFileRef.current.filePath !== file.path) {
     initialPageByFileRef.current = {
       filePath: file.path,
-      page: normalizePageNumber(initialPage),
+      page: normalizePageNumber(restoredPage),
     };
   }
   const requestedInitialPage = initialPageByFileRef.current.page;
@@ -912,18 +917,12 @@ export const PDFViewer = ({
   const textIndexRef = useRef<Array<PdfPageTextIndex | null>>([]);
   const textIndexDocumentRef = useRef<PDFDocumentProxy | null>(null);
   const pageSizesRef = useRef(new Map<number, PageSize>());
-  const requestedInitialScale = clampScale(initialViewState?.scale ?? 1);
+  const requestedInitialScale = clampScale(restoredView?.scale ?? 1);
   const scaleRef = useRef(requestedInitialScale);
   const currentPageRef = useRef(requestedInitialPage);
   const initialPageAppliedRef = useRef(false);
   const hasShortcutFocusRef = useRef(false);
-  const pendingZoomAnchorRef = useRef<{
-    pageNumber: number;
-    pageX: number;
-    pageY: number;
-    localX: number;
-    localY: number;
-  } | null>(null);
+  const pendingZoomAnchorRef = useRef<PdfViewportAnchor | null>(null);
   const indexingTimerRef = useRef(0);
   const pageTrackingTimerRef = useRef(0);
   const lastScrolledResultRef = useRef("");
@@ -948,8 +947,8 @@ export const PDFViewer = ({
   const [password, setPassword] = useState("");
   const [firstPageSize, setFirstPageSize] = useState<PageSize>({ width: 612, height: 792 });
   const [pageSizesRevision, setPageSizesRevision] = useState(0);
-  const [zoomMode, setZoomMode] = useState<PdfViewerZoomMode>(initialViewState?.zoomMode ?? "width");
-  const [spreadMode, setSpreadMode] = useState<PdfViewerSpreadMode>(initialViewState?.spreadMode ?? "none");
+  const [zoomMode, setZoomMode] = useState<PdfViewerZoomMode>(restoredView?.zoomMode ?? "width");
+  const [spreadMode, setSpreadMode] = useState<PdfViewerSpreadMode>(restoredView?.spreadMode ?? "none");
   const [scale, setScale] = useState(requestedInitialScale);
   const [currentPage, setCurrentPage] = useState(requestedInitialPage);
   const [pageField, setPageField] = useState(String(requestedInitialPage));
@@ -1361,6 +1360,24 @@ export const PDFViewer = ({
     [readViewportAnchor],
   );
 
+  // Capture before React removes the page elements. Loading/error mounts must not
+  // overwrite the previous reading position with an empty viewport.
+  const rememberPositionRef = useRef(() => {});
+  rememberPositionRef.current = () => {
+    if (!initialPageAppliedRef.current) return;
+    const anchor = readViewportAnchor();
+    if (anchor)
+      savePosition({
+        kind: "pdf",
+        page: currentPageRef.current,
+        anchor,
+        scale: scaleRef.current,
+        zoomMode,
+        spreadMode,
+      });
+  };
+  useLayoutEffect(() => () => rememberPositionRef.current(), [savePosition]);
+
   useEffect(() => {
     if (!pdfDocument) return;
     let cancelled = false;
@@ -1730,7 +1747,24 @@ export const PDFViewer = ({
     initialPageAppliedRef.current = true;
     pendingZoomAnchorRef.current = null;
     scrollToPage(Math.min(pdfDocument.numPages, requestedInitialPage));
-  }, [pdfDocument, restorableDocument, requestedInitialPage, scrollToPage, scale]);
+    if (savedPosition && initialPage === undefined) {
+      applyViewportAnchor({
+        ...savedPosition.anchor,
+        pageNumber: Math.min(pdfDocument.numPages, savedPosition.anchor.pageNumber),
+        localX: viewport.clientWidth / 2,
+        localY: viewport.clientHeight / 2,
+      });
+    }
+  }, [
+    pdfDocument,
+    restorableDocument,
+    requestedInitialPage,
+    scrollToPage,
+    scale,
+    savedPosition,
+    initialPage,
+    applyViewportAnchor,
+  ]);
 
   useEffect(() => {
     const subscription = ++navigationSubscriptionRef.current;

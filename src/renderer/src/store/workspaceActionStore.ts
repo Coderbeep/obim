@@ -13,6 +13,7 @@ import {
 
 import { activePaneIdAtom, workspacePanesAtom } from "./editorPaneStore";
 import { workspaceTabsByIdAtom } from "./editorTabStore";
+import { workspaceViewPositionsAtom } from "./workspaceViewStateStore";
 import { fileBufferIdentitiesAtom, fileBuffersByPathAtom } from "./fileBufferStore";
 import { openWorkspaceItemsByKeyAtom } from "./workspaceResourceStore";
 import {
@@ -235,6 +236,14 @@ export const remapWorkspaceFileReferencesAtom = atom(
   null,
   (get, set, { notesDirectoryPath, remapPath }: RemapWorkspaceFileReferencesPayload) => {
     const remapResourceKey = createWorkspaceItemKeyRemapper(remapPath);
+    set(workspaceViewPositionsAtom, (positions) =>
+      Object.fromEntries(
+        Object.entries(positions).map(([tabId, resources]) => [
+          tabId,
+          Object.fromEntries(Object.entries(resources).map(([key, position]) => [remapResourceKey(key), position])),
+        ]),
+      ),
+    );
     set(fileBufferIdentitiesAtom, (identities) =>
       Object.fromEntries(Object.entries(identities).map(([path, identity]) => [remapPath(path), identity])),
     );

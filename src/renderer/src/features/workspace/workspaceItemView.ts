@@ -21,7 +21,7 @@ export interface WorkspaceItemView {
   /** Adds item-specific actions to the standard workspace-tab menu. */
   getTabMenuEntries?: (item: WorkspaceItem, location: { paneId: string; tabId: string }) => ContextMenuEntry[];
   /** Renders the item's main pane content. */
-  render: (item: WorkspaceItem, paneId: string) => ReactNode;
+  render: (item: WorkspaceItem, paneId: string, tabId?: string) => ReactNode;
   /** Renders the pane header above the item's content. */
   renderHeader?: (item: WorkspaceItem, paneId: string) => ReactNode;
 }

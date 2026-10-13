@@ -175,7 +175,7 @@ const WorkspacePane = ({
               ? (renderEmptyPaneContent?.(pane.id) ?? (
                   <div className="pane-placeholder">Open a note to start editing in this pane.</div>
                 ))
-              : view?.render(item, pane.id)}
+              : view?.render(item, pane.id, pane.activeTabId ?? undefined)}
           </div>
         </div>
       </section>

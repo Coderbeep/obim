@@ -7,7 +7,10 @@ import { editorSubtaskRequestAtom } from "@renderer/store/editorPaneStore";
 import { canLinkToSections, SECTION_LINK_FILENAME_MESSAGE } from "@shared/section-links";
 import CodeMirror from "@uiw/react-codemirror";
 import { useAtomValue, useSetAtom, useStore } from "jotai";
-import { memo, useCallback, useEffect, useId, useMemo, useRef } from "react";
+import { memo, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef } from "react";
+import { EditorSelection } from "@codemirror/state";
+import { useWorkspaceViewPosition } from "@renderer/features/workspace/useWorkspaceViewPosition";
+import { createFileWorkspaceItemKey } from "@shared/workspace";
 import { focusEditorLine } from "./editorNavigation";
 import { navigateToHeading } from "./headingNavigation";
 
@@ -51,6 +54,7 @@ const editorBasicSetup = {
 };
 
 export interface ObimEditorProps {
+  tabId?: string;
   fileId: string;
   filePath: string;
   paneId: string;
@@ -58,11 +62,26 @@ export interface ObimEditorProps {
   openResource(path: string): void | Promise<void>;
 }
 
-const ObimEditor = memo(({ fileId, filePath, paneId, isMarkdown, openResource }: ObimEditorProps) => {
+const ObimEditor = memo(({ fileId, filePath, paneId, tabId, isMarkdown, openResource }: ObimEditorProps) => {
   const { imageActions, imageViewer } = useEditorImages(filePath);
   const store = useStore();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const editorViewRef = useRef<EditorView | null>(null);
+  const { initialPosition, savePosition } = useWorkspaceViewPosition(tabId, createFileWorkspaceItemKey(filePath));
+  useLayoutEffect(
+    () => () => {
+      if (!tabId) return;
+      const view = editorViewRef.current;
+      if (view)
+        savePosition({
+          kind: "editor",
+          doc: view.state.doc,
+          selection: view.state.selection,
+          scroll: view.scrollSnapshot(),
+        });
+    },
+    [savePosition, tabId],
+  );
   const historyCompartment = useMemo(() => new Compartment(), []);
   const historyExtension = useMemo(() => historyCompartment.of(history()), [historyCompartment]);
   const instanceId = useId();
@@ -83,6 +102,7 @@ const ObimEditor = memo(({ fileId, filePath, paneId, isMarkdown, openResource }:
   const editorTextAtom = useMemo(() => createEditorTextAtom(filePath), [filePath]);
   const text = useAtomValue(editorTextAtom);
   const focusRequest = useAtomValue(editorFocusRequestAtom);
+  const setFocusRequest = useSetAtom(editorFocusRequestAtom);
   const subtaskRequest = useAtomValue(editorSubtaskRequestAtom);
   const setSubtaskRequest = useSetAtom(editorSubtaskRequestAtom);
   const handledSubtaskRequestRef = useRef<typeof subtaskRequest>(null);
@@ -283,11 +303,26 @@ const ObimEditor = memo(({ fileId, filePath, paneId, isMarkdown, openResource }:
   const handleCreateEditor = useCallback(
     (view: EditorView) => {
       editorViewRef.current = view;
+      if (initialPosition?.kind === "editor") {
+        const clamp = (position: number) => Math.min(position, view.state.doc.length);
+        const selection = EditorSelection.create(
+          initialPosition.selection.ranges.map((range) =>
+            EditorSelection.range(clamp(range.anchor), clamp(range.head)),
+          ),
+          initialPosition.selection.mainIndex,
+        );
+        view.dispatch({
+          selection,
+          effects: initialPosition.doc.eq(view.state.doc)
+            ? initialPosition.scroll
+            : EditorView.scrollIntoView(selection.main.head, { y: "start" }),
+        });
+      }
       dispatchPendingTitleEditRequest(view);
       dispatchPendingHeadingRequest(view);
       dispatchPendingSubtaskRequest(view);
     },
-    [dispatchPendingHeadingRequest, dispatchPendingTitleEditRequest, dispatchPendingSubtaskRequest],
+    [initialPosition, dispatchPendingHeadingRequest, dispatchPendingTitleEditRequest, dispatchPendingSubtaskRequest],
   );
 
   useEffect(() => {
@@ -330,8 +365,9 @@ const ObimEditor = memo(({ fileId, filePath, paneId, isMarkdown, openResource }:
           scrollIntoView: true,
         });
       view?.focus();
+      if (view) setFocusRequest((current) => (current === focusRequest ? null : current));
     }
-  }, [filePath, focusRequest, paneId]);
+  }, [filePath, focusRequest, paneId, setFocusRequest]);
 
   useEffect(() => {
     const handleFindShortcut = (event: KeyboardEvent) => {
