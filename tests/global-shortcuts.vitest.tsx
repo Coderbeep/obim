@@ -63,14 +63,16 @@ describe("global shortcuts", () => {
     expect(store.get(focusModePaneIdAtom)).toBeNull();
     now.mockRestore();
   });
-  it.each(["dialog", "search", "commands", "help", "prevented", "repeat", "composition"])(
+  it.each(["dialog", "search", "commands", "help", "completion", "prevented", "repeat", "composition"])(
     "respects Escape ownership for %s",
     (owner) => {
       const store = focusSetup();
       store.set(toggleFocusModeAtom);
       fireEvent.keyDown(window, { key: "Escape" });
       const { unmount, getByRole } = render(
-        <textarea aria-label="Overlay input" role={owner === "dialog" ? "dialog" : undefined} />,
+        <div className={owner === "completion" ? "cm-tooltip" : undefined}>
+          <textarea aria-label="Overlay input" role={owner === "dialog" ? "dialog" : undefined} />
+        </div>,
       );
       if (owner === "search") store.set(isVisibleAtom, true);
       if (owner === "commands") store.set(actionRunnerRequestAtom, { view: "commands" });

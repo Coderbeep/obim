@@ -1967,6 +1967,12 @@ describe("PDFViewer", () => {
       act(() => viewport.focus());
       fireEvent.keyDown(viewport, { key: "f", ...modifiers });
       expect(screen.queryByRole("searchbox", { name: "Search PDF" })).toBeNull();
+      fireEvent.keyDown(viewport, { key: "F", shiftKey: true, ...modifiers });
+      expect(store.get(focusModePaneIdAtom)).toBe("pdf-pane");
+      fireEvent.keyDown(viewport, { key: "Escape" });
+      expect(store.get(focusModePaneIdAtom)).toBe("pdf-pane");
+      fireEvent.keyDown(viewport, { key: "Escape" });
+      expect(store.get(focusModePaneIdAtom)).toBeNull();
     } finally {
       window.config = originalConfig;
     }

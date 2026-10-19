@@ -1,5 +1,5 @@
 import { isShortcut } from "@renderer/shared/keyboardShortcuts";
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { useSetAtom, useStore } from "jotai";
 import { isVisibleAtom } from "@renderer/store/SearchWindowStore";
 import { useFileCreate } from "@renderer/features/files/fileActions";
@@ -26,6 +26,11 @@ export const useGlobalShortcuts = (options?: UseGlobalShortcutsOptions) => {
   const setActionRunnerRequest = useSetAtom(actionRunnerRequestAtom);
   const setShortcutHelpOpen = useSetAtom(shortcutHelpOpenAtom);
   const { createNewFile } = useFileCreate();
+  const createNewFileRef = useRef(createNewFile);
+
+  useLayoutEffect(() => {
+    createNewFileRef.current = createNewFile;
+  }, [createNewFile]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -54,7 +59,10 @@ export const useGlobalShortcuts = (options?: UseGlobalShortcutsOptions) => {
         store.get(actionRunnerRequestAtom) ||
         store.get(contextMenuRequestAtom) ||
         store.get(editorOverlayRequestAtom) ||
-        document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"], .cm-search, .cm-tooltip')
+        // Markdown tables keep an empty offscreen tooltip host mounted at all times.
+        document.querySelector(
+          '[role="dialog"], [role="alertdialog"], [role="menu"], .cm-search, .cm-tooltip:not(:empty)',
+        )
       ) {
         ownedEscapes.add(event);
         lastEscapeAt = null;
@@ -121,7 +129,7 @@ export const useGlobalShortcuts = (options?: UseGlobalShortcutsOptions) => {
         {
           id: "new-note" as const,
           allowEditableTarget: true,
-          action: () => void createNewFile(),
+          action: () => void createNewFileRef.current(),
         },
       ];
 
@@ -140,5 +148,5 @@ export const useGlobalShortcuts = (options?: UseGlobalShortcutsOptions) => {
       window.removeEventListener("keydown", captureEscapeOwner, true);
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [createNewFile, enabled, setActionRunnerRequest, setSearchVisible, setShortcutHelpOpen, store]);
+  }, [enabled, setActionRunnerRequest, setSearchVisible, setShortcutHelpOpen, store]);
 };
