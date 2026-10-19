@@ -77,6 +77,96 @@ describe("workspace moves with link updates", () => {
     expect(await moveWorkspaceItemWithLinks(root, path.join(root, "Old.md"), path.join(root, "New.md"))).toBeNull();
     expect(await readFile(path.join(root, "source.md"), "utf8")).toBe("[[Old]]");
   });
+
+  it("renames PDF references without rewriting the PDF bytes or its annotation fragment", async () => {
+    const passage = "#page=3&selection=0,2,1,9&color=blue";
+    const root = await workspace({
+      "Papers/Old.pdf": "",
+      "Notes/source.md": `[Original label](../Papers/Old.pdf${passage})`,
+      "root.md": `[Original label](Papers/Old.pdf${passage})\n\n\`[example](Papers/Old.pdf${passage})\``,
+    });
+    const bytes = new Uint8Array([37, 80, 68, 70, 0, 255, 128]);
+    await writeFile(path.join(root, "Papers/Old.pdf"), bytes);
+    const result = await moveWorkspaceItemWithLinks(
+      root,
+      path.join(root, "Papers/Old.pdf"),
+      path.join(root, "Papers/Final report.pdf"),
+    );
+    expect(await readFile(path.join(root, "Papers/Final report.pdf"))).toEqual(Buffer.from(bytes));
+    expect(await readFile(path.join(root, "Notes/source.md"), "utf8")).toBe(
+      `[Original label](../Papers/Final%20report.pdf${passage})`,
+    );
+    expect(await readFile(path.join(root, "root.md"), "utf8")).toBe(
+      `[Original label](Papers/Final%20report.pdf${passage})\n\n\`[example](Papers/Old.pdf${passage})\``,
+    );
+    expect(result?.updatedLinkCount).toBe(2);
+    expect(result?.linkUpdates.map((update) => update.path)).toEqual([
+      path.join(root, "Notes/source.md"),
+      path.join(root, "root.md"),
+    ]);
+    expect(result?.linkMove?.afterPaths).toContain("Papers/Final report.pdf");
+  });
+
+  it("repairs relative PDF links when a note moves while retaining workspace-root links", async () => {
+    const passage = "#page=2&selection=1,0,1,8&color=green";
+    const root = await workspace({
+      "Papers/report.pdf": "PDF bytes",
+      "Notes/source.md": `[Relative](../Papers/report.pdf${passage}) [Root](Papers/report.pdf${passage})`,
+    });
+    await mkdir(path.join(root, "Archive/Deep"), { recursive: true });
+    await moveWorkspaceItemWithLinks(
+      root,
+      path.join(root, "Notes/source.md"),
+      path.join(root, "Archive/Deep/source.md"),
+    );
+    expect(await readFile(path.join(root, "Archive/Deep/source.md"), "utf8")).toBe(
+      `[Relative](../../Papers/report.pdf${passage}) [Root](Papers/report.pdf${passage})`,
+    );
+    expect(await readFile(path.join(root, "Papers/report.pdf"), "utf8")).toBe("PDF bytes");
+  });
+
+  it("moves notes and PDFs together in a folder while preserving their relative references", async () => {
+    const root = await workspace({
+      "Old/report.pdf": "PDF bytes",
+      "Old/sub/source.md": "[Local](../report.pdf#page=1) [Root](Old/report.pdf#page=1) [[source]]",
+      "outside.md": "[PDF](Old/report.pdf#page=1&selection=0,0,0,5) [[Old/sub/source]]",
+    });
+    await mkdir(path.join(root, "Archive"));
+    await moveWorkspaceItemWithLinks(root, path.join(root, "Old"), path.join(root, "Archive/New"));
+    expect(await readFile(path.join(root, "Archive/New/sub/source.md"), "utf8")).toBe(
+      "[Local](../report.pdf#page=1) [Root](Archive/New/report.pdf#page=1) [[source]]",
+    );
+    expect(await readFile(path.join(root, "outside.md"), "utf8")).toBe(
+      "[PDF](Archive/New/report.pdf#page=1&selection=0,0,0,5) [[Archive/New/sub/source]]",
+    );
+  });
+
+  it("uses the numbered PDF destination when moving into a folder with the same filename", async () => {
+    const root = await workspace({
+      "A/report.pdf": "moving PDF",
+      "B/report.pdf": "existing PDF",
+      "source.md": "[Moving](A/report.pdf#page=1) [Existing](B/report.pdf#page=2)",
+    });
+    await moveWorkspaceItemWithLinks(root, path.join(root, "A/report.pdf"), path.join(root, "B/report.pdf"), true);
+    expect(await readFile(path.join(root, "source.md"), "utf8")).toBe(
+      "[Moving](B/report%201.pdf#page=1) [Existing](B/report.pdf#page=2)",
+    );
+    expect(await readFile(path.join(root, "B/report.pdf"), "utf8")).toBe("existing PDF");
+    expect(await readFile(path.join(root, "B/report 1.pdf"), "utf8")).toBe("moving PDF");
+  });
+
+  it("restores a PDF and rewritten references when a later note write fails", async () => {
+    const reference = "[Passage](Old.pdf#page=1&selection=0,0,0,5&color=red)";
+    const root = await workspace({ "Old.pdf": "PDF bytes", "a.md": reference, "b.md": reference });
+    state.failWrite = 2;
+    await expect(
+      moveWorkspaceItemWithLinks(root, path.join(root, "Old.pdf"), path.join(root, "New.pdf")),
+    ).rejects.toBeInstanceOf(RestoredLinkMoveError);
+    expect(await readFile(path.join(root, "Old.pdf"), "utf8")).toBe("PDF bytes");
+    await expect(access(path.join(root, "New.pdf"))).rejects.toThrow();
+    expect(await readFile(path.join(root, "a.md"), "utf8")).toBe(reference);
+    expect(await readFile(path.join(root, "b.md"), "utf8")).toBe(reference);
+  });
   it("rolls back the move and already written links if a later write fails", async () => {
     const root = await workspace({ "Old.md": "", "a.md": "[[Old]]", "b.md": "[[Old]]" });
     state.failWrite = 2;

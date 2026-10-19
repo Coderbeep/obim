@@ -14,14 +14,14 @@ export class RestoredLinkMoveError extends Error {
   }
 }
 
-const collectNotes = async (root: string): Promise<string[]> => {
+const collectLinkTargets = async (root: string): Promise<string[]> => {
   const paths: string[] = [];
   const visit = async (directory: string) => {
     for (const entry of await readdir(directory, { withFileTypes: true })) {
       const fullPath = path.join(directory, entry.name);
       // Match the explorer's hidden-directory and symlink exclusions.
       if (entry.isDirectory() && !entry.name.startsWith(".")) await visit(fullPath);
-      else if (entry.isFile() && /\.(md|markdown)$/i.test(entry.name)) paths.push(fullPath);
+      else if (entry.isFile() && /\.(md|markdown|pdf)$/i.test(entry.name)) paths.push(fullPath);
     }
   };
   await visit(root);
@@ -52,7 +52,7 @@ export const moveWorkspaceItemWithLinks = (root: string, source: string, request
       return { output: destination, linkUpdates: [] };
     }
     if (!(await destinationAvailable())) return null;
-    const before = await collectNotes(root);
+    const before = await collectLinkTargets(root);
     const remap = (file: string) =>
       file === source || file.startsWith(`${source}${path.sep}`) ? destination + file.slice(source.length) : file;
     const after = before.map(remap);
@@ -62,6 +62,8 @@ export const moveWorkspaceItemWithLinks = (root: string, source: string, request
     let updatedLinkCount = 0;
     const changes: { beforePath: string; path: string; previousContent: string; content: string }[] = [];
     for (let index = 0; index < before.length; index++) {
+      // PDFs are link destinations, never text snapshots to rewrite.
+      if (!/\.(md|markdown)$/i.test(before[index])) continue;
       const previousContent = await readFile(before[index], "utf8");
       const { content, count } = rewriteNoteLinksWithCount(previousContent, {
         beforePaths,

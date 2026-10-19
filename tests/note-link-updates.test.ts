@@ -61,4 +61,39 @@ describe("automatic note link updates", () => {
       }),
     ).toBe("[Other](../../Other.md) [[Other]]");
   });
+
+  it("preserves PDF passage fragments, labels, titles, and destination encoding", () => {
+    const passage = "#page=12&selection=3,2,8,10&color=purple";
+    const source =
+      `[Passage](../Papers/Old%20Report.pdf${passage} "Original title")\n` +
+      `[Root](/Papers/Old%20Report.pdf${passage})\n` +
+      `[Angle](<../Papers/Old Report.pdf${passage}>)\n\n` +
+      `[clip]: ../Papers/Old%20Report.pdf${passage}\n` +
+      `[Web](https://example.com/Papers/Old%20Report.pdf${passage})`;
+    expect(
+      rewriteNoteLinks(source, {
+        beforePaths: ["Papers/Old Report.pdf", "Notes/source.md"],
+        afterPaths: ["Archive/Final (1).pdf", "Notes/source.md"],
+        sourceBefore: "Notes/source.md",
+        sourceAfter: "Notes/source.md",
+      }),
+    ).toBe(
+      `[Passage](../Archive/Final%20%281%29.pdf${passage} "Original title")\n` +
+        `[Root](/Archive/Final%20%281%29.pdf${passage})\n` +
+        `[Angle](<../Archive/Final (1).pdf${passage}>)\n\n` +
+        `[clip]: ../Archive/Final%20%281%29.pdf${passage}\n` +
+        `[Web](https://example.com/Papers/Old%20Report.pdf${passage})`,
+    );
+  });
+
+  it("does not let PDF paths make wiki note names ambiguous", () => {
+    expect(
+      rewriteNoteLinks("[[Report.pdf]] [[Papers/Report.pdf]] [PDF](Papers/Report.pdf#page=1)", {
+        beforePaths: ["Papers/Report.pdf", "Notes/Report.pdf.md"],
+        afterPaths: ["Archive/Report.pdf", "Notes/Final.pdf.md"],
+        sourceBefore: "source.md",
+        sourceAfter: "source.md",
+      }),
+    ).toBe("[[Final.pdf]] [[Papers/Report.pdf]] [PDF](Archive/Report.pdf#page=1)");
+  });
 });

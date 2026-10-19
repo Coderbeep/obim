@@ -41,12 +41,14 @@ export interface NoteLinkMove {
   sourceAfter: string;
 }
 
-/** Updates only destinations that resolve to a known note; code and ambiguous wiki targets stay literal. */
+/** Updates known note and PDF destinations; code and ambiguous wiki targets stay literal. */
 export const rewriteNoteLinks = (content: string, move: NoteLinkMove): string =>
   rewriteNoteLinksWithCount(content, move).content;
 
 export const rewriteNoteLinksWithCount = (content: string, move: NoteLinkMove) => {
   const remap = new Map(move.beforePaths.map((value, index) => [value, move.afterPaths[index]]));
+  const notesBefore = move.beforePaths.filter((value) => /\.(md|markdown)$/i.test(value));
+  const notesAfter = move.afterPaths.filter((value) => /\.(md|markdown)$/i.test(value));
   const edits: { from: number; to: number; text: string }[] = [];
   const blocked: { from: number; to: number }[] = [];
   const urls: { from: number; to: number }[] = [];
@@ -80,8 +82,8 @@ export const rewriteNoteLinksWithCount = (content: string, move: NoteLinkMove) =
     for (const value of [target, decode(target)]) {
       const withoutExtension = value.replace(/\.(?:md|markdown)$/i, "");
       const matches = withoutExtension.includes("/")
-        ? move.beforePaths.filter((p) => p.replace(/\.(?:md|markdown)$/i, "") === normalize(withoutExtension))
-        : move.beforePaths.filter((p) => stem(p).toLowerCase() === withoutExtension.toLowerCase());
+        ? notesBefore.filter((p) => p.replace(/\.(?:md|markdown)$/i, "") === normalize(withoutExtension))
+        : notesBefore.filter((p) => stem(p).toLowerCase() === withoutExtension.toLowerCase());
       if (matches.length === 1) {
         resolved = matches[0];
         break;
@@ -90,7 +92,7 @@ export const rewriteNoteLinksWithCount = (content: string, move: NoteLinkMove) =
     }
     if (!resolved) continue;
     const next = remap.get(resolved)!;
-    const unique = move.afterPaths.filter((p) => stem(p).toLowerCase() === stem(next).toLowerCase()).length === 1;
+    const unique = notesAfter.filter((p) => stem(p).toLowerCase() === stem(next).toLowerCase()).length === 1;
     if (next === resolved && (target.includes("/") || unique)) continue;
     const destination = target.includes("/") || !unique ? next.replace(/\.(?:md|markdown)$/i, "") : stem(next);
     const extension = /\.(md|markdown)$/i.exec(target)?.[0] ?? "";
