@@ -13,7 +13,7 @@ import {
 import { EditorView, keymap } from "@renderer/features/editor/codemirror-view";
 import { isShortcut } from "@renderer/shared/keyboardShortcuts";
 import { isWorkspaceTransitionActive } from "@renderer/store/workspaceTransitionStore";
-import { createEditorFindPanel } from "./editorFindPanel";
+import { createEditorFindPanel, toggleEditorFindPanel } from "./editorFindPanel";
 
 import type { Notification } from "@renderer/features/notifications/notifications";
 import type { EditorOverlayPort } from "@renderer/store/editorOverlayStore";
@@ -64,7 +64,7 @@ const searchAtTop = [
       keydown(event, view) {
         if (event.defaultPrevented || event.isComposing || !isShortcut("find-note", event)) return false;
         event.preventDefault();
-        return openSearchPanel(view);
+        return toggleEditorFindPanel(view);
       },
     }),
   ),

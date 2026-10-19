@@ -41,6 +41,8 @@ const codeMirrorState = vi.hoisted(() => {
     nextInstanceId: 0,
     onChange: undefined as ((value: string) => void) | undefined,
     openSearchPanel: vi.fn(),
+    closeSearchPanel: vi.fn(),
+    searchPanelOpen: vi.fn(() => false),
     requestNoteTitleEditEffect: { of: vi.fn((value: number) => ({ requestNoteTitleEdit: value })) },
   };
 });
@@ -59,7 +61,12 @@ vi.mock("../src/renderer/src/features/editor/headingNavigation", () => ({
   navigateToHeading: codeMirrorState.navigateToHeading,
 }));
 
-vi.mock("@codemirror/search", () => ({ openSearchPanel: codeMirrorState.openSearchPanel }));
+vi.mock("@codemirror/search", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@codemirror/search")>()),
+  openSearchPanel: codeMirrorState.openSearchPanel,
+  closeSearchPanel: codeMirrorState.closeSearchPanel,
+  searchPanelOpen: codeMirrorState.searchPanelOpen,
+}));
 
 vi.mock("@renderer/features/editor/codemirror-view", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@renderer/features/editor/codemirror-view")>();
@@ -663,7 +670,13 @@ describe("ObimEditor lifecycle", () => {
     expect(codeMirrorState.findFromDOM).toHaveBeenCalledWith(editor);
     expect(codeMirrorState.openSearchPanel).toHaveBeenCalledWith(codeMirrorState.editorView);
 
+    codeMirrorState.searchPanelOpen.mockReturnValueOnce(true);
+    fireEvent.keyDown(screen.getByRole("button", { name: "Pane header" }), { key: "f", ctrlKey: true });
+    expect(codeMirrorState.closeSearchPanel).toHaveBeenCalledWith(codeMirrorState.editorView);
+    expect(codeMirrorState.editorView.focus).toHaveBeenCalled();
+
     codeMirrorState.openSearchPanel.mockClear();
+    codeMirrorState.closeSearchPanel.mockClear();
     fireEvent.keyDown(screen.getByRole("textbox", { name: "Filename" }), { key: "f", ctrlKey: true });
     expect(codeMirrorState.openSearchPanel).not.toHaveBeenCalled();
   });

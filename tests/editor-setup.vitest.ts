@@ -4,7 +4,9 @@ import { beginWorkspaceTransition } from "../src/renderer/src/store/workspaceTra
 
 import { deleteCharBackward, toggleComment } from "@codemirror/commands";
 import { EditorSelection, EditorState, type Extension } from "@codemirror/state";
-import { keymap } from "@codemirror/view";
+import { EditorView, keymap } from "@codemirror/view";
+import { searchPanelOpen, getSearchQuery } from "@codemirror/search";
+import { installCodeMirrorDomPolyfills } from "./cm-extension-test-utils";
 import { test, vi } from "vitest";
 
 import {
@@ -152,5 +154,70 @@ test("workspace transitions reject edits in both Markdown and plain-text editors
     }
   } finally {
     lease?.release();
+  }
+});
+
+test.each([
+  [false, false],
+  [false, true],
+  [true, false],
+  [true, true],
+])("Find toggles from document and search controls (Markdown=%s, macOS=%s)", (isMarkdown, isMacOS) => {
+  installCodeMirrorDomPolyfills();
+  const originalConfig = window.config;
+  Object.defineProperty(window, "config", { configurable: true, writable: true, value: { isMacOS } });
+  vi.stubGlobal("matchMedia", () => ({ matches: false, addEventListener() {}, removeEventListener() {} }));
+  const parent = document.body.appendChild(document.createElement("div"));
+  const view = new EditorView({
+    parent,
+    state: EditorState.create({
+      doc: "apple banana apple",
+      extensions: createEditorExtensions({
+        isMarkdown,
+        owner: "find-toggle",
+        overlay: { open() {}, close() {}, hotkey() {} },
+        notify() {},
+        openResource() {},
+        openExternal() {},
+        noteHeader: [],
+      }),
+    }),
+  });
+  const shortcut = (target: HTMLElement) =>
+    target.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "f",
+        ctrlKey: !isMacOS,
+        metaKey: isMacOS,
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+  try {
+    view.focus();
+    shortcut(view.contentDOM);
+    assert.equal(searchPanelOpen(view.state), true);
+    const input = parent.querySelector<HTMLInputElement>('input[type="search"]')!;
+    assert.equal(document.activeElement, input);
+    input.value = "apple";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    assert.equal(getSearchQuery(view.state).search, "apple");
+    shortcut(input);
+    assert.equal(searchPanelOpen(view.state), false);
+    assert.equal(parent.querySelector('input[type="search"]'), null);
+    assert.equal(document.activeElement, view.contentDOM);
+    shortcut(view.contentDOM);
+    assert.equal(searchPanelOpen(view.state), true);
+    assert.equal(getSearchQuery(view.state).search, "apple");
+    // It also closes if the user moves back into the document with Find open.
+    view.focus();
+    shortcut(view.contentDOM);
+    assert.equal(searchPanelOpen(view.state), false);
+    assert.equal(document.activeElement, view.contentDOM);
+    assert.equal(view.state.doc.toString(), "apple banana apple");
+  } finally {
+    view.destroy();
+    parent.remove();
+    window.config = originalConfig;
   }
 });

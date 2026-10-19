@@ -1,5 +1,5 @@
 import { history } from "@codemirror/commands";
-import { openSearchPanel } from "@codemirror/search";
+import { toggleEditorFindPanel } from "./editorFindPanel";
 import { isShortcut } from "@renderer/shared/keyboardShortcuts";
 import { dispatchPdfReferenceHover } from "@renderer/shared/pdfReferenceHover";
 import { resolveTaskNoteSubtask } from "@renderer/shared/taskNoteSubtasks";
@@ -371,7 +371,7 @@ const ObimEditor = memo(({ fileId, filePath, paneId, tabId, isMarkdown, openReso
 
   useEffect(() => {
     const handleFindShortcut = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || !isShortcut("find-note", event)) {
+      if (event.defaultPrevented || event.isComposing || !isShortcut("find-note", event)) {
         return;
       }
 
@@ -385,7 +385,7 @@ const ObimEditor = memo(({ fileId, filePath, paneId, tabId, isMarkdown, openReso
       if (!view) return;
 
       event.preventDefault();
-      openSearchPanel(view);
+      toggleEditorFindPanel(view);
     };
 
     window.addEventListener("keydown", handleFindShortcut);

@@ -2177,7 +2177,8 @@ export const PDFViewer = ({
     if (isShortcut("focus-mode", event)) return;
     if (isShortcut("find-note", event)) {
       event.preventDefault();
-      openSearch();
+      if (isSearchOpen) closeSearch(true);
+      else openSearch();
       return;
     }
     if (

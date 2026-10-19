@@ -3,10 +3,21 @@ import {
   findNext,
   findPrevious,
   getSearchQuery,
+  openSearchPanel,
+  searchPanelOpen,
   SearchQuery,
   setSearchQuery,
 } from "@codemirror/search";
 import type { EditorView, Panel } from "@codemirror/view";
+import { isShortcut } from "@renderer/shared/keyboardShortcuts";
+
+/** Find is a toggle from both the document and its search controls. */
+export const toggleEditorFindPanel = (view: EditorView): boolean => {
+  if (!searchPanelOpen(view.state)) return openSearchPanel(view);
+  const closed = closeSearchPanel(view);
+  view.focus();
+  return closed;
+};
 
 /** A compact find panel using CodeMirror's search state and navigation. */
 export const createEditorFindPanel = (view: EditorView): Panel => {
@@ -97,7 +108,11 @@ export const createEditorFindPanel = (view: EditorView): Panel => {
   input.oninput = () =>
     view.dispatch({ effects: setSearchQuery.of(new SearchQuery({ search: input.value, literal: true })) });
   dom.onkeydown = (event) => {
-    if (event.key === "Escape") {
+    if (!event.defaultPrevented && !event.isComposing && isShortcut("find-note", event)) {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleEditorFindPanel(view);
+    } else if (event.key === "Escape") {
       event.preventDefault();
       event.stopPropagation();
       closeSearchPanel(view);

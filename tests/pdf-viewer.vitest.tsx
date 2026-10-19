@@ -1952,10 +1952,21 @@ describe("PDFViewer", () => {
       fireEvent.keyDown(viewport, { key: "F", shiftKey: true, ...modifiers });
       expect(store.get(focusModePaneIdAtom)).toBe("pdf-pane");
       expect(screen.queryByRole("searchbox", { name: "Search PDF" })).toBeNull();
+      fireEvent.keyDown(viewport, { key: "f", ...modifiers });
+      const findInput = await screen.findByRole("searchbox", { name: "Search PDF" });
+      fireEvent.change(findInput, { target: { value: "revenue" } });
+      fireEvent.keyDown(findInput, { key: "f", ...modifiers });
+      expect(screen.queryByRole("searchbox", { name: "Search PDF" })).toBeNull();
+      await waitFor(() => expect(document.activeElement).toBe(viewport));
+      expect(store.get(focusModePaneIdAtom)).toBe("pdf-pane");
       fireEvent.keyDown(viewport, { key: "F", shiftKey: true, ...modifiers });
       expect(store.get(focusModePaneIdAtom)).toBeNull();
       fireEvent.keyDown(viewport, { key: "f", ...modifiers });
       expect(await screen.findByRole("searchbox", { name: "Search PDF" })).toBeTruthy();
+      // Toggle also closes when focus has moved back to the PDF viewport.
+      act(() => viewport.focus());
+      fireEvent.keyDown(viewport, { key: "f", ...modifiers });
+      expect(screen.queryByRole("searchbox", { name: "Search PDF" })).toBeNull();
     } finally {
       window.config = originalConfig;
     }
