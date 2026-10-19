@@ -45,6 +45,7 @@ export const notifyFileSaveFailure = (
     notifySaveError(store, path, result.error);
     return;
   }
+  const identity = store.get(fileBufferIdentitiesAtom)[path];
 
   store.set(fileSaveStatesByPathAtom, (states) => ({
     ...states,
@@ -61,7 +62,14 @@ export const notifyFileSaveFailure = (
     timeout: 0,
     action: {
       label: "Review conflict",
-      onClick: () => store.set(fileConflictReviewRequestAtom, { path }),
+      onClick: () => {
+        // A failed optimistic rename can restore the path before this action is used.
+        const currentPath =
+          (identity &&
+            Object.entries(store.get(fileBufferIdentitiesAtom)).find(([, value]) => value === identity)?.[0]) ??
+          path;
+        store.set(fileConflictReviewRequestAtom, { path: currentPath });
+      },
     },
   });
 };

@@ -16,6 +16,7 @@ import {
   expandedDirectoriesAtom,
   explorerSelectionPathsAtom,
   fileAccessesAtom,
+  fileTreeAtom,
   fileExplorerRevealRequestAtom,
   recentFilesAtom,
   renamingRequestAtom,
@@ -34,11 +35,21 @@ const remapRelativePath = (relativePath: string, remapPath: (path: string) => st
 export type RemapFileReferencesPayload = {
   notesDirectoryPath: string;
   remapPath: (path: string) => string;
+  includeTree?: boolean;
 };
 
 export const remapFileReferencesAtom = atom(
   null,
-  (_get, set, { notesDirectoryPath, remapPath }: RemapFileReferencesPayload) => {
+  (_get, set, { notesDirectoryPath, remapPath, includeTree }: RemapFileReferencesPayload) => {
+    if (includeTree) {
+      const remapItems = (items: FileItem[]): FileItem[] =>
+        items.map((item) => {
+          const path = remapPath(item.path);
+          const next = path === item.path ? item : normalizeFileItemPath(item, path, notesDirectoryPath);
+          return next.isDirectory && next.children ? { ...next, children: remapItems(next.children) } : next;
+        });
+      set(fileTreeAtom, remapItems);
+    }
     set(remapWorkspaceFileReferencesAtom, { notesDirectoryPath, remapPath });
     set(fileLoadStatesByPathAtom, (states) =>
       Object.fromEntries(Object.entries(states).map(([path, state]) => [remapPath(path), state])),

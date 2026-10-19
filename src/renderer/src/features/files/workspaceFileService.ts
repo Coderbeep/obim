@@ -1,4 +1,8 @@
-import { runWorkspaceMutation, type WorkspaceTransitionLease } from "@renderer/store/workspaceTransitionStore";
+import {
+  runWorkspaceMutation,
+  waitForBackgroundWorkspaceOperation,
+  type WorkspaceTransitionLease,
+} from "@renderer/store/workspaceTransitionStore";
 import { workspaceMutationApi } from "@renderer/features/files/workspaceMutationApi";
 /**
  * Renderer-side adapter for workspace filesystem operations exposed by the preload API.
@@ -43,6 +47,7 @@ export const doesFileExist = async (filePath: string): Promise<boolean> => {
 
 /** Reads a text file by path and returns its contents. */
 export const readFile = async (filePath: string): Promise<FileOperationResult<{ content: string }>> => {
+  await waitForBackgroundWorkspaceOperation();
   const openResult = await tryCatch<string>(window.api.openFile(filePath));
   if (openResult.error) {
     return { success: false, error: String(openResult.error) };
@@ -52,6 +57,7 @@ export const readFile = async (filePath: string): Promise<FileOperationResult<{ 
 
 /** Reads a workspace file without text decoding. */
 export const readBinaryFile = async (filePath: string): Promise<FileOperationResult<{ content: Uint8Array }>> => {
+  await waitForBackgroundWorkspaceOperation();
   const readResult = await tryCatch<Uint8Array>(window.api.readBinaryFile(filePath));
   if (readResult.error) return { success: false, error: String(readResult.error) };
   return { success: true, content: readResult.data };
@@ -81,6 +87,7 @@ export const fingerprintWorkspaceFile = async (
 
 /** Reads editor text together with the disk version required for conditional saves. */
 export const readTextFile = async (filePath: string): Promise<FileOperationResult<WorkspaceTextFile>> => {
+  await waitForBackgroundWorkspaceOperation();
   const openResult = await tryCatch<WorkspaceTextFile>(window.api.openTextFile(filePath));
   return openResult.error ? { success: false, error: String(openResult.error) } : { success: true, ...openResult.data };
 };
@@ -89,6 +96,7 @@ export const readTextFile = async (filePath: string): Promise<FileOperationResul
 export const readLargeTextPreview = async (
   filePath: string,
 ): Promise<FileOperationResult<{ preview: LargeTextPreview }>> => {
+  await waitForBackgroundWorkspaceOperation();
   const result = await tryCatch<LargeTextPreview>(window.api.readLargeTextPreview(filePath));
   if (result.error) return { success: false, error: String(result.error) };
   return { success: true, preview: result.data };

@@ -7,6 +7,8 @@ import type { Notification } from "../../src/renderer/src/features/notifications
 import { bookmarksAtom } from "../../src/renderer/src/store/bookmarkStore";
 import {
   expandedDirectoriesAtom,
+  fileTreeAtom,
+  pendingFileRenameAtom,
   explorerSectionSizesAtom,
   explorerSectionsAtom,
   recentFilesAtom,
@@ -338,6 +340,31 @@ describe("FileExplorer", () => {
 
     await screen.findByText("/notes-root/recovered.md");
     expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("keeps the optimistic name through stale tree responses and refreshes after rename settles", async () => {
+    const old = file("/notes-root/Old.md");
+    const renamed = file("/notes-root/New.md");
+    let resolve!: (snapshot: { revision: number; items: FileItem[] }) => void;
+    vi.mocked(window.api.getFilesRecursiveAsTree).mockImplementationOnce(
+      () =>
+        new Promise((done) => {
+          resolve = done;
+        }),
+    );
+    const { store } = renderExplorer();
+    await act(async () => {
+      store.set(pendingFileRenameAtom, true);
+      store.set(fileTreeAtom, [renamed]);
+      resolve({ revision: 1, items: [old] });
+    });
+    requestReload(store);
+    expect(store.get(fileTreeAtom)[0].path).toBe(renamed.path);
+    expect(window.api.getFilesRecursiveAsTree).toHaveBeenCalledTimes(1);
+    vi.mocked(window.api.getFilesRecursiveAsTree).mockResolvedValue({ revision: 2, items: [renamed] });
+    act(() => store.set(pendingFileRenameAtom, false));
+    await waitFor(() => expect(window.api.getFilesRecursiveAsTree).toHaveBeenCalledTimes(2));
+    expect(store.get(fileTreeAtom)[0].path).toBe(renamed.path);
   });
 
   it("ignores a pending load and later refresh state after unmount", async () => {

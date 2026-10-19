@@ -400,6 +400,26 @@ test("the note title accepts a filename change when focus leaves the input", asy
   assert.equal(screen.queryByRole("textbox", { name: "Rename Agency meeting" }), null);
 });
 
+test("confirming a note title returns to the body while rename is still pending", async () => {
+  let finish!: (success: boolean) => void;
+  const renameTitle = vi.fn(
+    () =>
+      new Promise<boolean>((resolve) => {
+        finish = resolve;
+      }),
+  );
+  const user = userEvent.setup();
+  const view = createView("body", createNoteHeaderExtension("Old", renameTitle));
+  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  await user.click(screen.getByRole("button", { name: "Rename Old" }));
+  const input = screen.getByRole("textbox", { name: "Rename Old" });
+  await user.clear(input);
+  await user.type(input, "New{Enter}");
+  assert.equal(screen.queryByRole("textbox", { name: "Rename Old" }), null);
+  assert.equal(view.hasFocus, true);
+  finish(true);
+});
+
 test("a requested note-title edit selects the complete filename", async () => {
   const renameTitle = vi.fn(async () => true);
   const requestStarted = vi.fn();

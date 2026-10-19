@@ -29,11 +29,13 @@ import { fileBuffersByPathAtom } from "../src/renderer/src/store/fileBufferStore
 import {
   fileAccessesAtom,
   fileTreeAtom,
+  pendingFileRenameAtom,
   recentFilesAtom,
   reloadRevisionAtom,
   renamingRequestAtom,
 } from "../src/renderer/src/store/fileExplorerStore";
 import { notificationsAtom } from "../src/renderer/src/store/NotificationsStore";
+import { fileConflictReviewRequestAtom } from "../src/renderer/src/store/fileSaveStore";
 import { currentFileAtom, openWorkspaceItemsByKeyAtom } from "../src/renderer/src/store/workspaceResourceStore";
 import { createFileWorkspaceItem } from "../src/shared/workspace";
 import { createEditorTab } from "../src/renderer/src/store/editorTabStore";
@@ -69,7 +71,7 @@ const note = (path: string): Extract<FileItem, { isDirectory: false }> => ({
 
 const fileVersion = { id: "file-1", mtimeMs: 100, sizeBytes: 10 };
 
-const directory = (path: string): FileItem => ({
+const directory = (path: string): Extract<FileItem, { isDirectory: true }> => ({
   ...note(path),
   isDirectory: true,
   mimeType: null,
@@ -577,6 +579,101 @@ describe("file move actions", () => {
 });
 
 describe("file action state boundaries", () => {
+  it("opens save-conflict review at the restored path after optimistic rename rolls back", async () => {
+    const file = note("/notes/Old.md");
+    const store = createStore();
+    store.set(fileTreeAtom, [file]);
+    store.set(fileBuffersByPathAtom, {
+      [file.path]: { savedText: "saved", editorText: "draft", version: fileVersion },
+    });
+    commandMocks.saveFile.mockResolvedValue({ success: false, error: "changed on disk", errorCode: "conflict" });
+    const { result } = renderActions(useFileRename, store);
+    await act(() => result.current.saveRename(file.path, "New"));
+    const notification = store.get(notificationsAtom).find((item) => item.title === "Note changed on disk");
+    expect(notification?.path).toBe(file.path);
+    act(() => notification?.action?.onClick());
+    expect(store.get(fileConflictReviewRequestAtom)?.path).toBe(file.path);
+  });
+
+  it("updates all file references before a prerequisite save finishes and restores them on failure", async () => {
+    const file = note("/notes/Old.md");
+    const store = createStore();
+    store.set(fileTreeAtom, [file]);
+    selectCurrentFile(store, file);
+    store.set(bookmarksAtom, [file]);
+    store.set(recentFilesAtom, [file]);
+    store.set(fileBuffersByPathAtom, {
+      [file.path]: { savedText: "saved", editorText: "draft", version: fileVersion },
+    });
+    let finish!: (value: unknown) => void;
+    commandMocks.saveFile.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const { result } = renderActions(useFileRename, store);
+    let pending!: ReturnType<typeof result.current.saveRename>;
+    await act(async () => {
+      pending = result.current.saveRename(file.path, "New");
+    });
+    expect(commandMocks.renameFile).not.toHaveBeenCalled();
+    expect(commandMocks.saveFile).toHaveBeenCalledWith(file.path, "draft", fileVersion, expect.anything());
+    expect(store.get(currentFileAtom)?.path).toBe("/notes/New.md");
+    expect(store.get(fileTreeAtom)[0].path).toBe("/notes/New.md");
+    expect(store.get(bookmarksAtom)[0].path).toBe("/notes/New.md");
+    expect(store.get(recentFilesAtom)[0].path).toBe("/notes/New.md");
+    expect(store.get(pendingFileRenameAtom)).toBe(true);
+    await act(async () => {
+      store.set(fileBuffersByPathAtom, (buffers) => ({
+        ...buffers,
+        "/notes/New.md": { ...buffers["/notes/New.md"], editorText: "new typing" },
+      }));
+      finish({ success: false, error: "disk full" });
+      await pending;
+    });
+    expect(store.get(currentFileAtom)?.path).toBe(file.path);
+    expect(store.get(fileTreeAtom)[0].path).toBe(file.path);
+    expect(store.get(bookmarksAtom)[0].path).toBe(file.path);
+    expect(store.get(recentFilesAtom)[0].path).toBe(file.path);
+    expect(store.get(fileBuffersByPathAtom)[file.path].editorText).toBe("new typing");
+    expect(store.get(pendingFileRenameAtom)).toBe(false);
+  });
+
+  it("remaps a directory and its open descendants immediately, then rolls back without losing typing", async () => {
+    const child = note("/notes/Old/Child.md");
+    const folder = { ...directory("/notes/Old"), children: [child] };
+    const store = createStore();
+    store.set(fileTreeAtom, [folder]);
+    selectCurrentFile(store, child);
+    store.set(fileBuffersByPathAtom, { [child.path]: { savedText: "body", editorText: "body", version: fileVersion } });
+    let finish!: (value: unknown) => void;
+    commandMocks.renameFile.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const { result } = renderActions(useFileRename, store);
+    let pending!: ReturnType<typeof result.current.saveRename>;
+    await act(async () => {
+      pending = result.current.saveRename(folder.path, "New");
+    });
+    expect(store.get(fileTreeAtom)[0].children?.[0].path).toBe("/notes/New/Child.md");
+    expect(store.get(currentFileAtom)?.path).toBe("/notes/New/Child.md");
+    await act(async () => {
+      store.set(fileBuffersByPathAtom, (buffers) => ({
+        ...buffers,
+        "/notes/New/Child.md": { ...buffers["/notes/New/Child.md"], editorText: "typed during rename" },
+      }));
+      finish({ success: false, error: "permission denied" });
+      await pending;
+    });
+    expect(store.get(fileTreeAtom)[0].children?.[0].path).toBe(child.path);
+    expect(store.get(fileBuffersByPathAtom)[child.path].editorText).toBe("typed during rename");
+    expect(store.get(pendingFileRenameAtom)).toBe(false);
+  });
+
   it("saves a dirty file before rename and remaps the saved buffer", async () => {
     const file = note("/notes/Old.md");
     const store = createStore();
@@ -599,6 +696,7 @@ describe("file action state boundaries", () => {
     });
 
     expect(order).toEqual(["save", "rename"]);
+    expect(commandMocks.saveFile).toHaveBeenCalledWith("/notes/Old.md", "draft", undefined, expect.anything());
     expect(store.get(fileBuffersByPathAtom)).toEqual({
       "/notes/New.md": { savedText: "draft", editorText: "draft" },
     });
@@ -730,6 +828,8 @@ describe("file action state boundaries", () => {
       renaming = result.current.rename.saveRename(file.path, "New");
     });
     expect(store.get(workspaceTransitionAtom)?.background).toBe(true);
+    expect(store.get(fileTreeAtom)[0].path).toBe("/notes/New.md");
+    expect(store.get(fileBuffersByPathAtom)["/notes/Old.md"]).toBeUndefined();
     expect(document.querySelector('[role="dialog"]')).toBeNull();
     await act(async () => {
       await vi.advanceTimersByTimeAsync(250);
@@ -738,9 +838,9 @@ describe("file action state boundaries", () => {
     act(() => {
       store.set(fileBuffersByPathAtom, (buffers) => ({
         ...buffers,
-        [file.path]: { ...buffers[file.path], editorText: "[[Old]] newer typing" },
+        "/notes/New.md": { ...buffers["/notes/New.md"], editorText: "[[Old]] newer typing" },
       }));
-      result.current.editor.queueAutoSave(file.path, "[[Old]] newer typing");
+      result.current.editor.queueAutoSave("/notes/New.md", "[[Old]] newer typing");
     });
     await act(async () => {
       await vi.advanceTimersByTimeAsync(2000);
@@ -771,7 +871,7 @@ describe("file action state boundaries", () => {
     commandMocks.saveFile.mockImplementation(async () => {
       store.set(fileBuffersByPathAtom, (buffers) => ({
         ...buffers,
-        [file.path]: { ...buffers[file.path], editorText: "draft and newer typing" },
+        "/notes/New.md": { ...buffers["/notes/New.md"], editorText: "draft and newer typing" },
       }));
       return { success: true, version: fileVersion };
     });

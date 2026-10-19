@@ -114,6 +114,27 @@ describe("FileBreadcrumbTitle", () => {
     expect(screen.getByRole("textbox", { name: "Rename current file" })).toBeTruthy();
   });
 
+  it("closes the title input and focuses the editor before rename finishes", async () => {
+    let finish!: (value: { success: true; newPath: string }) => void;
+    state.saveRename.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const item = file("/notes/note.md", "note.md");
+    renderBreadcrumb(item);
+    fireEvent.click(screen.getByRole("button", { name: "note" }));
+    const input = screen.getByRole("textbox", { name: "Rename current file" });
+    fireEvent.change(input, { target: { value: "renamed" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(screen.queryByRole("textbox", { name: "Rename current file" })).toBeNull();
+    expect(state.editorView.focus).toHaveBeenCalledOnce();
+    await act(async () => {
+      finish({ success: true, newPath: "/notes/renamed.md" });
+    });
+  });
+
   it("submits valid titles and rejects invalid ones", async () => {
     const item = file("/notes/note.md", "note.md");
     renderBreadcrumb(item);

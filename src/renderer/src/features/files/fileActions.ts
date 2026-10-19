@@ -42,6 +42,7 @@ import {
   addRecentFile,
   fileAccessesAtom,
   fileTreeAtom,
+  pendingFileRenameAtom,
   recentFilesAtom,
   reloadRevisionAtom,
   renamingRequestAtom,
@@ -197,16 +198,18 @@ const withSavedLinkBuffers = async <T>(
   operation: (lease: WorkspaceTransitionLease) => Promise<T>,
   failed: (error: string) => T,
   background = false,
+  optimistic?: { prepare: () => void; diskPath: (path: string) => string },
 ): Promise<T> => {
   const lease = beginWorkspaceTransition(store, "Updating note links…", background);
   if (!lease) return failed(WORKSPACE_TRANSITION_MESSAGE);
   try {
+    optimistic?.prepare();
     await Promise.race([waitForWorkspaceActivity(), lease.cancellation]);
     if (lease.cancelled) return failed("Operation cancelled.");
     const saved = await saveDirtyFileBuffers(
       store,
       () => true,
-      (path, content, version) => saveFile(path, content, version, lease),
+      (path, content, version) => saveFile(optimistic?.diskPath(path) ?? path, content, version, lease),
       background,
     );
     if (!saved.success) return failed(saved.error);
@@ -606,6 +609,27 @@ export const useFileRename = (): UseFileRenameResult => {
 
     const ext = oldItem.isDirectory ? "" : getExt(oldFilePath);
     const finalName = oldItem.isDirectory ? trimmedName : withExt(trimmedName, ext || ".md");
+    const requestedPath = joinFsPath(getPathWithoutFilename(oldFilePath), finalName);
+    if (requestedPath === oldFilePath) return { success: true as const, newPath: oldFilePath };
+    if (findItemNode(prevTree, requestedPath)) {
+      notifyFileAlreadyExists(store, requestedPath);
+      return { success: false as const, error: "Destination file already exists" };
+    }
+    const notesDirectoryPath = getWorkspacePath();
+    const diskPath = (path: string) => remapPathAfterMove(path, requestedPath, oldFilePath, oldItem.isDirectory);
+    let optimisticApplied = false;
+    let committed = false;
+    const rollback = () => {
+      if (!optimisticApplied || committed) return;
+      store.set(remapFileReferencesAtom, { remapPath: diskPath, notesDirectoryPath, includeTree: true });
+      store.set(notificationsAtom, (notifications) =>
+        notifications.map((notification) =>
+          notification.path ? { ...notification, path: diskPath(notification.path) } : notification,
+        ),
+      );
+      optimisticApplied = false;
+      store.set(pendingFileRenameAtom, false);
+    };
 
     store.set(closeContextMenuAtom);
     const dismissIndicator = showIndicator({
@@ -619,6 +643,7 @@ export const useFileRename = (): UseFileRenameResult => {
       async (lease) => {
         const result = await renameFile(oldFilePath, finalName, lease);
         if (!result.success) {
+          rollback();
           store.set(applyNoteLinkUpdatesAtom, result.linkUpdates ?? []);
           if (result.error === "Destination file already exists") {
             notifyFileAlreadyExists(store, joinFsPath(getPathWithoutFilename(oldFilePath), finalName));
@@ -627,9 +652,11 @@ export const useFileRename = (): UseFileRenameResult => {
         }
 
         const newPath = result.output || oldFilePath;
-        const notesDirectoryPath = getWorkspacePath();
-        const remapPath = (path: string) => remapPathAfterMove(path, oldFilePath, newPath, oldItem.isDirectory);
-        store.set(remapFileReferencesAtom, { remapPath, notesDirectoryPath });
+        committed = true;
+        if (newPath !== requestedPath) {
+          const remapPath = (path: string) => remapPathAfterMove(path, requestedPath, newPath, oldItem.isDirectory);
+          store.set(remapFileReferencesAtom, { remapPath, notesDirectoryPath, includeTree: true });
+        }
         if (result.linkMove) {
           store.set(applyBackgroundNoteLinkMoveAtom, {
             updates: result.linkUpdates ?? [],
@@ -652,9 +679,26 @@ export const useFileRename = (): UseFileRenameResult => {
         store.set(reloadRevisionAtom, (revision) => revision + 1);
         return { success: true as const, newPath };
       },
-      (error) => ({ success: false as const, error }),
+      (error) => {
+        rollback();
+        return { success: false as const, error };
+      },
       true,
+      {
+        prepare: () => {
+          optimisticApplied = true;
+          store.set(pendingFileRenameAtom, true);
+          store.set(remapFileReferencesAtom, {
+            remapPath: (path) => remapPathAfterMove(path, oldFilePath, requestedPath, oldItem.isDirectory),
+            notesDirectoryPath,
+            includeTree: true,
+          });
+          store.set(renamingRequestAtom, null);
+        },
+        diskPath,
+      },
     );
+    if (optimisticApplied || committed) store.set(pendingFileRenameAtom, false);
     dismissIndicator();
     if (
       !outcome.success &&

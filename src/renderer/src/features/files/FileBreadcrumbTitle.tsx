@@ -89,20 +89,18 @@ export const FileBreadcrumbTitle = ({ file, isPaneActive }: { file: FileItem; is
     }
 
     setIsSubmitting(true);
+    setIsEditing(false);
     try {
-      const result = await saveRename(file.path, nextTitle);
+      const pending = saveRename(file.path, nextTitle);
+      const editorElement = pane?.querySelector<HTMLElement>(".cm-editor");
+      if (editorElement) EditorView.findFromDOM(editorElement)?.focus();
+      const result = await pending;
       if (result.success) {
-        setIsEditing(false);
-        const editorElement = pane?.querySelector<HTMLElement>(".cm-editor");
-        if (editorElement) {
-          const view = EditorView.findFromDOM(editorElement);
-          view?.focus();
-        }
         return;
       }
-      shakeElement(inputRef.current);
+      shakeElement(pane?.querySelector(".pane-card-breadcrumb-current") ?? null);
     } catch {
-      shakeElement(inputRef.current);
+      shakeElement(pane?.querySelector(".pane-card-breadcrumb-current") ?? null);
     } finally {
       setIsSubmitting(false);
     }

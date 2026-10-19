@@ -1,6 +1,6 @@
 import { IconChevron } from "@pierre/icons";
 import type { GitStatusEntry } from "@pierre/trees";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useStore } from "jotai";
 import { memo, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   Group,
@@ -23,11 +23,13 @@ import {
   explorerSectionSizesAtom,
   explorerSectionsAtom,
   fileTreeAtom,
+  pendingFileRenameAtom,
   fileTreeLoadStateAtom,
   recentFilesAtom,
   reloadRevisionAtom,
 } from "@renderer/store/fileExplorerStore";
 import { currentFilePathAtom } from "@renderer/store/workspaceResourceStore";
+import { getWorkspaceTransitionGeneration, workspaceTransitionAtom } from "@renderer/store/workspaceTransitionStore";
 import { getWorkspacePath } from "@renderer/config";
 import { RecoveryState } from "@renderer/shared/ui/RecoveryState";
 import { Button } from "@renderer/shared/ui/button";
@@ -173,8 +175,11 @@ const ExplorerSection = ({
 };
 
 export const FileExplorer = memo(({ onSearch }: { onSearch: () => void }) => {
+  const store = useStore();
   const directoryPath = getWorkspacePath();
   const [fileTree, setFileTree] = useAtom(fileTreeAtom);
+  const transition = useAtomValue(workspaceTransitionAtom);
+  const pendingRename = useAtomValue(pendingFileRenameAtom);
   const [expandedDirectories, setExpandedDirectories] = useAtom(expandedDirectoriesAtom);
   const [reloadRevision, setReloadRevision] = useAtom(reloadRevisionAtom);
   const { importExternalFiles } = useExternalFileImport();
@@ -267,19 +272,28 @@ export const FileExplorer = memo(({ onSearch }: { onSearch: () => void }) => {
   }, [defaultSectionLayout, layoutKey, sectionGroupRef, sectionSizes]);
 
   useEffect(() => {
+    if (transition?.background || pendingRename) return;
     let ignore = false;
+    const generation = getWorkspaceTransitionGeneration();
 
     const loadFiles = async () => {
       setFileTreeLoadState("loading");
       try {
         const result = await window["api"].getFilesRecursiveAsTree(directoryPath);
-        if (ignore || result.revision < treeRevisionRef.current) return;
+        if (
+          ignore ||
+          store.get(pendingFileRenameAtom) ||
+          generation !== getWorkspaceTransitionGeneration() ||
+          result.revision < treeRevisionRef.current
+        )
+          return;
 
         treeRevisionRef.current = result.revision;
         setFileTree((prev) => (sameFileTree(prev, result.items) ? prev : result.items));
         const availablePaths = buildTreeLookup(result.items).byAbsolutePath;
         setRecentFiles((files) => files.filter((file) => availablePaths.has(file.path)));
         const hydratedBookmarks = await loadBookmarks(result.items);
+        if (ignore || store.get(pendingFileRenameAtom) || generation !== getWorkspaceTransitionGeneration()) return;
         setBookmarks(hydratedBookmarks);
         setLoadError(false);
         setFileTreeLoadState("ready");
@@ -296,7 +310,17 @@ export const FileExplorer = memo(({ onSearch }: { onSearch: () => void }) => {
     return () => {
       ignore = true;
     };
-  }, [directoryPath, reloadRevision, setBookmarks, setFileTree, setFileTreeLoadState, setRecentFiles]);
+  }, [
+    directoryPath,
+    reloadRevision,
+    setBookmarks,
+    setFileTree,
+    setFileTreeLoadState,
+    setRecentFiles,
+    transition,
+    pendingRename,
+    store,
+  ]);
 
   useEffect(() => {
     let ignore = false;

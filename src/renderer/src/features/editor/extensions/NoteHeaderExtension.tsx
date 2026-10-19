@@ -19,6 +19,7 @@ import { useEffect, useRef, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 
 import { shakeElement } from "@renderer/features/files/shake";
+import { isValidFilename } from "@shared/pathUtils";
 import { toDateInputValue } from "@renderer/shared/date";
 import { getFileGlyph } from "@renderer/shared/icons/FileGlyphs";
 import { Button } from "@renderer/shared/ui/button";
@@ -353,6 +354,10 @@ const NoteTitle = ({
   const submit = async (focusEditorAfterSubmit = false) => {
     const nextTitle = draftTitle.trim();
     if (submittingRef.current) return;
+    if (!isValidFilename(nextTitle)) {
+      shakeElement(inputRef.current);
+      return;
+    }
     if (nextTitle === title) {
       submittingRef.current = focusEditorAfterSubmit;
       cancel();
@@ -363,10 +368,11 @@ const NoteTitle = ({
 
     submittingRef.current = true;
     setSubmitting(true);
+    setEditing(false);
     try {
-      if (await onRename(nextTitle)) {
-        setEditing(false);
-        if (focusEditorAfterSubmit) onReturnToEditor();
+      const pending = onRename(nextTitle);
+      if (focusEditorAfterSubmit) onReturnToEditor();
+      if (await pending) {
         return;
       }
       shakeElement(inputRef.current);

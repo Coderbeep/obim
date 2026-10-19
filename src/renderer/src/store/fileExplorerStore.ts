@@ -7,6 +7,8 @@ import {
 import { atom } from "jotai";
 
 export const fileTreeAtom = atom<FileItem[]>([]);
+/** Keeps disk refreshes from replacing an optimistic rename before persistence settles. */
+export const pendingFileRenameAtom = atom(false);
 /** Last successful open time by absolute workspace-file path. */
 export const fileAccessesAtom = atom<Record<string, number>>({});
 export const explorerSectionsAtom = atom<WorkspaceSessionExplorerSections>({
