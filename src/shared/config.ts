@@ -5,6 +5,7 @@ import { isValidFilename } from "./pathUtils";
 export interface AppConfig {
   taskBoardOpenMode?: "tab" | "hover";
   keyboardShortcuts?: ShortcutOverrides;
+  focusModeLayout?: FocusModeLayout;
   dailyNoteCreationDirectory: string;
   mainDirectory: string;
   recentWorkspaces: string[];
@@ -61,6 +62,13 @@ export const normalizeCreationDirectory = (value: unknown) => {
 
 export const normalizeZoomFactor = (value: unknown) =>
   typeof value === "number" && Number.isFinite(value) ? Math.max(0.5, Math.min(2, Math.round(value * 10) / 10)) : null;
+
+export type FocusModeLayout = "all-panes" | "active-pane";
+
+export const DEFAULT_FOCUS_MODE_LAYOUT: FocusModeLayout = "all-panes";
+
+export const isFocusModeLayout = (value: unknown): value is FocusModeLayout =>
+  value === "all-panes" || value === "active-pane";
 
 export const SIDEBAR_PLACEMENTS = {
   EXPLORER_LEFT: "explorer-left",

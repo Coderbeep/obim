@@ -63,6 +63,10 @@ import {
 } from "./sidebarPlacement";
 import { applyAppTheme, persistAppTheme, readAppTheme, type AppTheme } from "./theme";
 import { useWindowControls } from "./useWindowControls";
+import { useFocusModeLayout } from "./useFocusModeLayout";
+import { focusPaneContent } from "./useFocusMode";
+import { focusModeLayoutAtom, focusModePaneIdAtom } from "@renderer/store/focusModeStore";
+import type { FocusModeLayout } from "@shared/config";
 
 type SettingsSection = "task-board" | "about" | "appearance" | "backup" | "git" | "keyboard" | "workspace";
 
@@ -73,7 +77,7 @@ const NAV_ITEMS = [
     label: "Appearance",
     group: "Preferences",
     icon: IconThemes,
-    terms: "theme color window sidebar layout zoom interface scale panels",
+    terms: "theme color window sidebar layout zoom interface scale panels focus zen panes tabs",
   },
   { id: "keyboard", label: "Shortcuts", group: "Preferences", icon: IconKey, terms: "keyboard keys bindings" },
   {
@@ -153,10 +157,21 @@ const SettingsRow = ({ children, description, label }: { children: ReactNode; de
   </div>
 );
 
-const Choice = ({ children, selected, onSelect }: { children: ReactNode; selected: boolean; onSelect(): void }) => (
+const Choice = ({
+  children,
+  selected,
+  onSelect,
+  disabled = false,
+}: {
+  children: ReactNode;
+  selected: boolean;
+  onSelect(): void;
+  disabled?: boolean;
+}) => (
   <button
     type="button"
     role="radio"
+    disabled={disabled}
     aria-checked={selected}
     tabIndex={selected ? 0 : -1}
     data-selected={selected ? "true" : undefined}
@@ -346,6 +361,11 @@ export const SettingsDialog = () => {
   const [theme, setTheme] = useState<AppTheme>(readAppTheme);
   const [themeSaveError, setThemeSaveError] = useState(false);
   const themeSaveRequestRef = useRef(0);
+  const focusModeLayout = useFocusModeLayout();
+  const setFocusModeLayout = useSetAtom(focusModeLayoutAtom);
+  const [savingFocusModeLayout, setSavingFocusModeLayout] = useState(false);
+  const [focusModeLayoutSaveError, setFocusModeLayoutSaveError] = useState(false);
+  const focusModeLayoutSavePending = useRef(false);
   const sidebarPlacement = useSidebarPlacement();
   const [sidebarPlacementSaveError, setSidebarPlacementSaveError] = useState(false);
   const sidebarPlacementSaveRequestRef = useRef(0);
@@ -391,6 +411,21 @@ export const SettingsDialog = () => {
       console.error("Unable to save color theme:", error);
       if (themeSaveRequestRef.current === requestId) setThemeSaveError(true);
     });
+  };
+  const selectFocusModeLayout = async (layout: FocusModeLayout) => {
+    if (focusModeLayoutSavePending.current || layout === focusModeLayout) return;
+    focusModeLayoutSavePending.current = true;
+    setSavingFocusModeLayout(true);
+    setFocusModeLayoutSaveError(false);
+    try {
+      await updateConfig("focusModeLayout", layout);
+      setFocusModeLayout(layout);
+    } catch {
+      setFocusModeLayoutSaveError(true);
+    } finally {
+      focusModeLayoutSavePending.current = false;
+      setSavingFocusModeLayout(false);
+    }
   };
   const selectSidebarPlacement = (nextPlacement: SidebarPlacement) => {
     const requestId = ++sidebarPlacementSaveRequestRef.current;
@@ -518,7 +553,16 @@ export const SettingsDialog = () => {
           <IconGear size={16} />
         </Button>
       </DialogTrigger>
-      <DialogContent aria-describedby={undefined} className="settings-dialog">
+      <DialogContent
+        aria-describedby={undefined}
+        className="settings-dialog"
+        onCloseAutoFocus={(event) => {
+          const paneId = store.get(focusModePaneIdAtom);
+          if (!paneId) return;
+          event.preventDefault();
+          focusPaneContent(paneId);
+        }}
+      >
         <DialogHeader className="sr-only">
           <DialogTitle>Settings</DialogTitle>
         </DialogHeader>
@@ -791,6 +835,39 @@ export const SettingsDialog = () => {
                 {sidebarPlacementSaveError ? (
                   <p className="settings-message settings-message-error" role="alert">
                     The sidebars moved for this session but their placement could not be saved.
+                  </p>
+                ) : null}
+              </SettingsGroup>
+              <SettingsGroup title="Focus mode">
+                <SettingsRow
+                  label="Focus layout"
+                  description="Both layouts hide the sidebars and bottom toolbar. All panes keeps every pane and its tabs; Active pane shows only the current view, without tabs."
+                >
+                  <div
+                    className="settings-choice-group"
+                    role="radiogroup"
+                    aria-label="Focus mode layout"
+                    aria-busy={savingFocusModeLayout}
+                  >
+                    <Choice
+                      selected={focusModeLayout === "all-panes"}
+                      onSelect={() => void selectFocusModeLayout("all-panes")}
+                      disabled={savingFocusModeLayout}
+                    >
+                      All panes
+                    </Choice>
+                    <Choice
+                      selected={focusModeLayout === "active-pane"}
+                      onSelect={() => void selectFocusModeLayout("active-pane")}
+                      disabled={savingFocusModeLayout}
+                    >
+                      Active pane
+                    </Choice>
+                  </div>
+                </SettingsRow>
+                {focusModeLayoutSaveError ? (
+                  <p role="alert" className="settings-message settings-message-error">
+                    Could not save the focus layout. Your previous choice is still selected. Try again.
                   </p>
                 ) : null}
               </SettingsGroup>

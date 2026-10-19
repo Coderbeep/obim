@@ -158,6 +158,7 @@ contextBridge.exposeInMainWorld("config", {
   setShowWindowControls: (visible: boolean) => ipcRenderer.invoke("set-show-window-controls", visible),
   getThemeSync: () => ipcRenderer.sendSync("get-theme-sync"),
   setTheme: (theme: "dark" | "light" | "system") => ipcRenderer.invoke("set-theme", theme),
+  getFocusModeLayoutSync: () => ipcRenderer.sendSync("get-focus-mode-layout-sync"),
   getSidebarPlacementSync: () => ipcRenderer.sendSync("get-sidebar-placement-sync"),
   setSidebarPlacement: (placement: "explorer-left" | "explorer-right") =>
     ipcRenderer.invoke("set-sidebar-placement", placement),

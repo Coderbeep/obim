@@ -26,7 +26,10 @@ type ActionCommandContext = {
   activeFile: FileItem | null;
   isActiveFileBookmarked: boolean;
   primaryKey: string;
-  shortcutLabels?: { newNote: string; searchFiles: string };
+  shortcutLabels?: { newNote: string; searchFiles: string; focusMode?: string };
+  focusModeActive: boolean;
+  canEnterFocusMode: boolean;
+  toggleFocusMode: () => void;
   importArticle: () => void | Promise<unknown>;
   createFolder: () => void | Promise<unknown>;
   createTask: () => void | Promise<unknown>;
@@ -66,6 +69,9 @@ export const createActionCommands = ({
   isActiveFileBookmarked,
   primaryKey,
   shortcutLabels,
+  focusModeActive,
+  canEnterFocusMode,
+  toggleFocusMode,
   createFolder,
   createNote,
   openTodayDailyNote,
@@ -129,6 +135,17 @@ export const createActionCommands = ({
       purpose: "Workspace",
       keywords: ["keys", "commands", "help", "hotkeys"],
       perform: showKeyboardShortcuts,
+    },
+    {
+      id: "focus-mode",
+      label: focusModeActive ? "Exit focus mode" : "Enter focus mode",
+      description: focusModeActive ? "Restore your workspace layout" : "Hide distractions around the current pane",
+      icon: IconFolders,
+      purpose: "Workspace",
+      keywords: ["zen", "distraction free", "writing", "focus"],
+      shortcut: shortcutLabels?.focusMode,
+      disabled: !focusModeActive && !canEnterFocusMode,
+      perform: toggleFocusMode,
     },
     {
       id: "new-folder",

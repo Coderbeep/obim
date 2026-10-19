@@ -379,6 +379,11 @@
   font-weight: 500;
 }
 
+.settings-choice-group > button:disabled {
+  cursor: not-allowed;
+  opacity: var(--opacity-disabled);
+}
+
 .settings-choice-group > button:hover {
   background: var(--surface-hover);
 }

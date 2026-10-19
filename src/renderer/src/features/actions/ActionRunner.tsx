@@ -36,6 +36,7 @@ import { bookmarksAtom } from "@renderer/store/bookmarkStore";
 import { fileBuffersByPathAtom } from "@renderer/store/fileBufferStore";
 import { explorerSelectionPathsAtom, fileTreeAtom, reloadRevisionAtom } from "@renderer/store/fileExplorerStore";
 import { fileSaveStatesByPathAtom } from "@renderer/store/fileSaveStore";
+import { canEnterFocusModeAtom, focusModePaneIdAtom, toggleFocusModeAtom } from "@renderer/store/focusModeStore";
 import { addNotificationAtom, NotificationLevel } from "@renderer/store/NotificationsStore";
 import { isVisibleAtom } from "@renderer/store/SearchWindowStore";
 import { activateWorkspaceResourceAtom } from "@renderer/store/workspaceActionStore";
@@ -72,6 +73,8 @@ const ActionRunner = () => {
   const store = useStore();
   const request = useAtomValue(actionRunnerRequestAtom);
   const activeFile = useAtomValue(currentFileAtom);
+  const focusModeActive = Boolean(useAtomValue(focusModePaneIdAtom));
+  const canEnterFocusMode = useAtomValue(canEnterFocusModeAtom);
   const fileTree = useAtomValue(fileTreeAtom);
   const bookmarks = useAtomValue(bookmarksAtom);
   const fileBuffers = useAtomValue(fileBuffersByPathAtom);
@@ -432,7 +435,17 @@ const ActionRunner = () => {
         activeFile,
         isActiveFileBookmarked: Boolean(activeFile && bookmarks.some((bookmark) => bookmark.path === activeFile.path)),
         primaryKey,
-        shortcutLabels: { newNote: shortcutText("new-note"), searchFiles: shortcutText("search-files") },
+        shortcutLabels: {
+          newNote: shortcutText("new-note"),
+          searchFiles: shortcutText("search-files"),
+          focusMode: shortcutText("focus-mode"),
+        },
+        focusModeActive,
+        canEnterFocusMode,
+        toggleFocusMode: () => {
+          close();
+          store.set(toggleFocusModeAtom);
+        },
         createFolder: () => {
           close();
           return createDirectory();
@@ -517,6 +530,8 @@ const ActionRunner = () => {
       activeFile,
       addBookmark,
       bookmarks,
+      canEnterFocusMode,
+      focusModeActive,
       canDiscardActiveFileChanges,
       canStageCurrentFile,
       canSyncNow,

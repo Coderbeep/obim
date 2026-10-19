@@ -190,3 +190,13 @@ test("saved synchronization failures survive rereads and remain separate for eac
   assert.equal(ConfigManager.getGitSyncOutcomeSync(secondWorkspace)?.phase, "succeeded");
   assert.equal(ConfigManager.getGitSyncOutcomeSync(directory)?.uploadedRevision, undefined);
 });
+
+test("focus layout persists on disk and synchronous reads follow the saved choice", async () => {
+  const { configPath } = await setup();
+  await ConfigManager.updateConfig("focusModeLayout", "active-pane");
+  assert.equal(JSON.parse(await readFile(configPath, "utf8")).focusModeLayout, "active-pane");
+  assert.equal(ConfigManager.getFocusModeLayoutSync(), "active-pane");
+  await ConfigManager.updateConfig("focusModeLayout", "all-panes");
+  assert.equal(ConfigManager.getFocusModeLayoutSync(), "all-panes");
+  assert.equal(JSON.parse(await readFile(configPath, "utf8")).focusModeLayout, "all-panes");
+});

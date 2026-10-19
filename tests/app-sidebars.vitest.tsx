@@ -19,6 +19,7 @@ import { createEditorTab, workspaceTabsByIdAtom } from "../src/renderer/src/stor
 import { fileBuffersByPathAtom } from "../src/renderer/src/store/fileBufferStore";
 import { fileTreeAtom } from "../src/renderer/src/store/fileExplorerStore";
 import { fileSaveStatesByPathAtom } from "../src/renderer/src/store/fileSaveStore";
+import { focusModeRevealedEdgeAtom, toggleFocusModeAtom } from "../src/renderer/src/store/focusModeStore";
 import { openWorkspaceItemsByKeyAtom } from "../src/renderer/src/store/workspaceResourceStore";
 import { createTaskBoardWorkspaceItem } from "../src/shared/workspace";
 
@@ -258,6 +259,86 @@ const InspectorToggle = () => {
 };
 
 describe("application sidebars", () => {
+  it("makes sidebars inaccessible during focus mode without changing widths or stored preferences", () => {
+    const store = createStore();
+    const item = createTaskBoardWorkspaceItem();
+    store.set(workspacePanesAtom, [{ id: "pane-1", tabs: ["board"], activeTabId: "board", size: 1 }]);
+    store.set(workspaceTabsByIdAtom, { board: createEditorTab("board", item.key) });
+    store.set(openWorkspaceItemsByKeyAtom, { [item.key]: item });
+    const { container } = render(
+      <Provider store={store}>
+        <LeftSidebar>Files content</LeftSidebar>
+        <InspectorSidebarProvider>
+          <InspectorSidebar>Inspector content</InspectorSidebar>
+        </InspectorSidebarProvider>
+      </Provider>,
+    );
+    const explorer = container.querySelector<HTMLElement>(".sidebar-shell")!;
+    const inspector = container.querySelector<HTMLElement>(".right-sidebar-shell")!;
+    const widths = [explorer.style.width, inspector.style.width];
+    const saved = Object.entries(window.localStorage);
+    act(() => store.set(toggleFocusModeAtom));
+    for (const sidebar of [explorer, inspector]) {
+      expect(sidebar.hasAttribute("inert")).toBe(true);
+      expect(sidebar.getAttribute("aria-hidden")).toBe("true");
+    }
+    expect(Object.entries(window.localStorage)).toEqual(saved);
+    act(() => store.set(toggleFocusModeAtom));
+    for (const sidebar of [explorer, inspector]) expect(sidebar.hasAttribute("inert")).toBe(false);
+    expect([explorer.style.width, inspector.style.width]).toEqual(widths);
+    expect(Object.entries(window.localStorage)).toEqual(saved);
+  });
+  it.each(["explorer-left", "explorer-right"] as const)(
+    "temporarily reveals collapsed sidebars with saved widths for %s",
+    (placement) => {
+      sidebarPlacement = placement;
+      window.localStorage.setItem(
+        "obim.layout.explorer",
+        JSON.stringify({ collapsed: true, width: 370, lastExpandedWidth: 370 }),
+      );
+      window.localStorage.setItem(
+        "obim.layout.inspector",
+        JSON.stringify({ collapsed: true, width: 410, lastExpandedWidth: 410 }),
+      );
+      const store = createStore();
+      const item = createTaskBoardWorkspaceItem();
+      store.set(workspacePanesAtom, [{ id: "pane-1", tabs: ["board"], activeTabId: "board", size: 1 }]);
+      store.set(workspaceTabsByIdAtom, { board: createEditorTab("board", item.key) });
+      const { container } = render(
+        <Provider store={store}>
+          <LeftSidebar>
+            <input aria-label="Files content" />
+          </LeftSidebar>
+          <InspectorSidebarProvider>
+            <InspectorSidebar>
+              <input aria-label="Inspector content" />
+            </InspectorSidebar>
+          </InspectorSidebarProvider>
+        </Provider>,
+      );
+      const explorer = container.querySelector<HTMLElement>(".sidebar-shell")!;
+      const inspector = container.querySelector<HTMLElement>(".right-sidebar-shell")!;
+      const widths = [explorer.style.width, inspector.style.width];
+      const saved = Object.entries(window.localStorage);
+      act(() => store.set(toggleFocusModeAtom));
+      act(() => store.set(focusModeRevealedEdgeAtom, placement === "explorer-right" ? "right" : "left"));
+      expect(screen.getByRole("textbox", { name: "Files content" })).toBeTruthy();
+      expect(explorer.style.width).toContain("370px");
+      expect(inspector.hasAttribute("inert")).toBe(true);
+      fireEvent.click(screen.getByRole("button", { name: "Close sidebar" }));
+      expect(store.get(focusModeRevealedEdgeAtom)).toBeNull();
+      act(() => store.set(focusModeRevealedEdgeAtom, placement === "explorer-right" ? "left" : "right"));
+      expect(screen.getByRole("textbox", { name: "Inspector content" })).toBeTruthy();
+      expect(inspector.style.width).toBe("410px");
+      expect(explorer.hasAttribute("inert")).toBe(true);
+      expect(Object.entries(window.localStorage)).toEqual(saved);
+      act(() => store.set(toggleFocusModeAtom));
+      expect([explorer.style.width, inspector.style.width]).toEqual(widths);
+      expect(Object.entries(window.localStorage)).toEqual(saved);
+      expect(container.querySelector(".sidebar-inner")!.hasAttribute("inert")).toBe(true);
+      expect(container.querySelector(".right-sidebar-inner")!.hasAttribute("inert")).toBe(true);
+    },
+  );
   it("opens Version History when another surface requests it", async () => {
     const store = createStore();
     render(

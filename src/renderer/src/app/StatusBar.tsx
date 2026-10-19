@@ -14,6 +14,8 @@ import { isFileWorkspaceItem } from "@shared/workspace";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect, useMemo, useState } from "react";
 import { primaryShortcutLabel } from "./ShortcutHelpCard";
+import { FocusModeControls } from "./FocusModeControls";
+import { useFocusModeBar } from "./FocusModeChrome";
 import "./StatusBar.css";
 
 function useGitSummary() {
@@ -52,6 +54,7 @@ function useGitSummary() {
 }
 
 export function StatusBar() {
+  const { focused, revealed } = useFocusModeBar("bottom");
   const item = useAtomValue(currentWorkspaceItemAtom);
   const buffers = useAtomValue(fileBuffersByPathAtom);
   const saveStates = useAtomValue(fileSaveStatesByPathAtom);
@@ -92,7 +95,13 @@ export function StatusBar() {
   }[phase];
   const primary = primaryShortcutLabel();
   return (
-    <footer className="app-status-bar" aria-label="Workspace status">
+    <footer
+      className="app-status-bar"
+      aria-label="Workspace status"
+      data-focus-revealed={revealed || undefined}
+      inert={focused && !revealed}
+      aria-hidden={(focused && !revealed) || undefined}
+    >
       <div className="app-status-group app-status-context">
         {git?.status === "ready" && (
           <span
@@ -122,6 +131,7 @@ export function StatusBar() {
         )}
       </div>
       <div className="app-status-group app-status-details">
+        <FocusModeControls />
         {counts && (
           <>
             <span>{counts.words.toLocaleString()} words</span>

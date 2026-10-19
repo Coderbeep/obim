@@ -78,6 +78,7 @@ import { createEditorTab, workspaceTabsByIdAtom } from "../src/renderer/src/stor
 import { fileBuffersByPathAtom } from "../src/renderer/src/store/fileBufferStore";
 import { fileTreeAtom } from "../src/renderer/src/store/fileExplorerStore";
 import { notePdfExportRequestAtom } from "../src/renderer/src/store/notePdfExportStore";
+import { focusModePaneIdAtom } from "../src/renderer/src/store/focusModeStore";
 import { openWorkspaceItemsByKeyAtom } from "../src/renderer/src/store/workspaceResourceStore";
 import type { FileItem } from "../src/shared/file-item";
 import { createFileWorkspaceItem } from "../src/shared/workspace";
@@ -162,6 +163,27 @@ beforeEach(() => {
 afterEach(() => cleanup());
 
 describe("action runner", () => {
+  it("finds focus mode by zen and toggles it without changing the pane layout", async () => {
+    const store = createStore();
+    selectCurrentFile(store, note("/notes/note.md"));
+    const panes = store.get(workspacePanesAtom);
+    store.set(actionRunnerRequestAtom, { view: "commands" });
+    renderRunner(store);
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "zen" } });
+    fireEvent.click(screen.getByRole("option", { name: /Enter focus mode/ }));
+    await waitFor(() => expect(store.get(focusModePaneIdAtom)).toBe("pane-1"));
+    expect(store.get(actionRunnerRequestAtom)).toBeNull();
+    expect(store.get(workspacePanesAtom)).toBe(panes);
+    store.set(actionRunnerRequestAtom, { view: "commands" });
+    fireEvent.click(await screen.findByRole("option", { name: /Exit focus mode/ }));
+    await waitFor(() => expect(store.get(focusModePaneIdAtom)).toBeNull());
+  });
+  it("disables focus mode in an empty pane", () => {
+    const store = createStore();
+    store.set(actionRunnerRequestAtom, { view: "commands" });
+    renderRunner(store);
+    expect(screen.getByRole("option", { name: /Enter focus mode/ }).getAttribute("aria-disabled")).toBe("true");
+  });
   it("opens today's daily note from the action menu using the configured directory", async () => {
     window.config.getConfigValue = vi.fn().mockResolvedValue("Journal");
     const store = createStore();
@@ -253,7 +275,7 @@ describe("action runner", () => {
 
     const options = screen.getAllByRole("option");
     expect(options[0].textContent).toContain("Search files");
-    expect(within(screen.getByRole("group", { name: "Workspace" })).getAllByRole("option")).toHaveLength(3);
+    expect(within(screen.getByRole("group", { name: "Workspace" })).getAllByRole("option")).toHaveLength(4);
     expect(within(screen.getByRole("group", { name: "Tasks" })).getByText("New task")).toBeTruthy();
     expect(screen.queryByRole("option", { name: /Link note to PDF/ })).toBeNull();
     const fileActions = within(screen.getByRole("group", { name: "Files" }));

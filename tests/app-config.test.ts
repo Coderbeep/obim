@@ -78,6 +78,11 @@ const removeRecentWorkspaceHandler = removeRecentWorkspaceRegistration[1] as (
   workspacePath: unknown,
 ) => Promise<string[]>;
 
+const focusLayoutRegistration = electronMocks.on.mock.calls.find(
+  ([channel]) => channel === "get-focus-mode-layout-sync",
+);
+assert.ok(focusLayoutRegistration);
+
 const updateConfigRegistration = electronMocks.handle.mock.calls.find(([channel]) => channel === "update-config");
 assert.ok(updateConfigRegistration);
 const updateConfigHandler = updateConfigRegistration[1] as (
@@ -251,4 +256,32 @@ test("generic configuration IPC cannot change workspace or internal Git consent"
     await assert.rejects(updateConfigHandler(trustedEvent, key, {}), /dedicated application action/);
   }
   assert.equal(update.mock.calls.length, 0);
+});
+
+test("focus layout defaults safely and accepts only the two configured layouts", () => {
+  assert.equal(ConfigManager.getFocusModeLayoutSync(), "all-panes");
+  const read = vi.spyOn(ConfigManager as unknown as { getConfigSync(): unknown }, "getConfigSync");
+  for (const value of [null, "invalid", 42]) {
+    read.mockReturnValue({ focusModeLayout: value });
+    assert.equal(ConfigManager.getFocusModeLayoutSync(), "all-panes");
+  }
+  for (const value of ["active-pane", "all-panes"]) {
+    read.mockReturnValue({ focusModeLayout: value });
+    assert.equal(ConfigManager.getFocusModeLayoutSync(), value);
+  }
+});
+
+test("focus layout sync IPC returns the saved preference", () => {
+  vi.spyOn(ConfigManager, "getFocusModeLayoutSync").mockReturnValue("active-pane");
+  const event = { ...trustedEvent, returnValue: undefined };
+  focusLayoutRegistration[1](event);
+  assert.equal(event.returnValue, "active-pane");
+});
+
+test("generic configuration IPC validates and saves focus layout", async () => {
+  const update = vi.spyOn(ConfigManager, "updateConfig").mockResolvedValue();
+  await updateConfigHandler(trustedEvent, "focusModeLayout", "active-pane");
+  assert.deepEqual(update.mock.calls, [["focusModeLayout", "active-pane"]]);
+  await assert.rejects(updateConfigHandler(trustedEvent, "focusModeLayout", "unknown"), /Invalid setting/);
+  assert.equal(update.mock.calls.length, 1);
 });

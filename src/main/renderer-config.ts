@@ -1,5 +1,6 @@
 import {
   isAppTheme,
+  isFocusModeLayout,
   isSidebarPlacement,
   normalizeCreationDirectory,
   normalizeZoomFactor,
@@ -10,6 +11,7 @@ const creationKeys = new Set(["taskCreationDirectory", "dailyNoteCreationDirecto
 const writableKeys = new Set([
   ...creationKeys,
   "keyboardShortcuts",
+  "focusModeLayout",
   "taskBoardOpenMode",
   "showWindowControls",
   "theme",
@@ -28,17 +30,19 @@ export function validateRendererConfigUpdate(key: unknown, value: unknown): Conf
   const valid =
     key === "taskBoardOpenMode"
       ? value === "tab" || value === "hover"
-      : key === "keyboardShortcuts"
-        ? isShortcutOverrides(value)
-        : creationKeys.has(key)
-          ? normalizeCreationDirectory(value) !== null
-          : key === "showWindowControls"
-            ? typeof value === "boolean"
-            : key === "theme"
-              ? isAppTheme(value)
-              : key === "sidebarPlacement"
-                ? isSidebarPlacement(value)
-                : normalizeZoomFactor(value) !== null;
+      : key === "focusModeLayout"
+        ? isFocusModeLayout(value)
+        : key === "keyboardShortcuts"
+          ? isShortcutOverrides(value)
+          : creationKeys.has(key)
+            ? normalizeCreationDirectory(value) !== null
+            : key === "showWindowControls"
+              ? typeof value === "boolean"
+              : key === "theme"
+                ? isAppTheme(value)
+                : key === "sidebarPlacement"
+                  ? isSidebarPlacement(value)
+                  : normalizeZoomFactor(value) !== null;
   if (!valid) throw new TypeError("Invalid setting value.");
   return key as ConfigKey;
 }

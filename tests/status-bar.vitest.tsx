@@ -2,11 +2,12 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { createStore, Provider } from "jotai";
 import { afterEach, expect, it, vi } from "vitest";
 import { StatusBar } from "../src/renderer/src/app/StatusBar";
-import { workspacePanesAtom } from "../src/renderer/src/store/editorPaneStore";
+import { activePaneIdAtom, workspacePanesAtom } from "../src/renderer/src/store/editorPaneStore";
 import { createEditorTab, workspaceTabsByIdAtom } from "../src/renderer/src/store/editorTabStore";
 import { openWorkspaceItemsByKeyAtom } from "../src/renderer/src/store/workspaceResourceStore";
 import { fileBuffersByPathAtom } from "../src/renderer/src/store/fileBufferStore";
 import { fileSaveStatesByPathAtom } from "../src/renderer/src/store/fileSaveStore";
+import { focusModeRevealedEdgeAtom, toggleFocusModeAtom } from "../src/renderer/src/store/focusModeStore";
 import { actionRunnerRequestAtom } from "../src/renderer/src/store/actionRunnerStore";
 import { shortcutHelpOpenAtom } from "../src/renderer/src/store/appSessionStore";
 import { createFileWorkspaceItem } from "../src/shared/workspace";
@@ -81,4 +82,23 @@ it("updates Git through status events and cleans up its subscription", async () 
   await waitFor(() => expect(screen.queryByText("Clean")).toBeNull());
   view.unmount();
   expect(view.unsubscribe).toHaveBeenCalledOnce();
+});
+
+it("exposes exit and conflict review only in the revealed bottom overlay", () => {
+  const { store, container } = setup();
+  act(() => {
+    store.set(activePaneIdAtom, "pane");
+    store.set(toggleFocusModeAtom);
+  });
+  expect(screen.queryByRole("button", { name: "Exit focus mode" })).toBeNull();
+  expect(container.querySelector(".app-status-bar")!.hasAttribute("inert")).toBe(true);
+  act(() => store.set(focusModeRevealedEdgeAtom, "bottom"));
+  expect(screen.getByRole("button", { name: "Exit focus mode" }).closest("footer")).toBeTruthy();
+  act(() =>
+    store.set(fileSaveStatesByPathAtom, { "/notes/note.md": { phase: "conflict", message: "Changed externally" } }),
+  );
+  expect(screen.getByRole("button", { name: "Changed on disk" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Exit focus mode" }));
+  expect(screen.queryByRole("button", { name: "Exit focus mode" })).toBeNull();
+  expect(container.querySelector(".app-status-bar")!.hasAttribute("inert")).toBe(false);
 });

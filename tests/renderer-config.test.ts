@@ -18,6 +18,8 @@ it.each(["gitAutoSyncByWorkspace", "gitSyncOutcomesByWorkspace", "constructor", 
 it.each([
   ["keyboardShortcuts", { "new-note": ["Mod+Alt+N"], bold: [] }],
   ["theme", "dark"],
+  ["focusModeLayout", "all-panes"],
+  ["focusModeLayout", "active-pane"],
   ["sidebarPlacement", "explorer-left"],
   ["zoomFactor", 1.5],
 ])("validates public setting %s", (key, value) => expect(validateRendererConfigUpdate(key, value)).toBe(key));
@@ -25,6 +27,8 @@ it.each([
   ["keyboardShortcuts", { "new-note": "Mod+N" }],
   ["keyboardShortcuts", { unknown: ["Mod+N"] }],
   ["theme", "execute"],
+  ["focusModeLayout", "unknown"],
+  ["focusModeLayout", null],
   ["taskCreationDirectory", "/outside"],
   ["zoomFactor", {}],
   ["showWindowControls", 1],

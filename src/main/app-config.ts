@@ -7,6 +7,7 @@ import { trustedIpcMain as ipcMain } from "./trusted-ipc";
 
 import {
   DEFAULT_DAILY_NOTE_CREATION_DIRECTORY,
+  DEFAULT_FOCUS_MODE_LAYOUT,
   DEFAULT_GIT_AUTO_SYNC_CONFLICT_RESOLUTION,
   DEFAULT_GIT_AUTO_SYNC_INTERVAL_MINUTES,
   DEFAULT_SHOW_WINDOW_CONTROLS,
@@ -14,6 +15,7 @@ import {
   DEFAULT_TASK_CREATION_DIRECTORY,
   DEFAULT_ZOOM_FACTOR,
   isAppTheme,
+  isFocusModeLayout,
   isGitAutoSyncConflictResolution,
   isSidebarPlacement,
   normalizeCreationDirectory,
@@ -22,6 +24,7 @@ import {
   type AppConfig,
   type AppTheme,
   type ConfigKey,
+  type FocusModeLayout,
   type GitWorkspaceAutoSyncSettings,
   type SidebarPlacement,
   type WorkspaceBackupResult,
@@ -50,6 +53,8 @@ class ConfigManager {
 
   private static getDefaultConfigValue<K extends ConfigKey>(key: K): AppConfig[K] | undefined {
     switch (key) {
+      case "focusModeLayout":
+        return DEFAULT_FOCUS_MODE_LAYOUT as AppConfig[K];
       case "keyboardShortcuts":
         return {} as AppConfig[K];
       case "taskCreationDirectory":
@@ -213,6 +218,11 @@ class ConfigManager {
   static getThemeSync(): AppTheme | null {
     const value = this.getConfigSync().theme;
     return isAppTheme(value) ? value : null;
+  }
+
+  static getFocusModeLayoutSync(): FocusModeLayout {
+    const value = this.getConfigSync().focusModeLayout;
+    return isFocusModeLayout(value) ? value : DEFAULT_FOCUS_MODE_LAYOUT;
   }
 
   static getSidebarPlacementSync(): SidebarPlacement {
@@ -400,6 +410,10 @@ ipcMain.on("get-show-window-controls-sync", (event) => {
 
 ipcMain.on("get-theme-sync", (event) => {
   event.returnValue = ConfigManager.getThemeSync();
+});
+
+ipcMain.on("get-focus-mode-layout-sync", (event) => {
+  event.returnValue = ConfigManager.getFocusModeLayoutSync();
 });
 
 ipcMain.on("get-sidebar-placement-sync", (event) => {

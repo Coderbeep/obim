@@ -10,6 +10,7 @@ import {
   IconSearch,
   IconX,
 } from "@pierre/icons";
+import { isShortcut } from "@renderer/shared/keyboardShortcuts";
 import { DocumentFindBar } from "@renderer/features/search/DocumentFindBar";
 import { useAtomValue, useSetAtom, useStore } from "jotai";
 import {
@@ -2173,7 +2174,8 @@ export const PDFViewer = ({
   };
 
   const handleKeyboard = (event: KeyboardEvent<HTMLElement>) => {
-    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "f") {
+    if (isShortcut("focus-mode", event)) return;
+    if (isShortcut("find-note", event)) {
       event.preventDefault();
       openSearch();
       return;

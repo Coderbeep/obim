@@ -1,4 +1,6 @@
-import { useSetAtom } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
+import { FocusModeToggle } from "@renderer/app/FocusModeControls";
+import { focusModeLayoutAtom, focusModePaneIdAtom } from "@renderer/store/focusModeStore";
 import { activateWorkspacePaneAtom } from "@renderer/store/workspaceActionStore";
 import { Fragment, useLayoutEffect, useRef } from "react";
 import type { DragEvent, ReactNode } from "react";
@@ -95,6 +97,10 @@ const WorkspacePane = ({
   workspace,
 }: WorkspacePaneProps) => {
   const activatePane = useSetAtom(activateWorkspacePaneAtom);
+  const focusPaneId = useAtomValue(focusModePaneIdAtom);
+  const layout = useAtomValue(focusModeLayoutAtom);
+  const singlePaneFocus = Boolean(focusPaneId && layout === "active-pane");
+  const hidden = singlePaneFocus && focusPaneId !== pane.id;
   const {
     activateTab,
     canReopenClosedTab,
@@ -132,41 +138,68 @@ const WorkspacePane = ({
       onFocusCapture={() => activatePane(pane.id)}
       className={`pane-column ${isActive ? "pane-column-active" : ""}`}
       style={{ flex: `${isOnly ? 1 : normalizePaneSize(pane.size)} 1 0%` }}
+      data-workspace-pane-id={pane.id}
+      hidden={hidden}
+      inert={hidden}
+      aria-hidden={hidden || undefined}
     >
-      <PaneTabs
-        pane={pane}
-        isActive={isActive}
-        tabsById={tabsById}
-        openWorkspaceItemsByKey={openWorkspaceItemsByKey}
-        activateTab={activateTab}
-        canReopenClosedTab={canReopenClosedTab}
-        closeOtherTabs={(paneId, tabId) => void closeOtherTabs(paneId, tabId)}
-        closeTab={(paneId, tabId) => void closeTab(paneId, tabId)}
-        movePane={movePane}
-        moveTab={moveTab}
-        moveTabToNewPane={moveTabToNewPane}
-        panes={panes}
-        reopenLastClosedTab={() => void reopenLastClosedTab()}
-        onTabDragStart={onTabDragStart}
-        onPaneDragOver={onPaneDragOver}
-        onPaneDrop={onPaneDrop}
-        resolveWorkspaceItem={resolveWorkspaceItem}
-        views={views}
-        tabBarEndContent={isLast ? tabBarEndContent : undefined}
-        tabBarStartContent={isFirst ? tabBarStartContent : undefined}
-      />
+      <div
+        className="pane-tabs-container"
+        hidden={singlePaneFocus}
+        inert={singlePaneFocus}
+        aria-hidden={singlePaneFocus || undefined}
+      >
+        <PaneTabs
+          pane={pane}
+          isActive={isActive}
+          tabsById={tabsById}
+          openWorkspaceItemsByKey={openWorkspaceItemsByKey}
+          activateTab={activateTab}
+          canReopenClosedTab={canReopenClosedTab}
+          closeOtherTabs={(paneId, tabId) => void closeOtherTabs(paneId, tabId)}
+          closeTab={(paneId, tabId) => void closeTab(paneId, tabId)}
+          movePane={movePane}
+          moveTab={moveTab}
+          moveTabToNewPane={moveTabToNewPane}
+          panes={panes}
+          reopenLastClosedTab={() => void reopenLastClosedTab()}
+          onTabDragStart={onTabDragStart}
+          onPaneDragOver={onPaneDragOver}
+          onPaneDrop={onPaneDrop}
+          resolveWorkspaceItem={resolveWorkspaceItem}
+          views={views}
+          tabBarEndContent={
+            <>
+              <span className="pane-tab-chrome" hidden={Boolean(focusPaneId)} inert={Boolean(focusPaneId)}>
+                <FocusModeToggle paneId={pane.id} disabled={!item} />
+                {isLast ? tabBarEndContent : undefined}
+              </span>
+            </>
+          }
+          tabBarStartContent={
+            isFirst && tabBarStartContent ? (
+              <span className="pane-tab-chrome" hidden={Boolean(focusPaneId)} inert={Boolean(focusPaneId)}>
+                {tabBarStartContent}
+              </span>
+            ) : undefined
+          }
+        />
+      </div>
       <section className={`pane-card ${isActive ? "pane-card-active" : ""}`}>
-        {item && view?.renderHeader
-          ? view.renderHeader(item, pane.id)
-          : !item
-            ? renderEmptyPaneHeader?.(pane.id)
-            : null}
+        <div className="pane-navigation-header" hidden={Boolean(focusPaneId)} inert={Boolean(focusPaneId)}>
+          {item && view?.renderHeader
+            ? view.renderHeader(item, pane.id)
+            : !item
+              ? renderEmptyPaneHeader?.(pane.id)
+              : null}
+        </div>
         <div
           className="pane-card-body"
           data-pane-empty={pane.tabs.length === 0 ? "true" : undefined}
           {...contentZone.handlers}
         >
           <div
+            tabIndex={-1}
             className={`pane-card-content${isEditorContent ? " pane-card-content-editor" : ""}${
               managesOwnOverflow ? " pane-card-content-managed-overflow" : ""
             }`}

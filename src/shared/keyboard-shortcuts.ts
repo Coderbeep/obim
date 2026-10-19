@@ -35,6 +35,13 @@ export const SHORTCUT_COMMANDS = [
     defaults: ["Mod+W"],
   },
   {
+    id: "focus-mode",
+    label: "Toggle focus mode",
+    description: "Focus the current pane or restore the workspace. Press Escape twice to exit.",
+    group: "Workspace",
+    defaults: ["Mod+Shift+F"],
+  },
+  {
     id: "reopen-last-closed-tab",
     label: "Reopen last closed tab",
     description: "Restore the most recently closed tab.",

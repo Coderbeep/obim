@@ -1,4 +1,8 @@
 import "./app/MainWorkspaceExperiment.css";
+import "./app/FocusMode.css";
+import { FocusModeChrome } from "./app/FocusModeChrome";
+import { useFocusMode } from "./app/useFocusMode";
+import { useFocusModeLayout } from "./app/useFocusModeLayout";
 import { scheduleEditorPreload } from "./features/editor/editorLoader";
 import { WorkspaceTransitionStatus } from "./app/WorkspaceTransitionStatus";
 import { StatusBar } from "./app/StatusBar";
@@ -36,6 +40,8 @@ function App() {
   useEffect(scheduleEditorPreload, []);
   useAppCloseGuard();
   const [isInitialized, setIsInitialized] = useAtom(isAppInitializedAtom);
+  const focusModeLayout = useFocusModeLayout();
+  const focusPaneId = useFocusMode({ enabled: isInitialized });
   const { openSearchWindow } = useSearchWindow();
   useGlobalShortcuts({ enabled: isInitialized });
   useWorkspaceFileChanges(isInitialized);
@@ -77,9 +83,14 @@ function App() {
   );
 
   return (
-    <div className="app-shell workspace-soft-experiment">
+    <div
+      className="app-shell workspace-soft-experiment"
+      data-focus-mode={focusPaneId ? "true" : undefined}
+      data-focus-mode-layout={focusPaneId ? focusModeLayout : undefined}
+    >
       <WorkspaceTransitionStatus />
       <WindowTitleBar />
+      {isInitialized && <FocusModeChrome />}
       <div className="app-content">{content}</div>
       {isInitialized && <StatusBar />}
     </div>

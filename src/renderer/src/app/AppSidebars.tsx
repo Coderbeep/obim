@@ -12,12 +12,10 @@ import { cn } from "@renderer/shared/classNames";
 import { Button } from "@renderer/shared/ui/button";
 import { versionHistoryOpenRequestAtom } from "@renderer/store/appSessionStore";
 import { currentWorkspaceItemAtom, openWorkspaceItemsByKeyAtom } from "@renderer/store/workspaceResourceStore";
-import {
-  createTaskBoardWorkspaceItem,
-  isTaskBoardWorkspaceItem,
-} from "@shared/workspace";
+import { createTaskBoardWorkspaceItem, isTaskBoardWorkspaceItem } from "@shared/workspace";
 
 import { SidebarResizer } from "./SidebarResizer";
+import { useFocusModeBar } from "./FocusModeChrome";
 import { SettingsDialog } from "./SettingsDialog";
 import { useSidebarPlacement } from "./sidebarPlacement";
 import {
@@ -45,6 +43,7 @@ interface ResizableSidebar {
   resetSidebar: () => void;
   toggleSidebar: () => void;
   visibleWidth: number;
+  overlayWidth: number;
 }
 
 const clampWidth = (width: number) => Math.min(MAX_SIDEBAR_WIDTH, Math.max(0, width));
@@ -129,6 +128,7 @@ const useResizableSidebar = (defaultWidth: number, storageKey: string): Resizabl
     resetSidebar,
     toggleSidebar,
     visibleWidth: isSidebarCollapsed ? 0 : width,
+    overlayWidth: isSidebarCollapsed ? lastExpandedWidth : width,
   };
 };
 
@@ -156,6 +156,8 @@ export const LeftSidebar = ({ className, children, style, ...props }: ComponentP
   const sidebar = useResizableSidebar(DEFAULT_EXPLORER_WIDTH, EXPLORER_LAYOUT_STORAGE_KEY);
   const placement = useSidebarPlacement();
   const isExplorerOnRight = placement === "explorer-right";
+  const { focused, revealed, close } = useFocusModeBar(isExplorerOnRight ? "right" : "left");
+  const collapsed = sidebar.isSidebarCollapsed && !focused;
   const currentWorkspaceItem = useAtomValue(currentWorkspaceItemAtom);
   const openWorkspaceItemsByKey = useAtomValue(openWorkspaceItemsByKeyAtom);
   const taskBoardOpen = Object.values(openWorkspaceItemsByKey).some(isTaskBoardWorkspaceItem);
@@ -187,9 +189,9 @@ export const LeftSidebar = ({ className, children, style, ...props }: ComponentP
 
   const shellStyle = {
     ...style,
-    width: sidebar.isSidebarCollapsed
+    width: collapsed
       ? "var(--sidebar-action-rail-width)"
-      : `calc(${sidebar.visibleWidth}px + var(--sidebar-action-rail-width))`,
+      : `calc(${focused ? sidebar.overlayWidth : sidebar.visibleWidth}px + var(--sidebar-action-rail-width))`,
   } satisfies CSSProperties;
 
   return (
@@ -198,6 +200,9 @@ export const LeftSidebar = ({ className, children, style, ...props }: ComponentP
       data-side={isExplorerOnRight ? "right" : "left"}
       style={shellStyle}
       {...props}
+      data-focus-revealed={revealed || undefined}
+      inert={focused && !revealed}
+      aria-hidden={(focused && !revealed) || undefined}
     >
       <div className="sidebar-actions-pane bg-sidebar">
         <div className="sidebar-actions-group">
@@ -206,12 +211,16 @@ export const LeftSidebar = ({ className, children, style, ...props }: ComponentP
             variant="ghost"
             size="icon-sm"
             className="motion-panel-toggle"
-            onClick={sidebar.toggleSidebar}
-            aria-label={sidebar.isSidebarCollapsed ? "Expand left sidebar" : "Collapse left sidebar"}
-            title={sidebar.isSidebarCollapsed ? "Expand left sidebar" : "Collapse left sidebar"}
+            onClick={focused ? close : sidebar.toggleSidebar}
+            aria-label={
+              focused ? "Close sidebar" : sidebar.isSidebarCollapsed ? "Expand left sidebar" : "Collapse left sidebar"
+            }
+            title={
+              focused ? "Close sidebar" : sidebar.isSidebarCollapsed ? "Expand left sidebar" : "Collapse left sidebar"
+            }
           >
             <span className={cn("inline-flex", isExplorerOnRight && "-scale-x-100")}>
-              {sidebar.isSidebarCollapsed ? <IconSidebarLeftOpen size={16} /> : <IconSidebarLeft size={16} />}
+              {collapsed ? <IconSidebarLeftOpen size={16} /> : <IconSidebarLeft size={16} />}
             </span>
           </Button>
           <span className="sidebar-actions-separator" aria-hidden="true" />
@@ -266,9 +275,9 @@ export const LeftSidebar = ({ className, children, style, ...props }: ComponentP
         </div>
       </div>
       <div
-        className={cn("sidebar-inner", sidebar.isSidebarCollapsed && "sidebar-inner-collapsed")}
-        aria-hidden={sidebar.isSidebarCollapsed}
-        inert={sidebar.isSidebarCollapsed}
+        className={cn("sidebar-inner", collapsed && "sidebar-inner-collapsed")}
+        aria-hidden={collapsed}
+        inert={collapsed}
       >
         <div
           className="sidebar-view-content"
@@ -289,7 +298,7 @@ export const LeftSidebar = ({ className, children, style, ...props }: ComponentP
           </div>
         ) : null}
       </div>
-      {(!sidebar.isSidebarCollapsed || sidebar.isSidebarResizing) && (
+      {!focused && (!sidebar.isSidebarCollapsed || sidebar.isSidebarResizing) && (
         <SidebarResizer
           aria-label="Resize left sidebar"
           edge={isExplorerOnRight ? "left" : "right"}
@@ -343,19 +352,24 @@ export const InspectorSidebarProvider = ({ children }: { children: ReactNode }) 
 export const InspectorSidebar = ({ className, children, style, ...props }: ComponentProps<"aside">) => {
   const sidebar = useContext(InspectorSidebarContext);
   const placement = useSidebarPlacement();
+  const { focused, revealed } = useFocusModeBar(placement === "explorer-right" ? "left" : "right");
   if (!sidebar) {
     throw new Error("InspectorSidebar must be used within InspectorSidebarProvider");
   }
+  const collapsed = sidebar.isSidebarCollapsed && !focused;
 
   return (
     <aside
       className={cn("right-sidebar-shell", className)}
-      data-collapsed={sidebar.isSidebarCollapsed ? "true" : undefined}
+      data-collapsed={collapsed ? "true" : undefined}
       data-side={placement === "explorer-right" ? "left" : "right"}
-      style={{ ...style, width: `${sidebar.visibleWidth}px` }}
+      style={{ ...style, width: `${focused ? sidebar.overlayWidth : sidebar.visibleWidth}px` }}
       {...props}
+      data-focus-revealed={revealed || undefined}
+      inert={focused && !revealed}
+      aria-hidden={(focused && !revealed) || undefined}
     >
-      {(!sidebar.isSidebarCollapsed || sidebar.isSidebarResizing) && (
+      {!focused && (!sidebar.isSidebarCollapsed || sidebar.isSidebarResizing) && (
         <SidebarResizer
           aria-label="Resize file inspector"
           edge={placement === "explorer-right" ? "right" : "left"}
@@ -370,10 +384,10 @@ export const InspectorSidebar = ({ className, children, style, ...props }: Compo
       <div
         className={cn(
           "right-sidebar-inner flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-none border border-[var(--border-panel)] bg-sidebar",
-          sidebar.isSidebarCollapsed && "right-sidebar-inner-collapsed",
+          collapsed && "right-sidebar-inner-collapsed",
         )}
-        aria-hidden={sidebar.isSidebarCollapsed}
-        inert={sidebar.isSidebarCollapsed}
+        aria-hidden={collapsed}
+        inert={collapsed}
       >
         {children}
       </div>

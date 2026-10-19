@@ -52,6 +52,15 @@ ordinary Markdown file.
   equations, checklists, and links render as you write
 - Tabs and split panes keep a note, its source PDF, and the board in view at once
 - Command menu, workspace search, bookmarks, and recent files for fast navigation
+- Focus mode hides both sidebars and the bottom toolbar. Choose **Settings → Appearance →
+  Focus mode**: **All panes** (default) keeps every pane and its tab bar; **Active pane**
+  shows only the current view, without tabs. Your choice is saved on this device.
+  Use the pane's **Enter focus mode** button, the command menu (search
+  “focus” or “zen”), or **⌘⇧F** on macOS / **Ctrl+Shift+F** on Windows and Linux.
+  Hover at the left, right, or bottom edge to reveal its bar over the document,
+  without moving your content or changing saved sidebar settings. Leave using
+  **Exit focus** in the bottom bar, the same shortcut, or **Escape twice**.
+  PDFs support the same focus shortcut. The shortcut can be changed in keyboard settings.
 
 ## Built-in Git, local by default
 

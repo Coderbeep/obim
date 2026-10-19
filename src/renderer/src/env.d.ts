@@ -4,6 +4,7 @@ import type {
   AppConfig,
   AppTheme,
   ConfigKey,
+  FocusModeLayout,
   GitAutoSyncConflictResolution,
   SidebarPlacement,
   WorkspaceBackupResult,
@@ -178,6 +179,7 @@ declare global {
       setShowWindowControls: (visible: boolean) => Promise<void>;
       getThemeSync: () => AppTheme | null;
       setTheme: (theme: AppTheme) => Promise<void>;
+      getFocusModeLayoutSync: () => FocusModeLayout;
       getSidebarPlacementSync: () => SidebarPlacement;
       setSidebarPlacement: (placement: SidebarPlacement) => Promise<void>;
       getZoomFactorSync: () => number;

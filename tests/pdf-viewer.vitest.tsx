@@ -119,8 +119,13 @@ vi.mock("pdfjs-dist", () => {
 vi.mock("../src/renderer/src/features/files/workspaceFileService", () => fileCommands);
 vi.mock("../src/renderer/src/features/files/fileActions", () => ({
   useFileOpen: () => ({ open: openNote }),
+  useFileCreate: () => ({ createNewFile: vi.fn() }),
 }));
 
+import { useGlobalShortcuts } from "../src/renderer/src/app/useGlobalShortcuts";
+import { saveKeyboardShortcuts } from "../src/renderer/src/shared/keyboardShortcuts";
+import { activePaneIdAtom, workspacePanesAtom } from "../src/renderer/src/store/editorPaneStore";
+import { focusModeLayoutAtom, focusModePaneIdAtom } from "../src/renderer/src/store/focusModeStore";
 import { PDFViewer } from "../src/renderer/src/features/files/PDFViewer";
 import { dispatchPdfDeepLink, parsePdfDeepLink } from "../src/renderer/src/shared/pdfDeepLink";
 import { dispatchPdfReferenceHover } from "../src/renderer/src/shared/pdfReferenceHover";
@@ -1902,6 +1907,92 @@ describe("PDFViewer", () => {
       const scale = Number.parseFloat(pageElement?.style.width ?? "600") / 600;
       expect(Number.parseFloat(highlight?.style.width ?? "0")).toBeCloseTo(text.length * 8 * scale, 5);
     });
+  });
+
+  it.each([{ ctrlKey: true }, { metaKey: true }])(
+    "lets focus mode's Shift+F chord pass through the PDF viewer (%o)",
+    async (modifiers) => {
+      render(<PDFViewer file={file} />);
+      await waitFor(() => expect(screen.getByText("/ 2")).toBeTruthy());
+      const viewport = screen.getByLabelText(/PDF pages/);
+      viewport.focus();
+      const unhandled = fireEvent.keyDown(viewport, { key: "F", shiftKey: true, ...modifiers });
+      expect(screen.queryByRole("searchbox", { name: "Search PDF" })).toBeNull();
+      expect(unhandled).toBe(true);
+    },
+  );
+
+  it.each([
+    [false, "active-pane"],
+    [false, "all-panes"],
+    [true, "active-pane"],
+    [true, "all-panes"],
+  ] as const)("toggles focus from the PDF on macOS=%s with %s and preserves normal Find", async (isMacOS, layout) => {
+    const originalConfig = window.config;
+    Object.defineProperty(window, "config", { configurable: true, writable: true, value: { isMacOS } });
+    const store = createStore();
+    store.set(focusModeLayoutAtom, layout);
+    store.set(activePaneIdAtom, "pdf-pane");
+    store.set(workspacePanesAtom, [{ id: "pdf-pane", tabs: ["pdf-tab"], activeTabId: "pdf-tab", size: 1 }]);
+    store.set(workspaceTabsByIdAtom, { "pdf-tab": createEditorTab("pdf-tab", createFileWorkspaceItemKey(file.path)) });
+    const Harness = () => {
+      useGlobalShortcuts();
+      return <PDFViewer file={file} />;
+    };
+    try {
+      render(
+        <Provider store={store}>
+          <Harness />
+        </Provider>,
+      );
+      await waitFor(() => expect(screen.getByText("/ 2")).toBeTruthy());
+      const viewport = screen.getByLabelText(/PDF pages/);
+      const modifiers = isMacOS ? { metaKey: true } : { ctrlKey: true };
+      act(() => viewport.focus());
+      fireEvent.keyDown(viewport, { key: "F", shiftKey: true, ...modifiers });
+      expect(store.get(focusModePaneIdAtom)).toBe("pdf-pane");
+      expect(screen.queryByRole("searchbox", { name: "Search PDF" })).toBeNull();
+      fireEvent.keyDown(viewport, { key: "F", shiftKey: true, ...modifiers });
+      expect(store.get(focusModePaneIdAtom)).toBeNull();
+      fireEvent.keyDown(viewport, { key: "f", ...modifiers });
+      expect(await screen.findByRole("searchbox", { name: "Search PDF" })).toBeTruthy();
+    } finally {
+      window.config = originalConfig;
+    }
+  });
+
+  it("reserves a remapped focus shortcut before PDF-local zoom handling", async () => {
+    const originalConfig = window.config;
+    Object.defineProperty(window, "config", {
+      configurable: true,
+      writable: true,
+      value: { isMacOS: false, updateConfig: vi.fn().mockResolvedValue(undefined) },
+    });
+    const store = createStore();
+    store.set(activePaneIdAtom, "pdf-pane");
+    store.set(workspacePanesAtom, [{ id: "pdf-pane", tabs: ["pdf-tab"], activeTabId: "pdf-tab", size: 1 }]);
+    store.set(workspaceTabsByIdAtom, { "pdf-tab": createEditorTab("pdf-tab", createFileWorkspaceItemKey(file.path)) });
+    const Harness = () => {
+      useGlobalShortcuts();
+      return <PDFViewer file={file} />;
+    };
+    try {
+      await saveKeyboardShortcuts({ "focus-mode": ["Mod+Equal"] });
+      render(
+        <Provider store={store}>
+          <Harness />
+        </Provider>,
+      );
+      await waitFor(() => expect(screen.getByText("/ 2")).toBeTruthy());
+      const viewport = screen.getByLabelText(/PDF pages/);
+      const scale = screen.getByText(/%$/u).textContent;
+      fireEvent.keyDown(viewport, { key: "=", ctrlKey: true });
+      expect(store.get(focusModePaneIdAtom)).toBe("pdf-pane");
+      expect(screen.getByText(/%$/u).textContent).toBe(scale);
+    } finally {
+      await saveKeyboardShortcuts({});
+      window.config = originalConfig;
+    }
   });
 
   it("exposes keyboard-first page, search, and zoom navigation", async () => {

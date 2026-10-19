@@ -164,7 +164,8 @@ describe("workspace tab drag preview", () => {
     const panes = container.querySelectorAll(".pane-column");
 
     expect(panes[0].querySelector(".pane-tabs-start")?.textContent).toContain("Left inspector control");
-    expect(panes[0].querySelector(".pane-tabs-end")).toBeNull();
+    expect(panes[0].querySelector(".pane-tabs-end")?.textContent).not.toContain("Right inspector control");
+    expect(panes[0].querySelector('button[aria-label="Enter focus mode"]')).not.toBeNull();
     expect(panes[1].querySelector(".pane-tabs-start")).toBeNull();
     expect(panes[1].querySelector(".pane-tabs-end")?.textContent).toContain("Right inspector control");
   });

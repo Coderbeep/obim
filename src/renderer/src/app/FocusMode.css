@@ -1,0 +1,209 @@
+/* Wrappers retain the existing flex layout and mounted chrome controls. */
+.pane-tab-chrome,
+.pane-navigation-header {
+  display: contents;
+}
+
+.pane-tab-chrome[hidden],
+.pane-navigation-header[hidden] {
+  display: none;
+}
+
+/* A reversible presentation layer: stored pane/sidebar dimensions stay intact. */
+.app-shell[data-focus-mode="true"] {
+  position: relative;
+  background: var(--surface-1);
+}
+
+.app-shell[data-focus-mode="true"]::before {
+  content: "";
+  position: absolute;
+  z-index: 25;
+  inset: 0 0 auto;
+  height: 4px;
+  -webkit-app-region: drag;
+}
+
+.app-shell[data-focus-mode="true"] .root-layout {
+  gap: 0;
+  padding: 0;
+  background: var(--surface-1);
+}
+
+.app-shell[data-focus-mode="true"] .content,
+.app-shell[data-focus-mode="true"] .pane-workspace {
+  padding: 0;
+}
+
+.app-shell[data-focus-mode="true"] .app-content {
+  padding-top: 0;
+}
+
+.app-shell[data-focus-mode="true"] .pane-card-header,
+.app-shell[data-focus-mode="true"] .pane-tabs-start,
+.app-shell[data-focus-mode="true"] .pane-tabs-end,
+.app-shell[data-focus-mode-layout="active-pane"] .pane-tabs-container,
+.app-shell[data-focus-mode-layout="active-pane"] .pane-resize-divider,
+.app-shell[data-focus-mode-layout="active-pane"] .pane-workspace-split-target,
+.pane-column[hidden] {
+  display: none;
+}
+
+.app-shell[data-focus-mode-layout="active-pane"] .pane-column {
+  border: 0;
+  border-radius: 0;
+}
+
+.app-shell[data-focus-mode-layout="active-pane"] .pane-workspace {
+  gap: 0;
+}
+
+.app-shell[data-focus-mode-layout="active-pane"] .pane-column {
+  flex: 1 1 0% !important;
+}
+
+/* Native buttons keep their existing preference; no full-width title spacer. */
+.app-shell[data-focus-mode="true"] .window-title-bar {
+  display: none;
+}
+
+/* Chrome floats above content, so revealing a bar never changes pane geometry. */
+.app-shell[data-focus-mode="true"] .sidebar-shell,
+.app-shell[data-focus-mode="true"] .right-sidebar-shell {
+  position: absolute;
+  z-index: 40;
+  inset-block: 0;
+  height: auto;
+  max-width: calc(100% - 16px);
+  margin: 0;
+  background: var(--surface-2);
+  box-shadow: 0 0 24px rgb(0 0 0 / 18%);
+  -webkit-app-region: no-drag;
+}
+
+.app-shell[data-focus-mode="true"] [data-side="left"]:is(.sidebar-shell, .right-sidebar-shell) {
+  left: 0;
+  transform: translateX(calc(-100% - 24px));
+}
+
+.app-shell[data-focus-mode="true"] [data-side="right"]:is(.sidebar-shell, .right-sidebar-shell) {
+  right: 0;
+  transform: translateX(calc(100% + 24px));
+}
+
+.app-shell[data-focus-mode="true"] .app-status-bar {
+  position: absolute;
+  z-index: 41;
+  inset: auto 0 0;
+  min-height: 28px;
+  transform: translateY(calc(100% + 18px));
+  box-shadow: 0 -4px 18px rgb(0 0 0 / 12%);
+  -webkit-app-region: no-drag;
+}
+
+.app-shell[data-focus-mode="true"] :is(.sidebar-shell, .right-sidebar-shell, .app-status-bar) {
+  display: flex;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    transform var(--motion-panel-duration) var(--motion-panel-ease),
+    opacity var(--motion-fade-in-duration) ease,
+    visibility 0s linear var(--motion-panel-duration);
+}
+
+.app-shell[data-focus-mode="true"]
+  :is(.sidebar-shell, .right-sidebar-shell, .app-status-bar)[data-focus-revealed="true"] {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translate(0, 0);
+  transition-delay: 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell[data-focus-mode="true"] :is(.sidebar-shell, .right-sidebar-shell, .app-status-bar) {
+    transition: none;
+  }
+}
+
+/* Keyboard users can reveal the same bars without moving the pointer. */
+.focus-mode-edge-control {
+  position: absolute;
+  z-index: 42;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.focus-mode-edge-control:focus-visible {
+  width: auto;
+  height: auto;
+  padding: 4px 8px;
+  clip-path: none;
+  background: var(--surface-2);
+  color: var(--text-primary);
+  outline: 2px solid var(--focus-ring);
+  -webkit-app-region: no-drag;
+}
+
+.focus-mode-edge-control[data-edge="left"] {
+  top: 50%;
+  left: 0;
+}
+
+.focus-mode-edge-control[data-edge="right"] {
+  top: 50%;
+  right: 0;
+}
+
+.focus-mode-edge-control[data-edge="bottom"] {
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.app-shell[data-focus-mode-layout="active-pane"] .editor-comp .cm-scroller {
+  padding: 32px max(24px, calc((100% - 76ch) / 2)) 0;
+}
+
+.focus-mode-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-secondary);
+}
+
+.focus-mode-exit {
+  gap: 6px;
+  color: var(--text-secondary);
+}
+
+.focus-mode-exit kbd {
+  margin-left: 4px;
+  font-size: var(--text-ui-meta);
+  font-family: inherit;
+  color: var(--text-tertiary);
+}
+
+/* Keep the normal pane frames and resize gutters on the workspace canvas. */
+.app-shell[data-focus-mode="true"][data-focus-mode-layout="all-panes"],
+.app-shell[data-focus-mode-layout="all-panes"] .root-layout {
+  background: var(--surface-canvas);
+}
+
+.app-shell[data-focus-mode="true"][data-focus-mode-layout="all-panes"] .content {
+  padding: var(--space-2);
+}
+
+@media (max-width: 600px) {
+  .app-shell[data-focus-mode-layout="active-pane"] .editor-comp .cm-scroller {
+    padding-inline: 18px;
+  }
+
+  .focus-mode-exit kbd {
+    display: none;
+  }
+}
