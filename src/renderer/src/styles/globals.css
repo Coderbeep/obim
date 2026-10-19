@@ -225,6 +225,10 @@
   --text-on-accent: var(--neutral-0);
   --icon-primary: var(--text-primary);
   --icon-secondary: var(--text-secondary);
+  --file-icon-archive: var(--color-yellow-600);
+  --file-icon-image: var(--color-blue-500);
+  --file-icon-pdf: var(--color-red-500);
+  --file-icon-pdf-label: var(--neutral-0);
 
   --accent: oklch(0.55 0.12 20);
   --accent-hover: oklch(0.5 0.12 20);
@@ -424,6 +428,9 @@
   --text-on-accent: #211a1c;
   --icon-primary: var(--text-primary);
   --icon-secondary: var(--text-secondary);
+  --file-icon-archive: var(--color-yellow-300);
+  --file-icon-image: var(--color-blue-300);
+  --file-icon-pdf: var(--color-red-400);
 
   --accent: #d28c8d;
   --accent-hover: #d98a8b;
