@@ -97,10 +97,17 @@ describe("ImageViewer", () => {
     const pdfItem = createFileWorkspaceItem(pdfFile);
     expect(views[WORKSPACE_ITEM_KINDS.file].managesOwnOverflow?.(pdfItem)).toBe(true);
 
-    const suspense = views[WORKSPACE_ITEM_KINDS.file].render(pdfItem, "pane-1") as ReactElement<{
-      children: ReactElement;
-    }>;
-    expect(suspense.props.children.key).toBe(pdfFile.id);
+    const renderPdfTab = (tabId: string) => {
+      const suspense = views[WORKSPACE_ITEM_KINDS.file].render(pdfItem, "pane-1", tabId) as ReactElement<{
+        children: ReactElement<{ tabId?: string }>;
+      }>;
+      return suspense.props.children;
+    };
+    const firstTab = renderPdfTab("pdf-tab-1");
+    expect(firstTab.props.tabId).toBe("pdf-tab-1");
+    expect(firstTab.key).not.toBeNull();
+    expect(renderPdfTab("pdf-tab-1").key).toBe(firstTab.key);
+    expect(renderPdfTab("pdf-tab-2").key).not.toBe(firstTab.key);
   });
 
   it("shows load failures with a retry action", () => {
