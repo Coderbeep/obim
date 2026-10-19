@@ -210,6 +210,16 @@ const openPdfSearch = async () => {
 beforeEach(() => {
   mockClientWidth = 900;
   resizeObserverCallback = null;
+  vi.stubGlobal(
+    "PointerEvent",
+    class extends MouseEvent {
+      readonly pointerId: number;
+      constructor(type: string, options: PointerEventInit = {}) {
+        super(type, options);
+        this.pointerId = options.pointerId ?? 1;
+      }
+    },
+  );
   window.api = {
     openExternalLink: nativeShortcutMocks.openExternalLink,
     setPdfViewerShortcutFocus: nativeShortcutMocks.setPdfViewerShortcutFocus,
@@ -776,6 +786,7 @@ describe("PDFViewer", () => {
     range.setStart(textNode, 0);
     range.setEnd(textNode, 9);
     const selection = window.getSelection()!;
+    fireEvent.pointerDown(range.startContainer.parentElement!, { button: 0 });
     selection.removeAllRanges();
     selection.addRange(range);
     fireEvent.pointerUp(textNode.parentElement!);
@@ -799,6 +810,176 @@ describe("PDFViewer", () => {
     selection.removeAllRanges();
   });
 
+  it("retains the compact selection layout and anchor until its closing animation finishes", async () => {
+    const originalComputedStyle = getComputedStyle;
+    // Radix retains a live computed style during animation; jsdom normally
+    // snapshots it, so reproduce the browser's animation-name updates here.
+    const computedStyle = vi.spyOn(globalThis, "getComputedStyle").mockImplementation((element, pseudo) => {
+      const style = originalComputedStyle(element, pseudo);
+      if (element.matches(".pdf-viewer-reference-popover"))
+        Object.defineProperty(style, "animationName", {
+          get: () => (element.getAttribute("data-state") === "closed" ? "picker-close" : "picker-open"),
+        });
+      return style;
+    });
+    vi.stubGlobal("CSS", { ...globalThis.CSS, escape: (value: string) => value });
+    try {
+      render(<PDFViewer file={file} />);
+      await waitFor(() => expect(document.querySelector(".pdf-page-text span")?.firstChild).toBeTruthy());
+      const textNode = document.querySelector(".pdf-page-text span")!.firstChild!;
+      const range = document.createRange();
+      range.setStart(textNode, 0);
+      range.setEnd(textNode, 9);
+      const selection = window.getSelection()!;
+      fireEvent.pointerDown(range.startContainer.parentElement!, { button: 0 });
+      selection.removeAllRanges();
+      selection.addRange(range);
+      fireEvent.pointerUp(textNode.parentElement!);
+      const picker = await screen.findByLabelText("Copy PDF reference with color");
+      const position = picker.parentElement!.style.transform;
+      expect(picker.hasAttribute("data-selection-only")).toBe(true);
+      fireEvent.keyDown(picker, { key: "Escape" });
+      await waitFor(() => expect(picker.dataset.state).toBe("closed"));
+      expect(picker.isConnected).toBe(true);
+      expect(picker.hasAttribute("data-selection-only")).toBe(true);
+      expect(picker.parentElement!.style.transform).toBe(position);
+      expect(picker.querySelectorAll("button")).toHaveLength(5);
+      const animationEnd = new Event("animationend", { bubbles: true });
+      Object.defineProperty(animationEnd, "animationName", { value: "picker-close" });
+      fireEvent(picker, animationEnd);
+      await waitFor(() => expect(picker.isConnected).toBe(false));
+      selection.removeAllRanges();
+    } finally {
+      computedStyle.mockRestore();
+    }
+  });
+
+  it("stays dismissed when a page click retains the old selection, then opens for a new selection", async () => {
+    render(<PDFViewer file={file} />);
+    await waitFor(() => expect(document.querySelector(".pdf-page-text span")?.firstChild).toBeTruthy());
+    const textNode = document.querySelector(".pdf-page-text span")!.firstChild!;
+    const range = document.createRange();
+    range.setStart(textNode, 0);
+    range.setEnd(textNode, 9);
+    const selection = window.getSelection()!;
+    fireEvent.pointerDown(textNode.parentElement!, { button: 0 });
+    selection.removeAllRanges();
+    selection.addRange(range);
+    fireEvent.pointerUp(textNode.parentElement!);
+    await screen.findByLabelText("Copy PDF reference with color");
+    // Allow Radix's outside-pointer listener to attach.
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+    });
+    const blankPage = document.querySelector(".pdf-page-text")!;
+    // Keep the native pre-click state too: Electron still has the selection
+    // while the picker has focus, whereas jsdom clears it on focus changes.
+    selection.removeAllRanges();
+    selection.addRange(range);
+    fireEvent.pointerDown(blankPage, { button: 0 });
+    await waitFor(() => expect(screen.queryByLabelText("Copy PDF reference with color")).toBeNull());
+    // jsdom's focus restoration clears the range; Electron retains it in the
+    // reported dismissal sequence, so reproduce that pointerup state explicitly.
+    selection.removeAllRanges();
+    selection.addRange(range);
+    fireEvent.pointerUp(blankPage);
+    expect(screen.queryByLabelText("Copy PDF reference with color")).toBeNull();
+
+    fireEvent.pointerDown(textNode.parentElement!, { button: 0 });
+    const nextRange = document.createRange();
+    nextRange.setStart(textNode, 10);
+    nextRange.setEnd(textNode, 17);
+    selection.removeAllRanges();
+    selection.addRange(nextRange);
+    fireEvent.pointerUp(textNode.parentElement!);
+    expect((await screen.findByLabelText("Copy PDF reference with color")).dataset.state).toBe("open");
+    selection.removeAllRanges();
+  });
+
+  it("allows dragging and double-clicking the same passage after dismissal", async () => {
+    render(<PDFViewer file={file} />);
+    await waitFor(() => expect(document.querySelector(".pdf-page-text span")?.firstChild).toBeTruthy());
+    const text = document.querySelector(".pdf-page-text span")!;
+    const textNode = text.firstChild!;
+    const range = document.createRange();
+    range.setStart(textNode, 0);
+    range.setEnd(textNode, 9);
+    const selection = window.getSelection()!;
+    const restoreRange = () => {
+      selection.removeAllRanges();
+      selection.addRange(range);
+    };
+    fireEvent.pointerDown(text, { button: 0 });
+    restoreRange();
+    fireEvent.pointerUp(text);
+    fireEvent.keyDown(await screen.findByLabelText("Copy PDF reference with color"), { key: "Escape" });
+    await waitFor(() => expect(screen.queryByLabelText("Copy PDF reference with color")).toBeNull());
+    restoreRange();
+    fireEvent.pointerDown(text, { button: 0, clientX: 10, clientY: 10 });
+    fireEvent.pointerMove(text, { clientX: 90, clientY: 10 });
+    restoreRange();
+    fireEvent.pointerUp(text, { clientX: 90, clientY: 10 });
+    fireEvent.keyDown(await screen.findByLabelText("Copy PDF reference with color"), { key: "Escape" });
+    await waitFor(() => expect(screen.queryByLabelText("Copy PDF reference with color")).toBeNull());
+    restoreRange();
+    fireEvent.pointerDown(text, { button: 0 });
+    restoreRange();
+    fireEvent.pointerUp(text);
+    expect(screen.queryByLabelText("Copy PDF reference with color")).toBeNull();
+    fireEvent.doubleClick(text);
+    expect((await screen.findByLabelText("Copy PDF reference with color")).dataset.state).toBe("open");
+    selection.removeAllRanges();
+  });
+
+  it("does not open from an unmatched or canceled pointer gesture and still captures keyboard selection", async () => {
+    render(<PDFViewer file={file} />);
+    await waitFor(() => expect(document.querySelector(".pdf-page-text span")?.firstChild).toBeTruthy());
+    const text = document.querySelector(".pdf-page-text span")!;
+    const range = document.createRange();
+    range.setStart(text.firstChild!, 0);
+    range.setEnd(text.firstChild!, 9);
+    const selection = window.getSelection()!;
+    selection.removeAllRanges();
+    selection.addRange(range);
+    fireEvent.pointerUp(text);
+    expect(screen.queryByLabelText("Copy PDF reference with color")).toBeNull();
+    fireEvent.pointerDown(text, { button: 0 });
+    fireEvent.pointerCancel(text);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    fireEvent.pointerUp(text);
+    expect(screen.queryByLabelText("Copy PDF reference with color")).toBeNull();
+    fireEvent.keyUp(text, { key: "ArrowRight", shiftKey: true });
+    expect((await screen.findByLabelText("Copy PDF reference with color")).dataset.state).toBe("open");
+    selection.removeAllRanges();
+  });
+
+  it("does not dismiss a newer PDF selection when an earlier copy completes", async () => {
+    let finishCopy!: () => void;
+    const writeText = vi.fn(() => new Promise<void>((resolve) => (finishCopy = resolve)));
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
+    render(<PDFViewer file={file} />);
+    await waitFor(() => expect(document.querySelector(".pdf-page-text span")?.firstChild).toBeTruthy());
+    const textNode = document.querySelector(".pdf-page-text span")!.firstChild!;
+    const selection = window.getSelection()!;
+    const select = (start: number, end: number) => {
+      const range = document.createRange();
+      range.setStart(textNode, start);
+      range.setEnd(textNode, end);
+      fireEvent.pointerDown(range.startContainer.parentElement!, { button: 0 });
+      selection.removeAllRanges();
+      selection.addRange(range);
+      fireEvent.pointerUp(textNode.parentElement!);
+    };
+    select(0, 9);
+    fireEvent.click(await screen.findByRole("button", { name: "Copy blue reference" }));
+    select(10, 17);
+    await act(async () => finishCopy());
+    expect(screen.getByRole("button", { name: "Copy blue reference" })).toBeTruthy();
+    expect(screen.getByLabelText("Copy PDF reference with color").dataset.state).toBe("open");
+    selection.removeAllRanges();
+  });
+
   it("keeps selection color actions open when clipboard copying fails", async () => {
     const writeText = vi.fn().mockRejectedValue(new Error("Clipboard denied"));
     Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
@@ -814,6 +995,7 @@ describe("PDFViewer", () => {
     range.setStart(textNode, 0);
     range.setEnd(textNode, 9);
     const selection = window.getSelection()!;
+    fireEvent.pointerDown(range.startContainer.parentElement!, { button: 0 });
     selection.removeAllRanges();
     selection.addRange(range);
     fireEvent.pointerUp(textNode.parentElement!);
@@ -1288,6 +1470,7 @@ describe("PDFViewer", () => {
     range.setStart(author.firstChild!, 0);
     range.setEnd(institution.firstChild!, 19);
     const selection = window.getSelection()!;
+    fireEvent.pointerDown(range.startContainer.parentElement!, { button: 0 });
     selection.removeAllRanges();
     selection.addRange(range);
     fireEvent.pointerUp(institution);

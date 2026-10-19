@@ -99,6 +99,9 @@ import { findItemNode } from "./fileTreeUtils";
 GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 type PdfFile = Extract<FileItem, { isDirectory: false }>;
+type PdfReferencePopoverTarget =
+  | { kind: "annotation"; reference: PdfNoteReference; bounds: DOMRect }
+  | { kind: "selection"; page: number; range: PdfTextSelection; bounds: DOMRect };
 type PdfTextContent = Awaited<ReturnType<PDFPageProxy["getTextContent"]>>;
 export type PdfViewerZoomMode = PdfViewPosition["zoomMode"];
 export type PdfViewerSpreadMode = PdfViewPosition["spreadMode"];
@@ -853,9 +856,19 @@ export const PDFViewer = ({
   const restoredView = initialViewState ?? savedPosition;
   const fileTree = useAtomValue(fileTreeAtom);
   const { open } = useFileOpen();
-  const [activeAnnotation, setActiveAnnotation] = useState<{ reference: PdfNoteReference; bounds: DOMRect } | null>(
-    null,
-  );
+  const [referencePopover, setReferencePopover] = useState<{
+    open: boolean;
+    target: PdfReferencePopoverTarget;
+  } | null>(null);
+  const activeAnnotation = referencePopover?.target.kind === "annotation" ? referencePopover.target : null;
+  const selectedText = referencePopover?.target.kind === "selection" ? referencePopover.target : null;
+  const closeReferencePopover = useCallback((expectedTarget?: PdfReferencePopoverTarget) => {
+    // Radix keeps closing content mounted for its exit animation. Keep the
+    // target, anchor, and compact/annotation layout intact until it disappears.
+    setReferencePopover((current) =>
+      current && (!expectedTarget || current.target === expectedTarget) ? { ...current, open: false } : current,
+    );
+  }, []);
   const [annotationBusy, setAnnotationBusy] = useState(false);
   const [notesExpanded, setNotesExpanded] = useState(false);
   const notesListId = useId();
@@ -913,6 +926,14 @@ export const PDFViewer = ({
   const viewerRef = useRef<HTMLElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const pagesRef = useRef<HTMLDivElement>(null);
+  const selectionGestureRef = useRef<{
+    pointerId: number;
+    range: Range | null;
+    x: number;
+    y: number;
+    startedOnText: boolean;
+    dragged: boolean;
+  } | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const textIndexRef = useRef<Array<PdfPageTextIndex | null>>([]);
   const textIndexDocumentRef = useRef<PDFDocumentProxy | null>(null);
@@ -970,9 +991,6 @@ export const PDFViewer = ({
   const loadedSourceRevisionRef = useRef<string | null>(null);
   const [navigationError, setNavigationError] = useState<string | null>(null);
   const [navigationAttempt, setNavigationAttempt] = useState(0);
-  const [selectedText, setSelectedText] = useState<{ page: number; range: PdfTextSelection; bounds: DOMRect } | null>(
-    null,
-  );
   const annotationAnchor = useMemo(() => {
     const bounds = activeAnnotation?.bounds ?? selectedText?.bounds;
     return bounds ? { current: { getBoundingClientRect: () => bounds } } : undefined;
@@ -993,7 +1011,7 @@ export const PDFViewer = ({
       anchor?.nodeType === Node.ELEMENT_NODE ? (anchor as Element) : anchor?.parentElement
     )?.closest<HTMLElement>(".pdf-page");
     if (!page || !viewerRef.current?.contains(page)) {
-      setSelectedText(null);
+      closeReferencePopover();
       return;
     }
     const range = pdfSelectionFromDom(selection, page);
@@ -1003,15 +1021,20 @@ export const PDFViewer = ({
       domRange && typeof domRange.getBoundingClientRect === "function"
         ? domRange.getBoundingClientRect()
         : page.getBoundingClientRect();
-    setSelectedText(range && bounds && Number.isSafeInteger(pageNumber) ? { page: pageNumber, range, bounds } : null);
-    setActiveAnnotation(null);
+    if (!range || !bounds || !Number.isSafeInteger(pageNumber)) {
+      closeReferencePopover();
+      return;
+    }
+    setReferencePopover({ open: true, target: { kind: "selection", page: pageNumber, range, bounds } });
+    setNotesExpanded(false);
     setReferenceCopied(false);
-  }, []);
+  }, [closeReferencePopover]);
 
   useEffect(() => onPageChange?.(currentPage), [currentPage, onPageChange]);
   useEffect(() => {
-    setSelectedText(null);
-    setActiveAnnotation(null);
+    setReferencePopover(null);
+    selectionGestureRef.current = null;
+    setNotesExpanded(false);
     setLinkedSelection(null);
     setReferenceCopied(false);
   }, [file.path]);
@@ -1074,7 +1097,7 @@ export const PDFViewer = ({
         await navigator.clipboard.writeText(
           pdfReferenceMarkdown(file.relativePath, selectedText.page, selectedText.range, color),
         );
-        setSelectedText((current) => (current === selectedText ? null : current));
+        closeReferencePopover(selectedText);
         addNotification({
           id: crypto.randomUUID(),
           level: NotificationLevel.INFO,
@@ -1086,7 +1109,7 @@ export const PDFViewer = ({
         notifyError("Could not copy PDF reference", errorMessage(error));
       }
     },
-    [addNotification, file.relativePath, notifyError, selectedText],
+    [addNotification, closeReferencePopover, file.relativePath, notifyError, selectedText],
   );
 
   const changeReferenceColor = useCallback(
@@ -1113,7 +1136,7 @@ export const PDFViewer = ({
               : {}),
             timestamp: Date.now(),
           });
-          setActiveAnnotation(null);
+          closeReferencePopover(activeAnnotation);
         } else if (failed) {
           notifyError(
             "Could not change PDF reference color",
@@ -1126,7 +1149,7 @@ export const PDFViewer = ({
             title: "References already use this color",
             timestamp: Date.now(),
           });
-          setActiveAnnotation(null);
+          closeReferencePopover(activeAnnotation);
         }
       } catch (error) {
         notifyError("Could not change PDF reference color", errorMessage(error));
@@ -1134,7 +1157,7 @@ export const PDFViewer = ({
         setAnnotationBusy(false);
       }
     },
-    [activeAnnotation, addNotification, matchingReferences, notifyError, store],
+    [activeAnnotation, addNotification, closeReferencePopover, matchingReferences, notifyError, store],
   );
 
   useEffect(
@@ -1643,7 +1666,10 @@ export const PDFViewer = ({
 
   useEffect(() => {
     const releaseShortcutFocus = (event: globalThis.PointerEvent) => {
-      if (hasShortcutFocusRef.current && !ownsViewerNode(event.target)) setShortcutFocus(false);
+      if (!ownsViewerNode(event.target)) {
+        selectionGestureRef.current = null;
+        if (hasShortcutFocusRef.current) setShortcutFocus(false);
+      }
     };
     document.addEventListener("pointerdown", releaseShortcutFocus, true);
     return () => {
@@ -1661,6 +1687,56 @@ export const PDFViewer = ({
     )
       return;
     viewportRef.current?.focus({ preventScroll: true });
+  };
+
+  const beginSelectionGesture = (event: PointerEvent<HTMLElement>) => {
+    const selection = window.getSelection();
+    const target = event.target instanceof Element ? event.target : null;
+    // Snapshot before focus/default pointer handling can change the DOM selection.
+    selectionGestureRef.current =
+      event.button === 0 && target?.closest(".pdf-page")
+        ? {
+            pointerId: event.pointerId,
+            range:
+              selection && !selection.isCollapsed && selection.rangeCount === 1
+                ? selection.getRangeAt(0).cloneRange()
+                : null,
+            x: event.clientX,
+            y: event.clientY,
+            startedOnText: Boolean(target.closest(".pdf-page-text [data-pdf-text-item-index]")),
+            dragged: false,
+          }
+        : null;
+    claimShortcutFocus(event);
+  };
+
+  const finishSelectionGesture = (event: PointerEvent<HTMLElement>) => {
+    const gesture = selectionGestureRef.current;
+    selectionGestureRef.current = null;
+    if (
+      !gesture ||
+      gesture.pointerId !== event.pointerId ||
+      event.button !== 0 ||
+      !(event.target instanceof Element) ||
+      !event.target.closest(".pdf-page")
+    )
+      return;
+    const selection = window.getSelection();
+    const range = selection?.rangeCount === 1 ? selection.getRangeAt(0) : null;
+    const previous = gesture.range;
+    const unchanged =
+      previous &&
+      range &&
+      previous.startContainer === range.startContainer &&
+      previous.startOffset === range.startOffset &&
+      previous.endContainer === range.endContainer &&
+      previous.endOffset === range.endOffset;
+    const draggedOnText =
+      gesture.startedOnText &&
+      (gesture.dragged || Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) >= 4);
+    // A dismissal click can retain the old range. Its pointerup must not reopen
+    // the picker, while deliberately selecting the same passage must still work.
+    if (!unchanged || draggedOnText) captureSelection();
   };
 
   const searchResults = useMemo(() => {
@@ -2164,10 +2240,12 @@ export const PDFViewer = ({
   const progressPercent =
     loadProgress?.total && loadProgress.total > 0 ? Math.round((loadProgress.loaded / loadProgress.total) * 100) : null;
   const activateReference = useCallback((reference: PdfNoteReference, anchor: HTMLElement) => {
-    setSelectedText(null);
     setReferenceCopied(false);
     setNotesExpanded(false);
-    setActiveAnnotation({ reference, bounds: anchor.getBoundingClientRect() });
+    setReferencePopover({
+      open: true,
+      target: { kind: "annotation", reference, bounds: anchor.getBoundingClientRect() },
+    });
   }, []);
   const renderedPages = useMemo(() => {
     if (!pdfDocument) return null;
@@ -2393,9 +2471,22 @@ export const PDFViewer = ({
       className="pdf-viewer"
       tabIndex={-1}
       aria-label={`PDF viewer for ${file.filename}`}
-      onPointerDownCapture={claimShortcutFocus}
-      onPointerUpCapture={(event) => {
-        if (event.target instanceof Element && event.target.closest(".pdf-page")) captureSelection();
+      onPointerDownCapture={beginSelectionGesture}
+      onPointerMoveCapture={(event) => {
+        const gesture = selectionGestureRef.current;
+        if (
+          gesture?.pointerId === event.pointerId &&
+          Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) >= 4
+        )
+          gesture.dragged = true;
+      }}
+      onPointerUpCapture={finishSelectionGesture}
+      onPointerCancelCapture={() => {
+        selectionGestureRef.current = null;
+      }}
+      onDoubleClickCapture={(event) => {
+        if (event.target instanceof Element && event.target.closest(".pdf-page-text [data-pdf-text-item-index]"))
+          captureSelection();
       }}
       onKeyUpCapture={(event) => {
         if (event.shiftKey && ownsViewerNode(event.target)) captureSelection();
@@ -2410,13 +2501,9 @@ export const PDFViewer = ({
     >
       {toolbar}
       <Popover
-        open={Boolean(activeAnnotation || selectedText)}
+        open={referencePopover?.open ?? false}
         onOpenChange={(open) => {
-          if (!open) {
-            setActiveAnnotation(null);
-            setSelectedText(null);
-            setNotesExpanded(false);
-          }
+          if (!open) closeReferencePopover();
         }}
       >
         {annotationAnchor ? <PopoverAnchor virtualRef={annotationAnchor} /> : null}
@@ -2480,7 +2567,7 @@ export const PDFViewer = ({
                         aria-label={`Open note ${path}`}
                         onClick={() => {
                           void open(note, { openInNewTab: true, focusEditor: true }).then((opened) => {
-                            if (opened) setActiveAnnotation(null);
+                            if (opened) closeReferencePopover(activeAnnotation);
                             else notifyError("Could not open note", path);
                           });
                         }}
