@@ -30,6 +30,8 @@ vi.mock("@pierre/icons", () => ({
   IconFolderOpen: () => null,
   IconFolderPlus: () => null,
   IconSearch: () => null,
+  IconSortDown: () => null,
+  IconSortUp: () => null,
   IconTrash: () => null,
 }));
 

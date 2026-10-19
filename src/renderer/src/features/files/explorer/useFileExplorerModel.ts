@@ -1,11 +1,19 @@
 import { noteFileTypesAtom } from "@renderer/store/noteFileTypeStore";
 import { noteFileTreeIconCss } from "@renderer/shared/icons/noteFileTreeIcons";
-import type { FileTree as FileTreeModel, FileTreeDropResult, FileTreeRenameEvent, GitStatusEntry } from "@pierre/trees";
+import type {
+  FileTree as FileTreeModel,
+  FileTreeDropResult,
+  FileTreeRenameEvent,
+  FileTreeSortComparator,
+  GitStatusEntry,
+} from "@pierre/trees";
 import { useFileTree } from "@pierre/trees/react";
 import { useAtomValue, useSetAtom, useStore } from "jotai";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { useFileRename } from "../fileActions";
+import { explorerSortAtom } from "@renderer/store/explorerSortStore";
+import { compareExplorerEntries } from "./fileExplorerSorting";
 import { FILE_GLYPH_ICONS, FILE_GLYPH_SIZE } from "@renderer/shared/icons/FileGlyphs";
 import { currentFilePathAtom } from "@renderer/store/workspaceResourceStore";
 import {
@@ -202,16 +210,37 @@ export const useFileExplorerModel = ({
   const store = useStore();
   const { saveRename, stopRenaming } = useFileRename();
   const rootDirectoryPath = getWorkspacePath();
+  const sortPreference = useAtomValue(explorerSortAtom);
+  const sortKey = `${sortPreference.by}:${sortPreference.direction}`;
 
   const lookup = useMemo(() => (items.length > 0 ? buildTreeLookup(items) : EMPTY_LOOKUP), [items]);
   const noteTypes = useAtomValue(noteFileTypesAtom);
-  const noteIconCss = useMemo(() => noteFileTreeIconCss(
-    [...lookup.byTreePath].flatMap(([treePath, file]) => {
-      const type = noteTypes[file.path];
-      return type ? [[treePath, type] as const] : [];
-    }),
-  ), [lookup, noteTypes]);
+  const noteIconCss = useMemo(
+    () =>
+      noteFileTreeIconCss(
+        [...lookup.byTreePath].flatMap(([treePath, file]) => {
+          const type = noteTypes[file.path];
+          return type ? [[treePath, type] as const] : [];
+        }),
+      ),
+    [lookup, noteTypes],
+  );
   const lookupRef = useRef<TreeLookup>(lookup);
+  const sortContextRef = useRef({ preference: sortPreference, files: lookup.byTreePath });
+  const metadataKey = useMemo(
+    () =>
+      sortPreference.by === "type"
+        ? lookup.paths.map((path) => lookup.byTreePath.get(path)?.mimeType ?? "").join("\0")
+        : "",
+    [lookup, sortPreference.by],
+  );
+  const lastSyncedMetadataKeyRef = useRef(metadataKey);
+  const lastSyncedSortKeyRef = useRef(sortKey);
+  const sort = useCallback<FileTreeSortComparator>(
+    (left, right) =>
+      compareExplorerEntries(left, right, sortContextRef.current.preference, sortContextRef.current.files),
+    [],
+  );
   const lastSyncedTreePathsRef = useRef<readonly string[]>([]);
   const expandedTreePathsRef = useRef<string[]>([]);
   const expandedDirectoriesRef = useRef(expandedDirectories ?? new Set<string>());
@@ -244,6 +273,7 @@ export const useFileExplorerModel = ({
   const { model } = useFileTree({
     paths: [],
     flattenEmptyDirectories: false,
+    sort,
     gitStatus,
     icons: FILE_GLYPH_ICONS,
     initialExpansion: "closed",
@@ -380,8 +410,16 @@ export const useFileExplorerModel = ({
   }, [handleRename, handleSelectionChange, shakeRenameTarget]);
 
   useEffect(() => {
-    if (!resetWorkspaceRef.current && sameStringArray(lastSyncedTreePathsRef.current, lookup.paths)) return undefined;
+    const sortingChanged = lastSyncedSortKeyRef.current !== sortKey || lastSyncedMetadataKeyRef.current !== metadataKey;
+    if (
+      !resetWorkspaceRef.current &&
+      !sortingChanged &&
+      sameStringArray(lastSyncedTreePathsRef.current, lookup.paths)
+    ) {
+      return undefined;
+    }
 
+    const focusedPathBeforeSort = sortingChanged ? model.getFocusedPath() : null;
     const scrollPosition = getTreeScrollSnapshot(model);
     const selectedTreePaths = syncSelection
       ? store
@@ -400,12 +438,22 @@ export const useFileExplorerModel = ({
 
     syncingExpansionRef.current = true;
     try {
+      // Read existing state with its old ordering before changing the comparator context.
+      sortContextRef.current = { preference: sortPreference, files: lookup.byTreePath };
       model.resetPaths(lookup.paths, { initialExpandedPaths });
+      // Pierre's initial expansion lookup assumes its default name order.
+      // Restore through handles as well when a custom sort places folders elsewhere.
+      for (const path of initialExpandedPaths) {
+        const item = model.getItem(path);
+        if (isTreeDirectoryHandle(item) && !item.isExpanded()) item.expand();
+      }
     } finally {
       syncingExpansionRef.current = false;
     }
     resetWorkspaceRef.current = false;
     lastSyncedTreePathsRef.current = lookup.paths;
+    lastSyncedSortKeyRef.current = sortKey;
+    lastSyncedMetadataKeyRef.current = metadataKey;
 
     if (syncSelection && !sameStringArray(model.getSelectedPaths(), selectedTreePaths)) {
       model.getSelectedPaths().forEach((path) => model.getItem(path)?.deselect());
@@ -413,7 +461,9 @@ export const useFileExplorerModel = ({
     }
 
     const focusedPath = model.getFocusedPath();
-    if (syncSelection && selectedTreePaths[0] && !selectedTreePaths.includes(focusedPath ?? "")) {
+    if (focusedPathBeforeSort && lookup.byTreePath.has(focusedPathBeforeSort)) {
+      if (focusedPath !== focusedPathBeforeSort) model.focusPath(focusedPathBeforeSort);
+    } else if (syncSelection && selectedTreePaths[0] && !selectedTreePaths.includes(focusedPath ?? "")) {
       model.focusPath(selectedTreePaths[0]);
     }
 
@@ -424,7 +474,18 @@ export const useFileExplorerModel = ({
     });
 
     return () => window.cancelAnimationFrame(frameId);
-  }, [lookup.byAbsolutePath, lookup.paths, model, rootDirectoryPath, store, syncSelection]);
+  }, [
+    lookup.byAbsolutePath,
+    lookup.byTreePath,
+    lookup.paths,
+    metadataKey,
+    model,
+    rootDirectoryPath,
+    sortKey,
+    sortPreference,
+    store,
+    syncSelection,
+  ]);
 
   // Restoration can arrive after an unchanged tree has already been constructed.
   // Apply the current controlled state directly; subsequent user changes replace that state.

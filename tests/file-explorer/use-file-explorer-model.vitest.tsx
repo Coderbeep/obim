@@ -1,3 +1,4 @@
+import { explorerSortAtom, EXPLORER_SORT_STORAGE_KEY } from "../../src/renderer/src/store/explorerSortStore";
 import { indexedNoteFileTypesAtom } from "@renderer/store/noteFileTypeStore";
 import { Provider, createStore } from "jotai";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
@@ -212,6 +213,7 @@ describe("useFileExplorerModel", () => {
 
   afterEach(() => {
     cleanup();
+    localStorage.removeItem(EXPLORER_SORT_STORAGE_KEY);
     document.body.replaceChildren();
     vi.restoreAllMocks();
   });
@@ -679,6 +681,45 @@ describe("useFileExplorerModel", () => {
     const style = modelState.shadowRoot.getElementById(OPEN_FILE_STYLE_ID);
     expect(style?.textContent).toContain('quote\\"note.md');
     expect(modelState.shadowRoot.querySelectorAll(`#${OPEN_FILE_STYLE_ID}`)).toHaveLength(1);
+  });
+
+  it("retains scroll and expansion when the sorting changes with unchanged paths", () => {
+    const modelState = createModel();
+    modelState.add("Folder/", true, true);
+    modelState.add("Folder/note.md", false);
+    const scroll = document.createElement("div");
+    scroll.dataset.fileTreeVirtualizedScroll = "true";
+    Object.defineProperties(scroll, {
+      clientHeight: { configurable: true, value: 100 },
+      scrollHeight: { configurable: true, value: 500 },
+    });
+    modelState.shadowRoot.append(scroll);
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      callback(0);
+      return 1;
+    });
+    const { store, result } = renderModel(modelState, {
+      items: [directory("/notes-root/Folder", [file("/notes-root/Folder/note.md")])],
+      expandedDirectories: new Set(["Folder"]),
+    });
+    const originalModel = result.current.model;
+    modelState.model.resetPaths.mockClear();
+    scroll.scrollTop = 70;
+    scroll.scrollLeft = 9;
+    modelState.model.resetPaths.mockImplementation(() => {
+      scroll.scrollTop = 0;
+      scroll.scrollLeft = 0;
+    });
+    act(() => store.set(explorerSortAtom, (current) => ({ ...current, by: "type" })));
+    expect(result.current.model).toBe(originalModel);
+    expect(modelState.model.resetPaths).toHaveBeenCalledWith(["Folder/", "Folder/note.md"], {
+      initialExpandedPaths: ["Folder/"],
+    });
+    expect(scroll.scrollTop).toBe(70);
+    expect(scroll.scrollLeft).toBe(9);
+    modelState.model.resetPaths.mockClear();
+    act(() => store.set(explorerSortAtom, (current) => ({ ...current })));
+    expect(modelState.model.resetPaths).not.toHaveBeenCalled();
   });
 
   it("keeps a reader pinned to the bottom when a reset changes the scroll range", () => {

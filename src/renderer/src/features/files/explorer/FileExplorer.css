@@ -302,6 +302,14 @@
   }
 }
 
+.file-explorer-toolbar-action[data-state="open"] {
+  background: var(--surface-hover);
+}
+
+.file-explorer-sort-menu {
+  min-width: 12rem;
+}
+
 .file-explorer-shortcuts {
   flex: 1 1 auto;
   min-height: 0;

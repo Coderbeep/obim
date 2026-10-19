@@ -6,6 +6,7 @@ import { ACTION_LABELS } from "@renderer/shared/actionLabels";
 import { IconButton } from "@renderer/shared/ui/IconButton";
 
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
+import { ExplorerSortMenu } from "./ExplorerSortMenu";
 
 export const FileExplorerHeader = memo(function FileExplorerHeader({
   onSearch,
@@ -32,6 +33,7 @@ export const FileExplorerHeader = memo(function FileExplorerHeader({
         </div>
       )}
       <div className="file-explorer-toolbar-actions">
+        <ExplorerSortMenu />
         <IconButton
           className="file-explorer-toolbar-action"
           icon={IconSearch}
