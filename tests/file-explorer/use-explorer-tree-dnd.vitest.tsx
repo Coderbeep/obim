@@ -95,6 +95,18 @@ describe("useExplorerTreeDnd", () => {
     expect(dnd.updateTarget).toHaveBeenCalledWith(null);
   });
 
+  it("reports a new pointer gesture before dragstart and removes the listener on unmount", () => {
+    const { host, row } = makeTree();
+    const onTreePointerDown = vi.fn();
+    const { unmount } = renderHook(() => useExplorerTreeDnd({ ...options(host), onTreePointerDown }));
+    const pointer = () => row.dispatchEvent(new Event("pointerdown", { bubbles: true, composed: true }));
+    act(pointer);
+    expect(onTreePointerDown).toHaveBeenCalledOnce();
+    unmount();
+    act(pointer);
+    expect(onTreePointerDown).toHaveBeenCalledOnce();
+  });
+
   it("does not attach while disabled", () => {
     const { host, row } = makeTree();
     const input = { ...options(host), enabled: false };

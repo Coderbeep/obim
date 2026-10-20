@@ -13,6 +13,7 @@ interface UseExplorerTreeDndOptions<TPreview extends object> {
   getDraggedItemPreviewData: (event: DragEvent, target: ExplorerTreeEventTarget) => TPreview | null;
   getAppDragEntity: (data: TPreview, target: ExplorerTreeEventTarget) => AppDragEntity;
   getAppDragPreview: (data: TPreview) => AppDragPreview;
+  onTreePointerDown?: () => void;
   onTreeDragOver?: (event: DragEvent, target: ExplorerTreeEventTarget | null) => void;
 }
 
@@ -24,6 +25,7 @@ export const useExplorerTreeDnd = <TPreview extends object>({
   getAppDragEntity,
   getAppDragPreview,
   onTreeDragOver,
+  onTreePointerDown,
 }: UseExplorerTreeDndOptions<TPreview>) => {
   const appDnd = useAppDndActions();
   const dragSourceTreePathRef = useRef<string | null>(null);
@@ -66,6 +68,8 @@ export const useExplorerTreeDnd = <TPreview extends object>({
           onTreeDragOver?.(event, getExplorerTreeEventTarget(event));
       };
       const handleNativeDragEnd = () => clearDragPreview();
+      const handlePointerDown = () => onTreePointerDown?.();
+      eventTarget.addEventListener("pointerdown", handlePointerDown, true);
       eventTarget.addEventListener("dragstart", handleNativeDragStart);
       eventTarget.addEventListener("dragover", handleNativeDragOver);
       eventTarget.addEventListener("dragend", handleNativeDragEnd);
@@ -74,6 +78,7 @@ export const useExplorerTreeDnd = <TPreview extends object>({
       document.addEventListener("dragend", handleNativeDragEnd, true);
       window.addEventListener("blur", handleNativeDragEnd);
       cleanup = () => {
+        eventTarget.removeEventListener("pointerdown", handlePointerDown, true);
         eventTarget.removeEventListener("dragstart", handleNativeDragStart);
         eventTarget.removeEventListener("dragover", handleNativeDragOver);
         eventTarget.removeEventListener("dragend", handleNativeDragEnd);
@@ -88,7 +93,7 @@ export const useExplorerTreeDnd = <TPreview extends object>({
       if (frameId !== null) window.cancelAnimationFrame(frameId);
       cleanup?.();
     };
-  }, [clearDragPreview, enabled, model, onTreeDragOver, startTreeDragPreview]);
+  }, [clearDragPreview, enabled, model, onTreeDragOver, onTreePointerDown, startTreeDragPreview]);
 
   return { clearDragPreview, dragSourceTreePathRef };
 };

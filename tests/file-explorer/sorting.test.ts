@@ -1,6 +1,7 @@
 import { prepareFileTreeInput, type FileTreeSortEntry } from "@pierre/trees";
 import { describe, expect, it } from "vitest";
 
+import { buildExplorerTreeLookup } from "../../src/renderer/src/features/files/explorer/fileExplorerTreeUtils";
 import { compareExplorerEntries } from "../../src/renderer/src/features/files/explorer/fileExplorerSorting";
 import type { ExplorerSortPreference } from "../../src/renderer/src/store/explorerSortStore";
 import type { FileItem } from "../../src/shared/file-item";
@@ -127,3 +128,48 @@ describe("file explorer sorting", () => {
     ]);
   });
 });
+
+it.each(["ascending", "descending"] as const)(
+  "places PDFs with contents before plain and empty PDFs in %s type order",
+  (direction) => {
+    const pdf = (name: string): Extract<FileItem, { isDirectory: false }> => ({
+      id: name,
+      path: `/notes/${name}`,
+      relativePath: name,
+      filename: name,
+      isDirectory: false,
+      mimeType: "application/pdf",
+    });
+    const folder = (name: string, children: FileItem[] = []): FileItem => ({
+      ...pdf(name),
+      isDirectory: true,
+      mimeType: null,
+      children,
+    });
+    const items = [
+      pdf("A2.pdf"),
+      folder("A2.pdf.notes"),
+      pdf("A10.pdf"),
+      pdf("Z2.pdf"),
+      pdf("Z10.pdf"),
+      folder("Z2.pdf.notes", [{ ...pdf("Z2.pdf.notes/n.md"), mimeType: "text/markdown" }]),
+      folder("Z10.pdf.notes", [{ ...pdf("Z10.pdf.notes/image.png"), mimeType: "image/png" }]),
+      folder("Folder"),
+    ];
+    const lookup = buildExplorerTreeLookup(items);
+    const roots = (by: "type" | "name") =>
+      sort([...lookup.paths], { by, direction }, lookup.byTreePath).filter(
+        (path) => !path.replace(/\/$/, "").includes("/"),
+      );
+    expect(roots("type")).toEqual(
+      direction === "ascending"
+        ? ["Folder/", "Z2.pdf.notes/", "Z10.pdf.notes/", "A2.pdf", "A10.pdf"]
+        : ["Folder/", "Z10.pdf.notes/", "Z2.pdf.notes/", "A10.pdf", "A2.pdf"],
+    );
+    expect(roots("name")).toEqual(
+      direction === "ascending"
+        ? ["Folder/", "A2.pdf", "A10.pdf", "Z2.pdf.notes/", "Z10.pdf.notes/"]
+        : ["Folder/", "Z10.pdf.notes/", "Z2.pdf.notes/", "A10.pdf", "A2.pdf"],
+    );
+  },
+);

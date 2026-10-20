@@ -623,8 +623,8 @@ export const useFileExplorerModel = ({
       toDirectoryTreePath(revealRequest.relativePath);
     if (!lookup.byTreePath.has(targetPath)) return;
 
-    const expandedPaths = getDirectoryTreePathChain(targetPath).filter((key) =>
-      lookup.directoryTreePaths.includes(key),
+    const expandedPaths = getDirectoryTreePathChain(targetPath).filter(
+      (key) => lookup.directoryTreePaths.includes(key) && (revealRequest.expandTarget !== false || key !== targetPath),
     );
     const nextExpandedDirectories = new Set(expandedDirectoriesRef.current);
     expandedPaths.forEach((path) => nextExpandedDirectories.add(toRelativeDirectoryPath(path)));

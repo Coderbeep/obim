@@ -15,6 +15,7 @@ import { fileBufferIdentitiesAtom, fileBuffersByPathAtom } from "./fileBufferSto
 import {
   expandedDirectoriesAtom,
   explorerSelectionPathsAtom,
+  pendingFileMoveIntentsAtom,
   fileAccessesAtom,
   fileTreeAtom,
   fileExplorerRevealRequestAtom,
@@ -70,6 +71,9 @@ export const remapFileReferencesAtom = atom(
       Object.fromEntries(Object.entries(accesses).map(([path, accessedAt]) => [remapPath(path), accessedAt])),
     );
     set(explorerSelectionPathsAtom, (paths) => paths.map(remapPath));
+    set(pendingFileMoveIntentsAtom, (intents) =>
+      Object.fromEntries(Object.entries(intents).map(([id, paths]) => [id, paths.map(remapPath)])),
+    );
     set(expandedDirectoriesAtom, (paths) => {
       const next = new Set<string>();
       paths.forEach((path) => next.add(remapRelativePath(path, remapPath, notesDirectoryPath)));

@@ -81,6 +81,8 @@ const compareSiblings = (
   // Expandable PDF rows occupy a companion directory slot but keep PDF ordering.
   const physicalLeft = files.get(left.path);
   const physicalRight = files.get(right.path);
+  const leftHasNotes = left.isDirectory && physicalLeft?.isDirectory === false;
+  const rightHasNotes = right.isDirectory && physicalRight?.isDirectory === false;
   left = physicalLeft
     ? { ...left, basename: basename(physicalLeft.path), isDirectory: physicalLeft.isDirectory }
     : left;
@@ -90,8 +92,11 @@ const compareSiblings = (
   if (left.isDirectory !== right.isDirectory) return left.isDirectory ? -1 : 1;
   const direction = preference.direction === "ascending" ? 1 : -1;
   if (preference.by === "type") {
-    const kindOrder = fileKind(left, files).localeCompare(fileKind(right, files));
+    const leftKind = fileKind(left, files);
+    const kindOrder = leftKind.localeCompare(fileKind(right, files));
     if (kindOrder) return direction * kindOrder;
+    // Notes-bearing PDFs lead their PDF siblings in either name direction.
+    if (leftKind === "PDFs" && leftHasNotes !== rightHasNotes) return leftHasNotes ? -1 : 1;
   }
   return direction * compareNames(left.basename, right.basename);
 };

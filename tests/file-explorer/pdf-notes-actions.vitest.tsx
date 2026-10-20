@@ -10,7 +10,10 @@ import { moveWorkspaceItemWithLinks } from "../../src/main/workspace-linked-move
 import { readWorkspaceTextFile } from "../../src/main/workspace-files";
 import { overwriteWorkspaceFileIfVersion } from "../../src/main/workspace-mutations";
 import { WorkspaceTransitionStatus } from "../../src/renderer/src/app/WorkspaceTransitionStatus";
-import { workspaceTransitionAtom } from "../../src/renderer/src/store/workspaceTransitionStore";
+import {
+  beginWorkspaceTransition,
+  workspaceTransitionAtom,
+} from "../../src/renderer/src/store/workspaceTransitionStore";
 import { buildExplorerTreeLookup } from "../../src/renderer/src/features/files/explorer/fileExplorerTreeUtils";
 import { fileBuffersByPathAtom } from "../../src/renderer/src/store/fileBufferStore";
 import { bookmarksAtom } from "../../src/renderer/src/store/bookmarkStore";
@@ -20,6 +23,7 @@ import {
   fileExplorerRevealRequestAtom,
   fileTreeAtom,
   pendingFileRenameAtom,
+  pendingFileMoveIntentsAtom,
   recentFilesAtom,
 } from "../../src/renderer/src/store/fileExplorerStore";
 import { workspacePanesAtom } from "../../src/renderer/src/store/editorPaneStore";
@@ -519,3 +523,100 @@ it.each([true, false])(
     expect(store.get(workspaceTransitionAtom)).toBeNull();
   },
 );
+
+it.each([true, false])(
+  "accepts consecutive attachments while the first is pending, including first success=%s",
+  async (firstSucceeds) => {
+    const { root, store, pdf, wrapper } = await setup();
+    const names = ["one.md", "two.md", "three.md"];
+    for (const name of names) await writeFile(path.join(root, name), name);
+    const snapshot = await getExplorerSnapshot(root);
+    store.set(fileTreeAtom, snapshot.items);
+    const notes = names.map((name) => snapshot.items.find((file) => file.relativePath === name)!);
+    const first = gate();
+    const realAttach = window.api.attachPdfNote;
+    window.api.attachPdfNote = vi.fn<Window["api"]["attachPdfNote"]>(async (request) => {
+      if (request.notePath === notes[0].path) {
+        await first.promise;
+        if (!firstSucceeds) return { success: false, error: "Permission denied", revision: 0 };
+      }
+      return realAttach(request);
+    });
+    const { result } = renderHook(() => useFileMove({ withPdfNotes: true }), { wrapper });
+    let operations!: ReturnType<typeof result.current.attachManyToPdf>[];
+    await act(async () => {
+      operations = notes.map((note) => result.current.attachManyToPdf([note], pdf));
+    });
+    await waitFor(() => expect(window.api.attachPdfNote).toHaveBeenCalledOnce());
+    expect(store.get(notificationsAtom)).toEqual([]);
+    let outcomes!: Awaited<(typeof operations)[number]>[];
+    await act(async () => {
+      first.release();
+      outcomes = await Promise.all(operations);
+    });
+    expect(outcomes.map((outcome) => outcome.moved.length)).toEqual([Number(firstSucceeds), 1, 1]);
+    expect(vi.mocked(window.api.attachPdfNote).mock.calls.map(([request]) => request.notePath)).toEqual(
+      notes.map((note) => note.path),
+    );
+    expect(store.get(notificationsAtom).some((n) => n.message?.includes("Wait for the workspace operation"))).toBe(
+      false,
+    );
+    for (const note of notes.slice(firstSucceeds ? 0 : 1))
+      expect(await readFile(`${pdf.path}.notes/${path.basename(note.path)}`, "utf8")).toBe(path.basename(note.path));
+    expect(store.get(workspaceTransitionAtom)).toBeNull();
+  },
+);
+
+it("cancels a queued attachment if its workspace changes before execution", async () => {
+  const { store, root, pdf, note, wrapper } = await setup();
+  const before = store.get(fileTreeAtom);
+  const lease = beginWorkspaceTransition(store, "Updating note links…", true)!;
+  const { result } = renderHook(() => useFileMove({ withPdfNotes: true }), { wrapper });
+  let operation!: ReturnType<typeof result.current.attachManyToPdf>;
+  act(() => {
+    operation = result.current.attachManyToPdf([note], pdf);
+  });
+  window.config = { ...window.config, getMainDirectoryPathSync: () => `${root}-other` };
+  await act(async () => {
+    lease.release();
+    expect((await operation).failures[0].error).toContain("Workspace changed");
+  });
+  expect(window.api.attachPdfNote).not.toHaveBeenCalled();
+  expect(store.get(fileTreeAtom)).toBe(before);
+});
+
+it("rebases a queued drag from a provisional path after collision correction", async () => {
+  const { root, store, note, wrapper } = await setup();
+  const pdfPath = path.join(root, "Fresh.pdf");
+  await writeFile(pdfPath, "PDF");
+  const items = (await getExplorerSnapshot(root)).items;
+  store.set(fileTreeAtom, items);
+  const pdf = items.find((item) => item.path === pdfPath)!;
+  const pending = gate();
+  const realAttach = window.api.attachPdfNote;
+  window.api.attachPdfNote = vi.fn(async (request) => {
+    await pending.promise;
+    return realAttach(request);
+  });
+  const { result } = renderHook(() => useFileMove({ withPdfNotes: true }), { wrapper });
+  let first!: ReturnType<typeof result.current.attachManyToPdf>;
+  await act(async () => {
+    first = result.current.attachManyToPdf([note], pdf);
+  });
+  const predicted = flatten(store.get(fileTreeAtom)).find((item) => item.path === `${pdfPath}.notes/Summary.md`)!;
+  let second!: ReturnType<typeof result.current.moveManyToDirectory>;
+  act(() => {
+    second = result.current.moveManyToDirectory([predicted], path.join(root, "Archive"));
+  });
+  await mkdir(`${pdfPath}.notes`);
+  await writeFile(predicted.path, "external note");
+  await act(async () => {
+    pending.release();
+    await first;
+    expect((await second).failures).toEqual([]);
+  });
+  expect(await readFile(predicted.path, "utf8")).toBe("external note");
+  expect(await readFile(path.join(root, "Archive/Summary 1.md"), "utf8")).toContain("My draft");
+  expect(window.api.moveFile).toHaveBeenCalledWith(`${pdfPath}.notes/Summary 1.md`, path.join(root, "Archive"));
+  expect(store.get(pendingFileMoveIntentsAtom)).toEqual({});
+});

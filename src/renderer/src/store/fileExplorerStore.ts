@@ -31,6 +31,8 @@ export const workspaceFilesAtom = atom((get) => flattenWorkspaceFiles(get(fileTr
 
 export const expandedDirectoriesAtom = atom<Set<string>>(new Set<string>());
 export const explorerSelectionPathsAtom = atom<string[]>([]);
+/** In-memory queued commands follow provisional path corrections and rollback. */
+export const pendingFileMoveIntentsAtom = atom<Record<string, string[]>>({});
 export const recentFilesAtom = atom<FileItem[]>([]);
 
 export const copiedWorkspaceFilePathsAtom = atom<string[] | null>(null);
@@ -51,6 +53,8 @@ export type FileExplorerRevealRequest = {
   relativePath: string;
   preserveSelection?: boolean;
   restoreFocus?: boolean;
+  /** Moves reveal their ancestors without changing the moved row's expansion. */
+  expandTarget?: boolean;
 };
 
 export const fileExplorerRevealRequestAtom = atom<FileExplorerRevealRequest | null>(null);

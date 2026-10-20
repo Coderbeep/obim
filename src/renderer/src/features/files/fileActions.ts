@@ -5,6 +5,8 @@ import {
   isWorkspaceTransitionActive,
   waitForWorkspaceActivity,
   WORKSPACE_TRANSITION_MESSAGE,
+  waitForBackgroundWorkspaceOperation,
+  workspaceTransitionAtom,
   type WorkspaceTransitionLease,
 } from "@renderer/store/workspaceTransitionStore";
 import { canLinkToSections, SECTION_LINK_FILENAME_MESSAGE } from "@shared/section-links";
@@ -47,6 +49,7 @@ import {
   fileExplorerRevealRequestAtom,
   explorerSelectionPathsAtom,
   pendingFileRenameAtom,
+  pendingFileMoveIntentsAtom,
   recentFilesAtom,
   reloadRevisionAtom,
   renamingRequestAtom,
@@ -241,6 +244,38 @@ const withSavedLinkBuffers = async <T>(
   }
 };
 
+// UI gestures may overlap; disk moves still run one at a time through their normal lease.
+const queuedFileMoves = new WeakMap<ReturnType<typeof useStore>, Promise<unknown>>();
+const queueFileMove = <T>(
+  store: ReturnType<typeof useStore>,
+  operation: (paths: string[]) => Promise<T>,
+  cancelled: () => T,
+  paths: string[],
+): Promise<T> => {
+  const root = getWorkspacePath();
+  const previous = queuedFileMoves.get(store);
+  const id = crypto.randomUUID();
+  store.set(pendingFileMoveIntentsAtom, (intents) => ({ ...intents, [id]: paths }));
+  const dispatch = () =>
+    root === getWorkspacePath()
+      ? operation(store.get(pendingFileMoveIntentsAtom)[id] ?? paths)
+      : Promise.resolve(cancelled());
+  const execute = () =>
+    store.get(workspaceTransitionAtom)?.background ? waitForBackgroundWorkspaceOperation().then(dispatch) : dispatch();
+  const pending = previous ? previous.then(execute, execute) : execute();
+  queuedFileMoves.set(store, pending);
+  const complete = () => {
+    if (queuedFileMoves.get(store) === pending) queuedFileMoves.delete(store);
+    store.set(pendingFileMoveIntentsAtom, (intents) => {
+      const next = { ...intents };
+      delete next[id];
+      return next;
+    });
+  };
+  void pending.then(complete, complete);
+  return pending;
+};
+
 const saveDirtyBuffersForItems = (store: ReturnType<typeof useStore>, items: readonly FileItem[]) =>
   saveDirtyFileBuffers(store, (path) => items.some((item) => isBufferAffectedByItem(path, item)));
 
@@ -334,6 +369,7 @@ const performPdfNotesMove = async (
 ): Promise<PdfNotesMoveOutcome> => {
   const root = getWorkspacePath();
   const previous = store.get(fileTreeAtom);
+  const hasRevealIntent = Boolean(store.get(fileExplorerRevealRequestAtom));
   const optimistic = optimisticFileMove(store, previous, predictPdfNotesMove(previous, request), root);
   store.set(closeContextMenuAtom);
   const failed = (error: string): PdfNotesMoveOutcome => {
@@ -425,10 +461,12 @@ const performPdfNotesMove = async (
             expandedDirectoriesAtom,
             (current) => new Set([...current, getRelativePathFromPath(`${request.pdfPath}${PDF_NOTES_SUFFIX}`, root)]),
           );
-          store.set(fileExplorerRevealRequestAtom, {
-            relativePath: getRelativePathFromPath(result.output, root),
-            preserveSelection: true,
-          });
+          // A drag owns its reveal/focus intent; a late completion must not replace a newer gesture.
+          if (!hasRevealIntent && store.get(explorerSelectionPathsAtom).includes(result.output))
+            store.set(fileExplorerRevealRequestAtom, {
+              relativePath: getRelativePathFromPath(result.output, root),
+              preserveSelection: true,
+            });
         }
         return { success: true, newPath: result.output };
       } finally {
@@ -963,66 +1001,107 @@ export const useFileMove = (options: { withPdfNotes?: boolean } = {}): UseFileMo
   );
 
   const moveToDirectory = useCallback(
-    async (file: FileItem, targetDirectoryPath: string) => {
-      const result = await moveItemToDirectory(file, targetDirectoryPath);
-      if (result.moved) {
-        await persistCurrentBookmarks(store);
-        store.set(reloadRevisionAtom, (revision) => revision + 1);
-      }
-      return result;
-    },
+    (file: FileItem, targetDirectoryPath: string) =>
+      queueFileMove<Awaited<ReturnType<UseFileMoveResult["moveToDirectory"]>>>(
+        store,
+        async ([sourcePath, directoryPath]) => {
+          const current =
+            findItemNode(store.get(fileTreeAtom), sourcePath) ??
+            normalizeFileItemPath(file, sourcePath, getWorkspacePath());
+          const result = await moveItemToDirectory(current, directoryPath);
+          if (result.moved) {
+            await persistCurrentBookmarks(store);
+            store.set(reloadRevisionAtom, (revision) => revision + 1);
+          }
+          return result;
+        },
+        () => ({ moved: false, error: "Workspace changed before the move could start." }),
+        [file.path, targetDirectoryPath],
+      ),
     [moveItemToDirectory, options.withPdfNotes, store],
   );
 
   const moveManyToDirectory = useCallback(
-    async (files: FileItem[], targetDirectoryPath: string) => {
-      const moved: { file: FileItem; movedPath: string }[] = [];
-      const failures: { file: FileItem; error: string }[] = [];
+    (files: FileItem[], targetDirectoryPath: string) =>
+      queueFileMove(
+        store,
+        async (paths) => {
+          const sourceFiles = files.map(
+            (file, index) =>
+              findItemNode(store.get(fileTreeAtom), paths[index]) ??
+              normalizeFileItemPath(file, paths[index], getWorkspacePath()),
+          );
+          const originals = new Map(sourceFiles.map((file, index) => [file.path, files[index]]));
+          const directoryPath = paths[files.length];
+          const moved: { file: FileItem; movedPath: string }[] = [];
+          const failures: { file: FileItem; error: string }[] = [];
 
-      const results: { file: FileItem; result: Awaited<ReturnType<typeof moveItemToDirectory>> }[] = [];
-      const selectedPdfs = options.withPdfNotes
-        ? files.filter((file) => !file.isDirectory && isPdfFile(file.mimeType, file.path))
-        : [];
-      for (const file of filterTopLevelItems(files).filter(
-        (file) => !selectedPdfs.some((pdf) => isPathWithinBase(file.path, `${pdf.path}${PDF_NOTES_SUFFIX}`)),
-      )) {
-        results.push({ file, result: await moveItemToDirectory(file, targetDirectoryPath, false) });
-      }
-      for (const { file, result } of results) {
-        if (result.moved && result.movedPath) moved.push({ file, movedPath: result.movedPath });
-        else failures.push({ file, error: result.error ?? `Could not move ${file.filename}` });
-      }
+          const results: { file: FileItem; result: Awaited<ReturnType<typeof moveItemToDirectory>> }[] = [];
+          const selectedPdfs = options.withPdfNotes
+            ? sourceFiles.filter((file) => !file.isDirectory && isPdfFile(file.mimeType, file.path))
+            : [];
+          for (const file of filterTopLevelItems(sourceFiles).filter(
+            (file) => !selectedPdfs.some((pdf) => isPathWithinBase(file.path, `${pdf.path}${PDF_NOTES_SUFFIX}`)),
+          )) {
+            results.push({ file, result: await moveItemToDirectory(file, directoryPath, false) });
+          }
+          for (const { file, result } of results) {
+            if (result.moved && result.movedPath) moved.push({ file, movedPath: result.movedPath });
+            else failures.push({ file, error: result.error ?? `Could not move ${file.filename}` });
+          }
 
-      if (moved.length) {
-        if (
-          !(await remapTaskBoardOrderAfterFileMoves(
-            moved.map(({ file, movedPath }) => ({
-              fromPath: file.path,
-              toPath: movedPath,
-              directory: file.isDirectory,
-            })),
-          ))
-        )
-          notifyTaskOrderRepairFailed(store);
-        await persistCurrentBookmarks(store);
-        store.set(reloadRevisionAtom, (revision) => revision + 1);
-      }
-      return { moved, failures };
-    },
+          if (moved.length) {
+            if (
+              !(await remapTaskBoardOrderAfterFileMoves(
+                moved.map(({ file, movedPath }) => ({
+                  fromPath: file.path,
+                  toPath: movedPath,
+                  directory: file.isDirectory,
+                })),
+              ))
+            )
+              notifyTaskOrderRepairFailed(store);
+            await persistCurrentBookmarks(store);
+            store.set(reloadRevisionAtom, (revision) => revision + 1);
+          }
+          return {
+            moved: moved.map((entry) => ({ ...entry, file: originals.get(entry.file.path) ?? entry.file })),
+            failures: failures.map((entry) => ({ ...entry, file: originals.get(entry.file.path) ?? entry.file })),
+          };
+        },
+        () => ({
+          moved: [],
+          failures: files.map((file) => ({ file, error: "Workspace changed before the move could start." })),
+        }),
+        [...files.map((file) => file.path), targetDirectoryPath],
+      ),
     [moveItemToDirectory, options.withPdfNotes, store],
   );
 
   const attachManyToPdf = useCallback(
-    async (files: FileItem[], pdf: FileItem) => {
-      const moved: { file: FileItem; movedPath: string }[] = [];
-      const failures: { file: FileItem; error: string }[] = [];
-      for (const file of filterTopLevelItems(files)) {
-        const result = await performPdfNotesMove(store, { pdfPath: pdf.path, notePath: file.path });
-        if (result.success && result.newPath) moved.push({ file, movedPath: result.newPath });
-        else failures.push({ file, error: result.error ?? `Could not attach ${file.filename}` });
-      }
-      return { moved, failures };
-    },
+    (files: FileItem[], pdf: FileItem) =>
+      queueFileMove(
+        store,
+        async (paths) => {
+          const moved: { file: FileItem; movedPath: string }[] = [];
+          const failures: { file: FileItem; error: string }[] = [];
+          const actualPaths = new Map(files.map((file, index) => [file.path, paths[index]]));
+          for (const file of filterTopLevelItems(files)) {
+            const result = await performPdfNotesMove(store, {
+              pdfPath: paths[files.length],
+              notePath: actualPaths.get(file.path)!,
+            });
+            if (result.success && result.newPath) moved.push({ file, movedPath: result.newPath });
+            else failures.push({ file, error: result.error ?? `Could not attach ${file.filename}` });
+          }
+          return { moved, failures };
+        },
+        () => ({
+          moved: [],
+          failures: files.map((file) => ({ file, error: "Workspace changed before the move could start." })),
+        }),
+        [...files.map((file) => file.path), pdf.path],
+      ),
     [store],
   );
 

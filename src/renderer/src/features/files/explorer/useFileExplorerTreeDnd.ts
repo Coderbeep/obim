@@ -73,32 +73,37 @@ export const useFileExplorerDnd = ({
       focus: typeof dragFocusRef.current,
     ) => {
       if (rootDirectoryPath !== getWorkspacePath()) return;
+      const ownsInteraction = dragFocusRef.current === focus;
       const movedPaths = new Map(result.moved.map(({ file, movedPath }) => [file.path, movedPath]));
-      store.set(
-        explorerSelectionPathsAtom,
-        sourceItems.map((item) => movedPaths.get(item.path) ?? item.path),
-      );
+      if (ownsInteraction)
+        store.set(
+          explorerSelectionPathsAtom,
+          sourceItems.map((item) => movedPaths.get(item.path) ?? item.path),
+        );
       if (result.failures.length) {
         const items = store.get(fileTreeAtom);
         const latest = items.length ? buildExplorerTreeLookup(items) : lookupRef.current;
-        model.resetPaths(latest.paths, {
-          initialExpandedPaths: items.length
-            ? latest.directoryTreePaths.filter((key) =>
-                store.get(expandedDirectoriesAtom).has(toRelativeDirectoryPath(key)),
-              )
-            : expandedTreePaths,
-        });
+        if (ownsInteraction)
+          model.resetPaths(latest.paths, {
+            initialExpandedPaths: items.length
+              ? latest.directoryTreePaths.filter((key) =>
+                  store.get(expandedDirectoriesAtom).has(toRelativeDirectoryPath(key)),
+                )
+              : expandedTreePaths,
+          });
         store.set(addNotificationAtom, {
           id: crypto.randomUUID(),
           ...Notifications.FILE_MOVE_FAILED(result.moved.length, result.failures.length, result.failures[0].error),
           timestamp: Date.now(),
         });
       }
+      if (!ownsInteraction) return;
       const sourcePath = sourceItems.find((item) => item.path === focus?.path)?.path ?? sourceItems[0]?.path;
       if (sourcePath)
         store.set(fileExplorerRevealRequestAtom, {
           relativePath: getRelativePathFromPath(movedPaths.get(sourcePath) ?? sourcePath, rootDirectoryPath),
           preserveSelection: true,
+          expandTarget: false,
           restoreFocus: focus?.ownedFocus ?? false,
         });
     },
@@ -112,6 +117,7 @@ export const useFileExplorerDnd = ({
         store.set(fileExplorerRevealRequestAtom, {
           relativePath: getRelativePathFromPath(source.path, rootDirectoryPath),
           preserveSelection: true,
+          expandTarget: false,
           restoreFocus: focus?.ownedFocus ?? false,
         });
     },
@@ -231,6 +237,11 @@ export const useFileExplorerDnd = ({
     model,
     getDraggedItemPreviewData,
     onTreeDragOver,
+    onTreePointerDown: () => {
+      // A new gesture owns selection/focus, even before its native dragstart fires.
+      dragFocusRef.current = null;
+      if (store.get(fileExplorerRevealRequestAtom)?.restoreFocus) store.set(fileExplorerRevealRequestAtom, null);
+    },
     getAppDragEntity: (_data, target) => ({
       kind: "explorer-item",
       id: target.rowPath,

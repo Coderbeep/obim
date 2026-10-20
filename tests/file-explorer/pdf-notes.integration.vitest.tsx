@@ -16,6 +16,9 @@ import {
   fileExplorerRevealRequestAtom,
   fileTreeAtom,
 } from "../../src/renderer/src/store/fileExplorerStore";
+import { projectFileMoves, fileMoveRemapper } from "../../src/renderer/src/features/files/optimisticFileMove";
+import { remapFileReferencesAtom } from "../../src/renderer/src/store/fileLifecycleStore";
+import { notificationsAtom } from "../../src/renderer/src/store/NotificationsStore";
 import { explorerSortAtom } from "../../src/renderer/src/store/explorerSortStore";
 
 const state = vi.hoisted(() => ({
@@ -182,9 +185,7 @@ it("reveals real note paths, preserves PDF sorting, and exposes an ordinary fold
   await waitFor(() => expect(store.get(explorerSelectionPathsAtom)).toEqual([note.path]));
   expect(row(container, note.relativePath)).toBeDefined();
   act(() => store.set(explorerSortAtom, { by: "type", direction: "ascending" }));
-  await waitFor(() =>
-    expect(rows(container).slice(0, 4)).toEqual(["Folder/", "a.md", "Alone.pdf", "Paper.pdf.notes/"]),
-  );
+  await waitFor(() => expect(rows(container).slice(0, 3)).toEqual(["Folder/", "a.md", "Paper.pdf.notes/"]));
   act(() =>
     store.set(
       fileTreeAtom,
@@ -625,3 +626,84 @@ it("focuses a moved note when the drag also includes a note already attached to 
   await waitFor(() => expect(shadow.activeElement).toBe(row(container, moved.relativePath)));
   expect(store.get(explorerSelectionPathsAtom)).toEqual([moved.path]);
 });
+
+it.each([false, true])("keeps a moved PDF's expansion when expanded=%s", async (expanded) => {
+  const { container, store } = setup(true);
+  if (expanded) act(() => store.set(expandedDirectoriesAtom, new Set(["Paper.pdf.notes"])));
+  const movedPdf = file("Folder/Paper.pdf", "application/pdf");
+  const roots = [
+    { source: pdf.path, destination: movedPdf.path, directory: false },
+    { source: companion.path, destination: `${movedPdf.path}.notes`, directory: true },
+  ];
+  state.move.mockImplementation(async () => {
+    const next = projectFileMoves(store.get(fileTreeAtom), roots, "/notes");
+    store.set(remapFileReferencesAtom, { notesDirectoryPath: "/notes", remapPath: fileMoveRemapper(roots) });
+    store.set(fileTreeAtom, next);
+    return { moved: [{ file: pdf, movedPath: movedPdf.path }], failures: [] };
+  });
+  await waitFor(() => expect(row(container, "Paper.pdf.notes/")?.getAttribute("aria-expanded")).toBe(String(expanded)));
+  await readyForDrag();
+  const from = row(container, "Paper.pdf.notes/")!;
+  const target = row(container, "Folder/")!;
+  hitTarget(container, target);
+  act(() => from.focus());
+  const data = transfer();
+  dragEvent(from, "dragstart", data);
+  dragEvent(target, "dragover", data);
+  dragEvent(target, "drop", data);
+  await waitFor(() => expect(state.move).toHaveBeenCalledOnce());
+  await waitFor(() =>
+    expect(row(container, "Folder/Paper.pdf.notes/")?.getAttribute("aria-expanded")).toBe(String(expanded)),
+  );
+  await waitFor(() => expect(store.get(fileExplorerRevealRequestAtom)).toBeNull());
+  expect(store.get(expandedDirectoriesAtom).has("Folder/Paper.pdf.notes")).toBe(expanded);
+  expect(Boolean(row(container, "Folder/Paper.pdf.notes/Summary.md"))).toBe(expanded);
+  expect(state.open).not.toHaveBeenCalled();
+});
+
+it.each([true, false])(
+  "does not restore an older attachment's focus after a new gesture (success=%s)",
+  async (success) => {
+    const source = file("a.md");
+    const next = file("b.md");
+    const moved = file("Paper.pdf.notes/a.md");
+    const { container, store } = setup(true, undefined, [pdf, source, next]);
+    let complete!: () => void;
+    state.attach.mockImplementation(() => {
+      const roots = [{ source: source.path, destination: moved.path, directory: false }];
+      store.set(remapFileReferencesAtom, { notesDirectoryPath: "/notes", remapPath: fileMoveRemapper(roots) });
+      store.set(fileTreeAtom, [pdf, directory("Paper.pdf.notes", [moved]), next]);
+      return new Promise((resolve) => {
+        complete = () => {
+          if (!success) store.set(fileTreeAtom, [pdf, source, next]);
+          resolve(
+            success
+              ? { moved: [{ file: source, movedPath: moved.path }], failures: [] }
+              : { moved: [], failures: [{ file: source, error: "Conflict" }] },
+          );
+        };
+      });
+    });
+    await waitFor(() => expect(row(container, "Paper.pdf")).toBeDefined());
+    await readyForDrag();
+    const from = row(container, "a.md")!;
+    const target = row(container, "Paper.pdf")!;
+    hitTarget(container, target);
+    act(() => from.focus());
+    const data = transfer();
+    dragEvent(from, "dragstart", data);
+    dragEvent(target, "drop", data);
+    const shadow = container.querySelector("file-tree-container")!.shadowRoot!;
+    await waitFor(() => expect(shadow.activeElement).toBe(row(container, moved.relativePath)));
+    act(() => {
+      row(container, "b.md")!.dispatchEvent(new Event("pointerdown", { bubbles: true, composed: true }));
+      row(container, "b.md")!.focus();
+      store.set(explorerSelectionPathsAtom, [next.path]);
+    });
+    await act(async () => complete());
+    expect(store.get(explorerSelectionPathsAtom)).toEqual([next.path]);
+    expect(shadow.activeElement).toBe(row(container, "b.md"));
+    expect(store.get(fileExplorerRevealRequestAtom)).toBeNull();
+    if (!success) expect(store.get(notificationsAtom).at(-1)?.message).toContain("Conflict");
+  },
+);
