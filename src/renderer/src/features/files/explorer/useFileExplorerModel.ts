@@ -41,11 +41,11 @@ import {
 import { shakeElement } from "../shake";
 import {
   EMPTY_LOOKUP,
-  buildTreeLookup,
+  buildExplorerTreeLookup,
   getDirectoryTreePathChain,
   getFileTreeMoveIntent,
   getUniqueTreeMovePath,
-  getMarkdownExplorerName,
+  getExplorerRowName,
   getRenamingItemTreePath,
   getRenameEventDestinationName,
   getRenameEventSourceTreePath,
@@ -102,6 +102,8 @@ const FILE_EXPLORER_TREE_UNSAFE_CSS = `${TREE_UNSAFE_CSS}
     visibility: hidden;
   }
 
+  [data-obim-pdf-group='true'][data-item-git-status] > [data-item-section='git'] { visibility: visible; }
+
   [data-item-section='content']:has([data-item-rename-input]) {
     flex: 1 1 0;
   }
@@ -119,6 +121,7 @@ const FILE_EXPLORER_TREE_UNSAFE_CSS = `${TREE_UNSAFE_CSS}
 
   [data-type='item']:is(
       [data-obim-markdown-file='true'],
+      [data-obim-pdf-group='true'],
       [data-item-path$='.md' i],
       [data-item-path$='.markdown' i]
     ) > [data-item-section='content']:not(:has([data-item-rename-input])) {
@@ -127,11 +130,13 @@ const FILE_EXPLORER_TREE_UNSAFE_CSS = `${TREE_UNSAFE_CSS}
 
   [data-type='item']:is(
       [data-obim-markdown-file='true'],
+      [data-obim-pdf-group='true'],
       [data-item-path$='.md' i],
       [data-item-path$='.markdown' i]
     ) > [data-item-section='decoration'],
   [data-type='item']:is(
       [data-obim-markdown-file='true'],
+      [data-obim-pdf-group='true'],
       [data-item-path$='.md' i],
       [data-item-path$='.markdown' i]
     ) > [data-item-section='decoration'] > span {
@@ -143,6 +148,18 @@ const FILE_EXPLORER_TREE_UNSAFE_CSS = `${TREE_UNSAFE_CSS}
     background-color: var(--surface-selected) !important;
     box-shadow: none !important;
     --truncate-marker-background-overlay-color: var(--surface-selected) !important;
+  }
+
+  [data-type='item'][data-pdf-note-drop='valid'] {
+    background-color: var(--surface-selected) !important;
+    outline: 1px dashed var(--border-selected);
+    outline-offset: -2px;
+    --truncate-marker-background-overlay-color: var(--surface-selected) !important;
+  }
+
+  [data-type='item'][data-pdf-note-drop='invalid'] {
+    outline: 1px dashed var(--border-default);
+    outline-offset: -2px;
   }
 
   :host(.obim-external-drop-root) [data-file-tree-virtualized-wrapper='true'],
@@ -203,17 +220,18 @@ export const useFileExplorerModel = ({
   syncSelection,
 }: UseFileExplorerModelOptions) => {
   const setSelectedPaths = useSetAtom(explorerSelectionPathsAtom);
+  const selectedPaths = useAtomValue(explorerSelectionPathsAtom);
   const setExpandedDirectories = useSetAtom(expandedDirectoriesAtom);
   const currentFilePath = useAtomValue(currentFilePathAtom);
   const revealRequest = useAtomValue(fileExplorerRevealRequestAtom);
   const renamingRequest = useAtomValue(renamingRequestAtom);
   const store = useStore();
-  const { saveRename, stopRenaming } = useFileRename();
+  const { saveRename, stopRenaming } = useFileRename({ withPdfNotes: true });
   const rootDirectoryPath = getWorkspacePath();
   const sortPreference = useAtomValue(explorerSortAtom);
   const sortKey = `${sortPreference.by}:${sortPreference.direction}`;
 
-  const lookup = useMemo(() => (items.length > 0 ? buildTreeLookup(items) : EMPTY_LOOKUP), [items]);
+  const lookup = useMemo(() => (items.length > 0 ? buildExplorerTreeLookup(items) : EMPTY_LOOKUP), [items]);
   const noteTypes = useAtomValue(noteFileTypesAtom);
   const noteIconCss = useMemo(
     () =>
@@ -222,16 +240,25 @@ export const useFileExplorerModel = ({
           const type = noteTypes[file.path];
           return type ? [[treePath, type] as const] : [];
         }),
-      ),
+      ) +
+      [...(lookup.pdfGroups?.keys() ?? [])]
+        .map(
+          (key) =>
+            `[data-item-section='spacing-item'][data-ancestor-path=${JSON.stringify(key)}] { margin-inline-end: ${FILE_GLYPH_SIZE + 4}px; }`,
+        )
+        .join("\n"),
     [lookup, noteTypes],
   );
   const lookupRef = useRef<TreeLookup>(lookup);
   const sortContextRef = useRef({ preference: sortPreference, files: lookup.byTreePath });
   const metadataKey = useMemo(
     () =>
-      sortPreference.by === "type"
-        ? lookup.paths.map((path) => lookup.byTreePath.get(path)?.mimeType ?? "").join("\0")
-        : "",
+      [
+        [...(lookup.pdfGroups ?? [])].map(([key, group]) => `${key}:${group.pdf.relativePath}`).join("\0"),
+        sortPreference.by === "type"
+          ? lookup.paths.map((path) => lookup.byTreePath.get(path)?.mimeType ?? "").join("\0")
+          : "",
+      ].join("\u0001"),
     [lookup, sortPreference.by],
   );
   const lastSyncedMetadataKeyRef = useRef(metadataKey);
@@ -248,6 +275,7 @@ export const useFileExplorerModel = ({
   const staleExpansionRef = useRef<Set<string> | undefined>(undefined);
   const resetWorkspaceRef = useRef(false);
   const syncingExpansionRef = useRef(false);
+  const syncingSelectionRef = useRef(false);
   const currentExpandedDirectories =
     expansionWorkspaceRef.current === rootDirectoryPath && expandedDirectories !== staleExpansionRef.current
       ? expandedDirectories
@@ -322,7 +350,7 @@ export const useFileExplorerModel = ({
     onSelectionChange: (paths) => handleSelectionChangeRef.current(paths),
     renderRowDecoration: ({ item }) => {
       const file = lookupRef.current.byTreePath.get(item.path);
-      const displayName = file ? getMarkdownExplorerName(file) : null;
+      const displayName = file ? getExplorerRowName(file, item.path, lookupRef.current) : null;
       return displayName === null ? null : { text: displayName };
     },
     renaming: {
@@ -353,7 +381,15 @@ export const useFileExplorerModel = ({
     };
   }, [model, noteIconCss]);
 
-  useEffect(() => model.setGitStatus(gitStatus), [gitStatus, model]);
+  useEffect(() => {
+    const pdfPaths = new Map([...(lookup.pdfGroups ?? [])].map(([key, group]) => [group.pdf.relativePath, key]));
+    model.setGitStatus(
+      gitStatus?.map((entry) => {
+        const path = pdfPaths.get(entry.path);
+        return path ? { ...entry, path } : entry;
+      }),
+    );
+  }, [gitStatus, lookup, model]);
 
   const expandedTreePaths = useMemo(() => {
     if (!currentExpandedDirectories) return [];
@@ -381,18 +417,20 @@ export const useFileExplorerModel = ({
         return;
       }
 
+      const grouped = lookupRef.current.pdfGroups?.has(getRenameEventSourceTreePath(event));
       const result = await saveRename(sourceItem.path, getRenameEventDestinationName(event));
+      if (grouped) model.resetPaths(lookupRef.current.paths, { initialExpandedPaths: expandedTreePathsRef.current });
       if (!result.success) {
         shakeRenameTarget();
         store.set(reloadRevisionAtom, (revision) => revision + 1);
       }
     },
-    [saveRename, shakeRenameTarget, store],
+    [model, saveRename, shakeRenameTarget, store],
   );
 
   const handleSelectionChange = useCallback(
     (paths: readonly string[]) => {
-      if (!syncSelection) return;
+      if (!syncSelection || syncingSelectionRef.current) return;
 
       const nextSelectedPaths = paths
         .map((path) => lookupRef.current.byTreePath.get(path)?.path)
@@ -408,6 +446,20 @@ export const useFileExplorerModel = ({
     shakeRenameTargetRef.current = shakeRenameTarget;
     handleSelectionChangeRef.current = handleSelectionChange;
   }, [handleRename, handleSelectionChange, shakeRenameTarget]);
+
+  const syncSelectedTreePaths = useCallback(
+    (paths: string[]) => {
+      if (sameStringArray(model.getSelectedPaths(), paths)) return;
+      syncingSelectionRef.current = true;
+      try {
+        model.getSelectedPaths().forEach((path) => model.getItem(path)?.deselect());
+        paths.forEach((path) => model.getItem(path)?.select());
+      } finally {
+        syncingSelectionRef.current = false;
+      }
+    },
+    [model],
+  );
 
   useEffect(() => {
     const sortingChanged = lastSyncedSortKeyRef.current !== sortKey || lastSyncedMetadataKeyRef.current !== metadataKey;
@@ -437,6 +489,7 @@ export const useFileExplorerModel = ({
     const initialExpandedPaths = Array.from(new Set([...liveExpandedTreePaths, ...expandedTreePathsRef.current]));
 
     syncingExpansionRef.current = true;
+    syncingSelectionRef.current = true;
     try {
       // Read existing state with its old ordering before changing the comparator context.
       sortContextRef.current = { preference: sortPreference, files: lookup.byTreePath };
@@ -449,16 +502,14 @@ export const useFileExplorerModel = ({
       }
     } finally {
       syncingExpansionRef.current = false;
+      syncingSelectionRef.current = false;
     }
     resetWorkspaceRef.current = false;
     lastSyncedTreePathsRef.current = lookup.paths;
     lastSyncedSortKeyRef.current = sortKey;
     lastSyncedMetadataKeyRef.current = metadataKey;
 
-    if (syncSelection && !sameStringArray(model.getSelectedPaths(), selectedTreePaths)) {
-      model.getSelectedPaths().forEach((path) => model.getItem(path)?.deselect());
-      selectedTreePaths.forEach((path) => model.getItem(path)?.select());
-    }
+    if (syncSelection) syncSelectedTreePaths(selectedTreePaths);
 
     const focusedPath = model.getFocusedPath();
     if (focusedPathBeforeSort && lookup.byTreePath.has(focusedPathBeforeSort)) {
@@ -485,7 +536,16 @@ export const useFileExplorerModel = ({
     sortPreference,
     store,
     syncSelection,
+    syncSelectedTreePaths,
   ]);
+
+  // A move can finish after the path reset. Apply the final controlled selection then, too.
+  useEffect(() => {
+    if (!syncSelection) return;
+    const paths = selectedPaths.map((path) => lookup.byAbsolutePath.get(path));
+    if (paths.some((path) => path === undefined)) return;
+    syncSelectedTreePaths(paths as string[]);
+  }, [lookup.byAbsolutePath, selectedPaths, syncSelection, syncSelectedTreePaths]);
 
   // Restoration can arrive after an unchanged tree has already been constructed.
   // Apply the current controlled state directly; subsequent user changes replace that state.
@@ -558,10 +618,14 @@ export const useFileExplorerModel = ({
   useEffect(() => {
     if (!revealRequest) return;
 
-    const targetPath = toDirectoryTreePath(revealRequest.relativePath);
+    const targetPath =
+      lookup.byAbsolutePath.get(`${rootDirectoryPath}/${revealRequest.relativePath}`) ??
+      toDirectoryTreePath(revealRequest.relativePath);
     if (!lookup.byTreePath.has(targetPath)) return;
 
-    const expandedPaths = getDirectoryTreePathChain(targetPath);
+    const expandedPaths = getDirectoryTreePathChain(targetPath).filter((key) =>
+      lookup.directoryTreePaths.includes(key),
+    );
     const nextExpandedDirectories = new Set(expandedDirectoriesRef.current);
     expandedPaths.forEach((path) => nextExpandedDirectories.add(toRelativeDirectoryPath(path)));
     if (!sameStringSet(expandedDirectoriesRef.current, nextExpandedDirectories)) {
@@ -575,19 +639,42 @@ export const useFileExplorerModel = ({
     }
 
     model.scrollToPath(targetPath, { focus: false, offset: "nearest" });
-    model.getSelectedPaths().forEach((path) => model.getItem(path)?.deselect());
-    model.getItem(targetPath)?.select();
+    if (!revealRequest.preserveSelection) {
+      model.getSelectedPaths().forEach((path) => model.getItem(path)?.deselect());
+      model.getItem(targetPath)?.select();
 
-    const selectedFilePath = lookup.byTreePath.get(targetPath)?.path;
-    if (selectedFilePath) setSelectedPaths([selectedFilePath]);
+      const selectedFilePath = lookup.byTreePath.get(targetPath)?.path;
+      if (selectedFilePath) setSelectedPaths([selectedFilePath]);
+    }
+    if (revealRequest.restoreFocus) {
+      const frame = window.requestAnimationFrame(() => {
+        if (store.get(fileExplorerRevealRequestAtom) !== revealRequest) return;
+        const host = model.getFileTreeContainer();
+        const active = host?.ownerDocument.activeElement;
+        // A completed move must not steal focus from another control chosen while it ran.
+        if (host && (!active || active === host.ownerDocument.body || active === host || host.contains(active))) {
+          model.focusPath(targetPath);
+          const target =
+            getExplorerTreeRowElement(model, targetPath) ??
+            host.shadowRoot?.querySelector<HTMLElement>("[role='tree']");
+          target?.focus({ preventScroll: true });
+        }
+        store.set(fileExplorerRevealRequestAtom, null);
+      });
+      return () => window.cancelAnimationFrame(frame);
+    }
     store.set(fileExplorerRevealRequestAtom, null);
-  }, [lookup.byTreePath, model, revealRequest, setExpandedDirectories, setSelectedPaths, store]);
+    return undefined;
+  }, [lookup.byTreePath, model, revealRequest, rootDirectoryPath, setExpandedDirectories, setSelectedPaths, store]);
 
   useEffect(() => {
     if (!syncSelection) return;
 
     const validPaths = new Set(lookup.byAbsolutePath.keys());
-    setSelectedPaths((prev) => prev.filter((path) => validPaths.has(path)));
+    setSelectedPaths((prev) => {
+      const next = prev.filter((path) => validPaths.has(path));
+      return sameStringArray(prev, next) ? prev : next;
+    });
   }, [lookup.byAbsolutePath, setSelectedPaths, syncSelection]);
 
   useEffect(() => {

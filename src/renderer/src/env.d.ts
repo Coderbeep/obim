@@ -1,3 +1,11 @@
+import type {
+  ExplorerSnapshot,
+  CreatePdfNoteRequest,
+  CreatePdfNoteResult,
+  AttachPdfNoteRequest,
+  MovePdfWithNotesRequest,
+  MovePdfNotesResult,
+} from "@shared/explorer-pdf-notes";
 import type { FileItem, WorkspaceFileVersion } from "@shared/file-item";
 import type { LargeTextPreview } from "@shared/large-files";
 import type {
@@ -74,6 +82,11 @@ type WorkspaceTreeSnapshot = {
 declare global {
   interface Window {
     api: {
+      getExplorerSnapshot: () => Promise<ExplorerSnapshot>;
+      createPdfNote: (request: CreatePdfNoteRequest) => Promise<CreatePdfNoteResult>;
+      attachPdfNote: (request: AttachPdfNoteRequest) => Promise<MovePdfNotesResult>;
+      importPdfNotes: (files: readonly File[], pdfPath: string) => Promise<ExternalFileImportResult>;
+      movePdfWithNotes: (request: MovePdfWithNotesRequest) => Promise<MovePdfNotesResult>;
       getFiles: (directoryPath: string) => Promise<FileItem[]>;
       openFile: (filePath: string) => Promise<string>;
       readBinaryFile: (filePath: string) => Promise<Uint8Array>;

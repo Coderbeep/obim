@@ -13,6 +13,7 @@ import {
   trashFile,
   saveFile,
   moveFile,
+  movePdfNotes,
   readTextFile,
   renameFile,
   createFile,
@@ -42,6 +43,9 @@ import {
   addRecentFile,
   fileAccessesAtom,
   fileTreeAtom,
+  expandedDirectoriesAtom,
+  fileExplorerRevealRequestAtom,
+  explorerSelectionPathsAtom,
   pendingFileRenameAtom,
   recentFilesAtom,
   reloadRevisionAtom,
@@ -53,6 +57,18 @@ import { activateWorkspaceTabAtom, openWorkspaceResourceAtom } from "@renderer/s
 import { bookmarksAtom } from "@renderer/store/bookmarkStore";
 import { useAtomValue, useSetAtom, useStore } from "jotai";
 import { FileItem } from "@shared/file-item";
+import type { AttachPdfNoteRequest, MovePdfWithNotesRequest } from "@shared/explorer-pdf-notes";
+import { PDF_NOTES_SUFFIX } from "@shared/explorer-pdf-notes";
+import { getRelativePathFromPath } from "@shared/pathUtils";
+import { workspaceMutationApi } from "./workspaceMutationApi";
+import {
+  fileMoveRemapper,
+  flattenFileTree,
+  predictFileMove,
+  predictPdfNotesMove,
+  projectFileMoves,
+  type FileMoveRoot,
+} from "./optimisticFileMove";
 import type { WorkspaceTextFile } from "@shared/file-operations";
 import { isLargeTextFile } from "@shared/large-files";
 import { isEditableFile, isPdfFile, isMarkdownFile } from "@shared/mime-types";
@@ -118,6 +134,7 @@ interface UseFileRenameResult {
 }
 
 interface UseFileMoveResult {
+  attachManyToPdf: (files: FileItem[], pdf: FileItem) => ReturnType<UseFileMoveResult["moveManyToDirectory"]>;
   moveToDirectory: (
     file: FileItem,
     targetDirectoryPath: string,
@@ -132,6 +149,7 @@ interface UseFileMoveResult {
 }
 
 interface UseFileCreateResult {
+  createPdfNote: (pdf: FileItem) => Promise<void>;
   createNewFile: (folderPath?: string) => Promise<void>;
   createMarkdownFile: (
     directoryPath: string,
@@ -148,6 +166,7 @@ interface UseDirectoryCreateResult {
 
 interface UseExternalFileImportResult {
   importExternalFiles: (files: readonly File[], destinationDirectoryPath: string) => Promise<void>;
+  importPdfNotes: (files: readonly File[], pdf: FileItem) => Promise<void>;
 }
 
 interface UseFileCopyResult {
@@ -255,6 +274,172 @@ const persistCurrentBookmarks = async (store: ReturnType<typeof useStore>) => {
   } catch (error) {
     console.error("Could not persist bookmarks:", error);
   }
+};
+
+type PdfNotesMoveOutcome = { success: boolean; newPath?: string; error?: string };
+
+const optimisticFileMove = (
+  store: ReturnType<typeof useStore>,
+  previous: FileItem[],
+  roots: FileMoveRoot[],
+  workspace: string,
+) => {
+  const forward = fileMoveRemapper(roots);
+  const reverse = fileMoveRemapper(
+    roots.map((root) => ({ ...root, source: root.destination, destination: root.source })),
+  );
+  let applied = false;
+  return {
+    prepare: () => {
+      const tree = projectFileMoves(previous, roots, workspace);
+      applied = true;
+      store.set(pendingFileRenameAtom, true);
+      store.set(remapFileReferencesAtom, { notesDirectoryPath: workspace, remapPath: forward });
+      store.set(fileTreeAtom, tree);
+      store.set(renamingRequestAtom, null);
+    },
+    diskPath: reverse,
+    rollback: () => {
+      if (!applied) return;
+      store.set(remapFileReferencesAtom, { notesDirectoryPath: workspace, remapPath: reverse });
+      store.set(fileTreeAtom, previous);
+      store.set(notificationsAtom, (current) =>
+        current.map((notification) =>
+          notification.path ? { ...notification, path: reverse(notification.path) } : notification,
+        ),
+      );
+      store.set(pendingFileRenameAtom, false);
+      applied = false;
+    },
+    reconcilePath: (actual: FileMoveRoot[]) => {
+      const remap = fileMoveRemapper(actual);
+      return (value: string) => remap(reverse(value));
+    },
+    settle: (actual: FileMoveRoot[], snapshot?: FileItem[]) => {
+      const remap = fileMoveRemapper(actual);
+      store.set(remapFileReferencesAtom, {
+        notesDirectoryPath: workspace,
+        remapPath: (value) => remap(reverse(value)),
+      });
+      store.set(fileTreeAtom, snapshot ?? projectFileMoves(previous, actual, workspace));
+      applied = false;
+    },
+  };
+};
+
+/** Provisional paths are immediate; queued writes and link repair stay in the background. */
+const performPdfNotesMove = async (
+  store: ReturnType<typeof useStore>,
+  request: MovePdfWithNotesRequest | AttachPdfNoteRequest,
+): Promise<PdfNotesMoveOutcome> => {
+  const root = getWorkspacePath();
+  const previous = store.get(fileTreeAtom);
+  const optimistic = optimisticFileMove(store, previous, predictPdfNotesMove(previous, request), root);
+  store.set(closeContextMenuAtom);
+  const failed = (error: string): PdfNotesMoveOutcome => {
+    optimistic.rollback();
+    notifyFileOperationError(
+      store,
+      "notePath" in request ? "Could not attach note" : "Could not move PDF and notes",
+      error,
+      request.pdfPath,
+    );
+    return { success: false, error };
+  };
+  return withSavedLinkBuffers(
+    store,
+    async (lease) => {
+      try {
+        const result = await movePdfNotes(request, lease);
+        let snapshot: Awaited<ReturnType<Window["api"]["getExplorerSnapshot"]>> | undefined;
+        try {
+          snapshot = await window.api.getExplorerSnapshot();
+        } catch {
+          notifyFileOperationError(
+            store,
+            "Files could not be refreshed",
+            "Refresh the explorer to see the current file locations.",
+          );
+        }
+        const roots = result.success
+          ? result.movedRoots
+          : (result.recoveryPaths ?? []).filter(
+              (entry) =>
+                entry.sourceExists === false &&
+                entry.destinationExists === true &&
+                snapshot &&
+                findItemNode(snapshot.items, entry.destination),
+            );
+        const moves = roots.map(({ source, destination }) => ({
+          source,
+          destination,
+          directory:
+            findItemNode(previous, source)?.isDirectory ??
+            findItemNode(snapshot?.items ?? [], destination)?.isDirectory ??
+            false,
+        }));
+        const reconcile = optimistic.reconcilePath(moves);
+        const recoveryUpdates =
+          !result.success && result.errorCode === "partial" && snapshot
+            ? (
+                await Promise.all(
+                  Object.entries(store.get(fileBuffersByPathAtom)).map(async ([oldPath, buffer]) => {
+                    const path = reconcile(oldPath);
+                    const file = findItemNode(snapshot!.items, path);
+                    if (!file || !isMarkdownFile(file.mimeType, path)) return null;
+                    try {
+                      const disk = await window.api.openTextFile(path);
+                      return { path, previousContent: buffer.savedText, content: disk.content, version: disk.version };
+                    } catch {
+                      return null;
+                    }
+                  }),
+                )
+              ).filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+            : [];
+        optimistic.settle(moves, snapshot?.items);
+        const before = flattenFileTree(previous).filter((file) => !file.isDirectory);
+        const actualRemap = fileMoveRemapper(moves);
+        store.set(applyBackgroundNoteLinkMoveAtom, {
+          updates: [...(result.linkUpdates ?? []), ...recoveryUpdates],
+          move: result.success
+            ? result.linkMove
+            : {
+                beforePaths: before.map((file) => file.relativePath),
+                afterPaths: before.map((file) => getRelativePathFromPath(actualRemap(file.path), root)),
+              },
+          root,
+        });
+        lease.release();
+        if (
+          moves.length &&
+          !(await remapTaskBoardOrderAfterFileMoves(
+            moves.map((entry) => ({ fromPath: entry.source, toPath: entry.destination, directory: entry.directory })),
+          ))
+        )
+          notifyTaskOrderRepairFailed(store);
+        await persistCurrentBookmarks(store);
+        if (!result.success) return failed(result.error);
+        if ("notePath" in request) {
+          store.set(
+            expandedDirectoriesAtom,
+            (current) => new Set([...current, getRelativePathFromPath(`${request.pdfPath}${PDF_NOTES_SUFFIX}`, root)]),
+          );
+          store.set(fileExplorerRevealRequestAtom, {
+            relativePath: getRelativePathFromPath(result.output, root),
+            preserveSelection: true,
+          });
+        }
+        return { success: true, newPath: result.output };
+      } finally {
+        store.set(pendingFileRenameAtom, false);
+        store.set(reloadRevisionAtom, (revision) => revision + 1);
+      }
+    },
+    failed,
+    true,
+    optimistic,
+  );
 };
 
 export const openLinkedFile = async ({
@@ -590,10 +775,8 @@ export const useFileRemove = (): UseFileRemoveResult => {
 /**
  * Manages rename mode UI state and persists file/directory rename operations.
  */
-export const useFileRename = (): UseFileRenameResult => {
+export const useFileRename = (options: { withPdfNotes?: boolean } = {}): UseFileRenameResult => {
   const store = useStore();
-  const showIndicator = useFileTransferIndicator();
-
   const startRenaming = (filePath: string, target: RenameTarget = "explorer") => {
     if (!filePath) return;
     store.set(renamingRequestAtom, { filePath, target });
@@ -615,6 +798,13 @@ export const useFileRename = (): UseFileRenameResult => {
       notifyFileAlreadyExists(store, requestedPath);
       return { success: false as const, error: "Destination file already exists" };
     }
+    if (options.withPdfNotes && isPdfFile(oldItem.mimeType, oldItem.path)) {
+      return performPdfNotesMove(store, {
+        pdfPath: oldItem.path,
+        destinationDirectoryPath: getPathWithoutFilename(oldItem.path),
+        newFilename: finalName,
+      });
+    }
     const notesDirectoryPath = getWorkspacePath();
     const diskPath = (path: string) => remapPathAfterMove(path, requestedPath, oldFilePath, oldItem.isDirectory);
     let optimisticApplied = false;
@@ -632,12 +822,6 @@ export const useFileRename = (): UseFileRenameResult => {
     };
 
     store.set(closeContextMenuAtom);
-    const dismissIndicator = showIndicator({
-      level: NotificationLevel.INFO,
-      title: "Updating links…",
-      busy: true,
-      timeout: 0,
-    });
     const outcome = await withSavedLinkBuffers(
       store,
       async (lease) => {
@@ -664,14 +848,6 @@ export const useFileRename = (): UseFileRenameResult => {
             root: notesDirectoryPath,
           });
         } else store.set(applyNoteLinkUpdatesAtom, result.linkUpdates ?? []);
-        const count = result.updatedLinkCount ?? 0;
-        store.set(addNotificationAtom, {
-          id: crypto.randomUUID(),
-          level: NotificationLevel.INFO,
-          title: count > 0 ? `Updated ${count} ${count === 1 ? "link" : "links"}` : "Renamed successfully",
-          path: newPath,
-          timestamp: Date.now(),
-        });
         lease.release();
         if (!(await remapTaskBoardOrderAfterFileMove(oldFilePath, newPath, oldItem.isDirectory)))
           notifyTaskOrderRepairFailed(store);
@@ -699,7 +875,6 @@ export const useFileRename = (): UseFileRenameResult => {
       },
     );
     if (optimisticApplied || committed) store.set(pendingFileRenameAtom, false);
-    dismissIndicator();
     if (
       !outcome.success &&
       outcome.error !== "Destination file already exists" &&
@@ -726,35 +901,65 @@ export const useFileRename = (): UseFileRenameResult => {
 /**
  * Moves a file/directory and mirrors the path change across open editor state.
  */
-export const useFileMove = (): UseFileMoveResult => {
+export const useFileMove = (options: { withPdfNotes?: boolean } = {}): UseFileMoveResult => {
   const store = useStore();
 
   const moveItemToDirectory = useCallback(
     async (file: FileItem, targetDirectoryPath: string, repairTaskBoardOrder = true) => {
+      if (options.withPdfNotes && !file.isDirectory && isPdfFile(file.mimeType, file.path)) {
+        const result = await performPdfNotesMove(store, {
+          pdfPath: file.path,
+          destinationDirectoryPath: targetDirectoryPath,
+        });
+        return { moved: result.success, movedPath: result.newPath, error: result.error };
+      }
+      const root = getWorkspacePath();
+      const previous = store.get(fileTreeAtom);
+      const optimistic = optimisticFileMove(
+        store,
+        previous,
+        predictFileMove(previous, file, targetDirectoryPath),
+        root,
+      );
       return withSavedLinkBuffers(
         store,
         async (lease) => {
-          const result = await moveFile(file.path, targetDirectoryPath, lease);
-          if (!result.success) {
-            store.set(applyNoteLinkUpdatesAtom, result.linkUpdates ?? []);
-            return { moved: false, error: result.error };
+          try {
+            const result = await moveFile(file.path, targetDirectoryPath, lease);
+            if (!result.success) {
+              optimistic.rollback();
+              store.set(applyNoteLinkUpdatesAtom, result.linkUpdates ?? []);
+              return { moved: false, error: result.error };
+            }
+            const movedPath = result.output;
+            optimistic.settle([{ source: file.path, destination: movedPath, directory: file.isDirectory }]);
+            if (result.linkMove)
+              store.set(applyBackgroundNoteLinkMoveAtom, {
+                updates: result.linkUpdates ?? [],
+                move: result.linkMove,
+                root,
+              });
+            else store.set(applyNoteLinkUpdatesAtom, result.linkUpdates ?? []);
+            lease.release();
+            if (
+              repairTaskBoardOrder &&
+              !(await remapTaskBoardOrderAfterFileMove(file.path, movedPath, file.isDirectory))
+            )
+              notifyTaskOrderRepairFailed(store);
+            return { moved: true, movedPath };
+          } finally {
+            store.set(pendingFileRenameAtom, false);
           }
-
-          const movedPath = result.output;
-          const notesDirectoryPath = getWorkspacePath();
-          const remapPath = (path: string) => remapPathAfterMove(path, file.path, movedPath, file.isDirectory);
-          store.set(remapFileReferencesAtom, { remapPath, notesDirectoryPath });
-          store.set(applyNoteLinkUpdatesAtom, result.linkUpdates ?? []);
-          lease.release();
-          if (repairTaskBoardOrder && !(await remapTaskBoardOrderAfterFileMove(file.path, movedPath, file.isDirectory)))
-            notifyTaskOrderRepairFailed(store);
-
-          return { moved: true, movedPath };
         },
-        (error) => ({ moved: false, error }),
+        (error) => {
+          optimistic.rollback();
+          return { moved: false, error };
+        },
+        true,
+        optimistic,
       );
     },
-    [store],
+    [options.withPdfNotes, store],
   );
 
   const moveToDirectory = useCallback(
@@ -766,7 +971,7 @@ export const useFileMove = (): UseFileMoveResult => {
       }
       return result;
     },
-    [moveItemToDirectory, store],
+    [moveItemToDirectory, options.withPdfNotes, store],
   );
 
   const moveManyToDirectory = useCallback(
@@ -775,7 +980,12 @@ export const useFileMove = (): UseFileMoveResult => {
       const failures: { file: FileItem; error: string }[] = [];
 
       const results: { file: FileItem; result: Awaited<ReturnType<typeof moveItemToDirectory>> }[] = [];
-      for (const file of files) {
+      const selectedPdfs = options.withPdfNotes
+        ? files.filter((file) => !file.isDirectory && isPdfFile(file.mimeType, file.path))
+        : [];
+      for (const file of filterTopLevelItems(files).filter(
+        (file) => !selectedPdfs.some((pdf) => isPathWithinBase(file.path, `${pdf.path}${PDF_NOTES_SUFFIX}`)),
+      )) {
         results.push({ file, result: await moveItemToDirectory(file, targetDirectoryPath, false) });
       }
       for (const { file, result } of results) {
@@ -799,10 +1009,24 @@ export const useFileMove = (): UseFileMoveResult => {
       }
       return { moved, failures };
     },
-    [moveItemToDirectory, store],
+    [moveItemToDirectory, options.withPdfNotes, store],
   );
 
-  return { moveManyToDirectory, moveToDirectory };
+  const attachManyToPdf = useCallback(
+    async (files: FileItem[], pdf: FileItem) => {
+      const moved: { file: FileItem; movedPath: string }[] = [];
+      const failures: { file: FileItem; error: string }[] = [];
+      for (const file of filterTopLevelItems(files)) {
+        const result = await performPdfNotesMove(store, { pdfPath: pdf.path, notePath: file.path });
+        if (result.success && result.newPath) moved.push({ file, movedPath: result.newPath });
+        else failures.push({ file, error: result.error ?? `Could not attach ${file.filename}` });
+      }
+      return { moved, failures };
+    },
+    [store],
+  );
+
+  return { attachManyToPdf, moveManyToDirectory, moveToDirectory };
 };
 
 /**
@@ -875,7 +1099,52 @@ export const useFileCreate = (): UseFileCreateResult => {
     }
   };
 
-  return { createMarkdownFile, createNewFile };
+  const createPdfNote = async (pdf: FileItem) => {
+    const generation = getWorkspaceTransitionGeneration();
+    const root = getWorkspacePath();
+    if (pdf.isDirectory || !isPdfFile(pdf.mimeType, pdf.path) || !(await saveCurrentFile())) return;
+    const companionPath = `${pdf.path}${PDF_NOTES_SUFFIX}`;
+    const companion = findDirectoryNode(getFiles(), companionPath);
+    const filename = generateNumberedName(companion?.children ?? [], "Untitled", ".md");
+    try {
+      if (typeof window.api.createPdfNote !== "function")
+        throw new Error("Restart obim to enable PDF notes operations.");
+      const result = await workspaceMutationApi.createPdfNote({ pdfPath: pdf.path, filename, content: "" });
+      if (!result.success) {
+        notifyFileOperationError(store, "Could not create note", result.error, pdf.path);
+        requestReload();
+        return;
+      }
+      let snapshot: Awaited<ReturnType<Window["api"]["getExplorerSnapshot"]>> | undefined;
+      try {
+        snapshot = await window.api.getExplorerSnapshot();
+      } catch {
+        notifyFileOperationError(
+          store,
+          "Note created",
+          "The note was saved. Refresh the explorer to see its location.",
+          result.file.path,
+        );
+      }
+      if (generation !== getWorkspaceTransitionGeneration() || root !== getWorkspacePath()) return;
+      if (snapshot) store.set(fileTreeAtom, snapshot.items);
+      const relativeCompanion = `${pdf.relativePath}${PDF_NOTES_SUFFIX}`;
+      store.set(expandedDirectoriesAtom, (paths) => new Set([...paths, relativeCompanion]));
+      store.set(fileExplorerRevealRequestAtom, { relativePath: result.file.relativePath });
+      requestReload();
+      await open(result.file, { openInNewTab: true, skipSave: true });
+      store.set(renamingRequestAtom, { filePath: result.file.path, target: "note-header" });
+    } catch (error) {
+      requestReload();
+      notifyFileOperationError(
+        store,
+        "Could not create note",
+        error instanceof Error ? error.message : String(error),
+        pdf.path,
+      );
+    }
+  };
+  return { createMarkdownFile, createNewFile, createPdfNote };
 };
 
 /**
@@ -915,19 +1184,46 @@ export const useDirectoryCreate = (): UseDirectoryCreateResult => {
  * Imports external files, refreshes the files view, and reports the command result.
  */
 export const useExternalFileImport = (): UseExternalFileImportResult => {
+  const store = useStore();
   const setReloadRevision = useSetAtom(reloadRevisionAtom);
   const addNotification = useSetAtom(addNotificationAtom);
   const showTransferIndicator = useFileTransferIndicator();
 
-  const importExternalFiles = useCallback(
-    async (files: readonly File[], destinationDirectoryPath: string) => {
+  const importFiles = useCallback(
+    async (files: readonly File[], destinationDirectoryPath: string, pdf?: FileItem) => {
+      const root = getWorkspacePath();
+      const generation = getWorkspaceTransitionGeneration();
       const hideTransferIndicator = showTransferIndicator(
         Notifications.FILES_IMPORTING(files.length, basename(destinationDirectoryPath) || "workspace"),
       );
       try {
-        const result = await importExternalFilesCommand(files, destinationDirectoryPath);
+        if (pdf && typeof window.api.importPdfNotes !== "function")
+          throw new Error("Restart obim to enable PDF notes operations.");
+        const result = pdf
+          ? await workspaceMutationApi.importPdfNotes(files, pdf.path)
+          : await importExternalFilesCommand(files, destinationDirectoryPath);
+
+        if (pdf && (root !== getWorkspacePath() || generation !== getWorkspaceTransitionGeneration())) return;
 
         if (result.importedPaths.length) {
+          if (pdf) {
+            try {
+              const snapshot = await window.api.getExplorerSnapshot();
+              if (root !== getWorkspacePath() || generation !== getWorkspaceTransitionGeneration()) return;
+              store.set(fileTreeAtom, snapshot.items);
+            } catch {
+              // The regular reload below can retry without misreporting a successful import.
+            }
+            store.set(
+              expandedDirectoriesAtom,
+              (current) => new Set([...current, getRelativePathFromPath(`${pdf.path}${PDF_NOTES_SUFFIX}`, root)]),
+            );
+            store.set(explorerSelectionPathsAtom, result.importedPaths);
+            store.set(fileExplorerRevealRequestAtom, {
+              relativePath: getRelativePathFromPath(result.importedPaths[0], root),
+              preserveSelection: true,
+            });
+          }
           setReloadRevision((revision) => revision + 1);
           addNotification({
             id: crypto.randomUUID(),
@@ -953,10 +1249,18 @@ export const useExternalFileImport = (): UseExternalFileImportResult => {
         hideTransferIndicator();
       }
     },
-    [addNotification, setReloadRevision, showTransferIndicator],
+    [addNotification, setReloadRevision, showTransferIndicator, store],
   );
 
-  return { importExternalFiles };
+  const importExternalFiles = useCallback(
+    (files: readonly File[], directory: string) => importFiles(files, directory),
+    [importFiles],
+  );
+  const importPdfNotes = useCallback(
+    (files: readonly File[], pdf: FileItem) => importFiles(files, pdf.path, pdf),
+    [importFiles],
+  );
+  return { importExternalFiles, importPdfNotes };
 };
 
 /** Copies workspace items, refreshes the files view, and reports partial failures. */

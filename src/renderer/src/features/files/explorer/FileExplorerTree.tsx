@@ -8,14 +8,18 @@ import { useFileClipboard } from "../useFileClipboard";
 import { getWorkspacePath } from "@renderer/config";
 import { FILE_DRAG_DATA_MIME } from "@shared/drag-data";
 import type { FileItem } from "@shared/file-item";
-import { getExt, withExt } from "@shared/pathUtils";
+import { PDF_FILE_GLYPH_ID } from "@renderer/shared/icons/FileGlyphs";
+import { basename, getExt, withExt } from "@shared/pathUtils";
+import { isMarkdownFile } from "@shared/mime-types";
 
 import { useAppDropZone } from "@renderer/shared/dnd/useAppDropZone";
 import {
   getFileTreeMoveIntent,
   getTreeDropDestination,
   getTreeDropTargetFromHoveredPath,
-  getMarkdownExplorerName,
+  getExplorerRowName,
+  getPdfAttachmentTarget,
+  getPdfNoteDropItems,
   isTreeDirectoryHandle,
   toTreePath,
 } from "./fileExplorerTreeUtils";
@@ -36,6 +40,7 @@ interface FileExplorerTreeProps {
   gitStatus?: readonly GitStatusEntry[];
   enableFileMove?: boolean;
   onExternalFileDrop?: (files: File[], destinationDirectory: FileItem | null) => void;
+  onExternalPdfNoteDrop?: (files: File[], pdf: FileItem) => void;
   syncSelection?: boolean;
 }
 
@@ -64,6 +69,7 @@ export const FileExplorerTree = forwardRef<FileExplorerTreeHandle, FileExplorerT
     gitStatus,
     items,
     onExternalFileDrop,
+    onExternalPdfNoteDrop,
     onExpandedDirectoriesChange,
     syncSelection = false,
   },
@@ -72,7 +78,7 @@ export const FileExplorerTree = forwardRef<FileExplorerTreeHandle, FileExplorerT
   const { open } = useFileOpen();
   const { removeMany } = useFileRemove();
   const { openDirectoryMenuAt, openRootMenuAt } = useDirectoryMenu();
-  const { openFileMenuAt } = useFileMenu();
+  const { openFileMenuAt } = useFileMenu({ explorer: true });
   const { copyItems, pasteClipboardData } = useFileClipboard();
   const pasteTargetPathRef = useRef<string | null>(null);
   const rootDirectoryPath = getWorkspacePath();
@@ -88,7 +94,7 @@ export const FileExplorerTree = forwardRef<FileExplorerTreeHandle, FileExplorerT
 
   useImperativeHandle(ref, () => ({ toggleAllDirectories }), [toggleAllDirectories]);
 
-  const { dragSourceTreePathRef } = useFileExplorerDnd({
+  const { dragSourceTreePathRef, attachNotesToPdf } = useFileExplorerDnd({
     enabled: enableFileMove,
     expandedTreePaths,
     lookupRef,
@@ -159,21 +165,50 @@ export const FileExplorerTree = forwardRef<FileExplorerTreeHandle, FileExplorerT
         if (!(target instanceof HTMLInputElement) || !target.matches("[data-item-rename-input]")) return null;
         const row = target.closest<HTMLElement>("[data-type='item'][data-item-path]");
         const file = row?.dataset.itemPath ? lookupRef.current.byTreePath.get(row.dataset.itemPath) : null;
-        const displayName = file ? getMarkdownExplorerName(file) : null;
+        const displayName =
+          file && row?.dataset.itemPath ? getExplorerRowName(file, row.dataset.itemPath, lookupRef.current) : null;
         return row && file && displayName !== null ? { file, input: target } : null;
       };
 
       const syncMarkdownRows = () => {
         eventTarget.querySelectorAll<HTMLElement>("[data-type='item'][data-item-path]").forEach((row) => {
           const file = row.dataset.itemPath ? lookupRef.current.byTreePath.get(row.dataset.itemPath) : null;
-          const displayName = file ? getMarkdownExplorerName(file) : null;
+          const displayName =
+            file && row?.dataset.itemPath ? getExplorerRowName(file, row.dataset.itemPath, lookupRef.current) : null;
 
           if (displayName === null) {
+            if (file && row.getAttribute("aria-label") !== basename(file.path))
+              row.setAttribute("aria-label", basename(file.path));
             delete row.dataset.obimMarkdownFile;
+            delete row.dataset.obimPdfGroup;
+            row.querySelector("[data-obim-pdf-glyph]")?.remove();
             return;
           }
 
-          row.dataset.obimMarkdownFile = "true";
+          const grouped = Boolean(row.dataset.itemPath && lookupRef.current.pdfGroups?.has(row.dataset.itemPath));
+          if (grouped) {
+            row.dataset.obimPdfGroup = "true";
+            delete row.dataset.obimMarkdownFile;
+            const label = row.querySelector("[data-item-section='decoration'] > span");
+            if (label && !label.querySelector("[data-obim-pdf-glyph]")) {
+              const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+              icon.dataset.obimPdfGlyph = "true";
+              icon.setAttribute("viewBox", "0 0 16 16");
+              icon.setAttribute("width", "16");
+              icon.setAttribute("height", "16");
+              icon.setAttribute("aria-hidden", "true");
+              icon.style.cssText = "flex-shrink:0;margin-right:5px;vertical-align:middle";
+              const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
+              use.setAttribute("href", `#${PDF_FILE_GLYPH_ID}`);
+              icon.append(use);
+              label.prepend(icon);
+            }
+          } else {
+            row.dataset.obimMarkdownFile = "true";
+            delete row.dataset.obimPdfGroup;
+            row.querySelectorAll("[data-obim-pdf-glyph]").forEach((icon) => icon.remove());
+          }
+          if (file && row.title !== file.relativePath) row.title = file.relativePath;
           if (row.getAttribute("aria-label") !== displayName) row.setAttribute("aria-label", displayName);
 
           const input = row.querySelector<HTMLInputElement>("[data-item-rename-input]");
@@ -300,6 +335,7 @@ export const FileExplorerTree = forwardRef<FileExplorerTreeHandle, FileExplorerT
     };
   }, [
     copyItems,
+    items,
     lookupRef,
     model,
     openDirectoryMenuAt,
@@ -319,6 +355,8 @@ export const FileExplorerTree = forwardRef<FileExplorerTreeHandle, FileExplorerT
       model={model}
       onDropCompleteRef={onDropCompleteRef}
       onExternalFileDrop={onExternalFileDrop}
+      onExternalPdfNoteDrop={onExternalPdfNoteDrop}
+      onAttachNotes={attachNotesToPdf}
       onOpenItem={handleActivateItem}
       onOpenItemInNewTab={handleOpenFileInNewTab}
       rootDirectoryPath={rootDirectoryPath}
@@ -337,6 +375,8 @@ const FileExplorerTreeSurface = ({
   model,
   onDropCompleteRef,
   onExternalFileDrop,
+  onExternalPdfNoteDrop,
+  onAttachNotes,
   onOpenItem,
   onOpenItemInNewTab,
   rootDirectoryPath,
@@ -348,11 +388,14 @@ const FileExplorerTreeSurface = ({
   model: FileExplorerModelState["model"];
   onDropCompleteRef: FileExplorerModelState["onDropCompleteRef"];
   onExternalFileDrop?: FileExplorerTreeProps["onExternalFileDrop"];
+  onExternalPdfNoteDrop?: FileExplorerTreeProps["onExternalPdfNoteDrop"];
+  onAttachNotes: FileExplorerDndState["attachNotesToPdf"];
   onOpenItem: (file: FileItem) => void;
   onOpenItemInNewTab: (file: FileItem) => void;
   rootDirectoryPath: string;
 }) => {
   const externalDropTargetRef = useRef<HTMLElement | null>(null);
+  const pdfDropTargetRef = useRef<HTMLElement | null>(null);
 
   const getInternalDraggedPaths = useCallback(
     (event: React.DragEvent<HTMLElement>) => {
@@ -374,6 +417,62 @@ const FileExplorerTreeSurface = ({
     externalDropTargetRef.current = null;
     model.getFileTreeContainer()?.classList.remove(ExternalDropRootClass);
   }, [model]);
+
+  const clearPdfDropHighlight = useCallback(() => {
+    pdfDropTargetRef.current?.removeAttribute("data-pdf-note-drop");
+    pdfDropTargetRef.current = null;
+  }, []);
+
+  useEffect(() => clearPdfDropHighlight, [clearPdfDropHighlight]);
+
+  const pdfZone = useAppDropZone<HTMLElement, { pdf: FileItem; notes: FileItem[]; external: boolean; valid: boolean }>({
+    accepts: (entity) => entity.kind === "explorer-item" || entity.kind === "external-files",
+    resolve: (event, entity) => {
+      const key = getExplorerTreeEventTarget(event.nativeEvent)?.rowPath ?? null;
+      const pdf = getPdfAttachmentTarget(key, lookupRef.current);
+      if (!pdf) return null;
+      const external = entity.kind === "external-files";
+      const notes = external ? [] : getPdfNoteDropItems(getInternalDraggedPaths(event), pdf, lookupRef.current);
+      const files = Array.from(event.dataTransfer.files);
+      // OS drags protect filenames until drop. Known non-text types can still be rejected on hover.
+      const externalNotes = files.length
+        ? files.every((file) => isMarkdownFile(null, file.name))
+        : Array.from(event.dataTransfer.items ?? []).every(
+            (item) =>
+              item.kind === "file" &&
+              (!item.type || ["text/plain", "text/markdown", "text/x-markdown"].includes(item.type)),
+          );
+      const valid = external ? Boolean(onExternalPdfNoteDrop) && externalNotes : enableFileMove && notes.length > 0;
+      return {
+        key: `pdf-notes:${pdf.path}`,
+        valid,
+        label: external
+          ? `Import notes into ${basename(pdf.path)}`
+          : notes.length > 1
+            ? `Attach ${notes.length} notes to ${basename(pdf.path)}`
+            : `Attach note to ${basename(pdf.path)}`,
+        operation: { pdf, notes, external, valid },
+      };
+    },
+    onHover: (event, { pdf, external, valid }) => {
+      clearPdfDropHighlight();
+      const key = lookupRef.current.byAbsolutePath.get(pdf.path);
+      const row = key ? getExplorerTreeRowElement(model, key) : null;
+      if (row) {
+        row.dataset.pdfNoteDrop = valid ? "valid" : "invalid";
+        pdfDropTargetRef.current = row;
+      }
+      if (external && valid) event.dataTransfer.dropEffect = "copy";
+    },
+    onClear: clearPdfDropHighlight,
+    onDrop: (event, { pdf, notes, external }) => {
+      if (external) {
+        const files = Array.from(event.dataTransfer.files);
+        if (files.length) onExternalPdfNoteDrop?.(files, pdf);
+        return;
+      } else return onAttachNotes(notes, pdf);
+    },
+  });
 
   const getExternalDropTargetTreePath = (event: React.DragEvent<HTMLElement>) => {
     const hoveredTreePath = getExplorerTreeEventTarget(event.nativeEvent)?.rowPath ?? null;
@@ -445,6 +544,12 @@ const FileExplorerTreeSurface = ({
 
   const handleCombinedTreeDragOver = useCallback(
     (event: React.DragEvent<HTMLElement>) => {
+      if (getPdfAttachmentTarget(getExplorerTreeEventTarget(event.nativeEvent)?.rowPath ?? null, lookupRef.current)) {
+        externalZone.clearHover();
+        pdfZone.handlers.onDragOver(event);
+        return;
+      }
+      pdfZone.clearHover();
       if (onExternalFileDrop && isExternalFileDrop(event)) {
         externalZone.handlers.onDragOver(event);
         return;
@@ -470,6 +575,7 @@ const FileExplorerTreeSurface = ({
       onExternalFileDrop,
       rootDirectoryPath,
       externalZone,
+      pdfZone,
     ],
   );
 
@@ -482,17 +588,25 @@ const FileExplorerTreeSurface = ({
         event.clientX <= rect.right &&
         event.clientY >= rect.top &&
         event.clientY <= rect.bottom;
-      if (!isStillInsideTree) externalZone.clearHover();
+      if (!isStillInsideTree) {
+        externalZone.clearHover();
+        pdfZone.clearHover();
+      }
     },
-    [externalZone, model],
+    [externalZone, model, pdfZone],
   );
 
   const handleCombinedTreeDragEnd = useCallback(() => {
     externalZone.clearHover();
-  }, [externalZone]);
+    pdfZone.clearHover();
+  }, [externalZone, pdfZone]);
 
   const handleRootDropCapture = useCallback(
     (event: React.DragEvent<HTMLElement>) => {
+      if (getPdfAttachmentTarget(getExplorerTreeEventTarget(event.nativeEvent)?.rowPath ?? null, lookupRef.current)) {
+        pdfZone.handlers.onDrop(event);
+        return;
+      }
       if (
         !enableFileMove ||
         Array.from(event.dataTransfer.types ?? []).includes("Files") ||
@@ -519,6 +633,7 @@ const FileExplorerTreeSurface = ({
       lookupRef,
       onDropCompleteRef,
       rootDirectoryPath,
+      pdfZone,
     ],
   );
 
@@ -526,6 +641,7 @@ const FileExplorerTreeSurface = ({
     <ExplorerTree
       model={model}
       itemsByPath={lookupRef.current.byTreePath}
+      isExpandableFile={(key) => Boolean(lookupRef.current.pdfGroups?.has(key))}
       className={className}
       onOpenItem={onOpenItem}
       onOpenItemInNewTab={onOpenItemInNewTab}

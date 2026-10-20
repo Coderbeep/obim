@@ -10,6 +10,7 @@ export interface ExplorerTreeProps<T> {
   className?: string;
   itemsByPath: Map<string, T>;
   model: FileTreeModel;
+  isExpandableFile?: (treePath: string) => boolean;
   onClickCapture?: (event: React.MouseEvent<HTMLElement>) => void;
   onDrag?: (event: React.DragEvent<HTMLElement>) => void;
   onDragEnd?: (event: React.DragEvent<HTMLElement>) => void;
@@ -26,6 +27,7 @@ export const ExplorerTree = <T,>({
   className,
   itemsByPath,
   model,
+  isExpandableFile,
   onClickCapture,
   onDrag,
   onDragEnd,
@@ -43,10 +45,22 @@ export const ExplorerTree = <T,>({
       const captureWasHandled = event.defaultPrevented || event.isPropagationStopped();
       if (event.button !== 0) return;
 
-      const treePath = getExplorerTreeEventTarget(event.nativeEvent)?.rowPath;
+      const target = getExplorerTreeEventTarget(event.nativeEvent);
+      const treePath = target?.rowPath;
       const item = treePath ? model.getItem(treePath) : null;
       if (!item || !("toggle" in item)) return;
 
+      if (treePath && isExpandableFile?.(treePath) && !target?.clickedIcon) {
+        if (captureWasHandled || event.shiftKey || event.metaKey || event.ctrlKey) return;
+        event.preventDefault();
+        event.stopPropagation();
+        model.getSelectedPaths().forEach((path) => model.getItem(path)?.deselect());
+        item.focus();
+        item.select();
+        const file = itemsByPath.get(treePath);
+        if (file !== undefined) onOpenItem?.(file);
+        return;
+      }
       event.preventDefault();
       event.stopPropagation();
       const tree = model.getFileTreeContainer()?.shadowRoot?.querySelector<HTMLElement>("[role='tree']");
@@ -58,7 +72,7 @@ export const ExplorerTree = <T,>({
         item.toggle();
       }
     },
-    [model, onClickCapture],
+    [isExpandableFile, itemsByPath, model, onClickCapture, onOpenItem],
   );
 
   const handleClick = useCallback(
@@ -123,6 +137,19 @@ export const ExplorerTree = <T,>({
       onMouseDown={handleMiddleMouseButton}
       onMouseUp={handleMiddleMouseButton}
       onAuxClick={handleAuxClick}
+      onKeyDownCapture={(event) => {
+        const target = event.nativeEvent.composedPath()[0];
+        if (target instanceof HTMLElement && (target.matches("input, textarea") || target.isContentEditable)) return;
+        const key = model.getFocusedPath();
+        if (event.key !== "Enter" || !key || !isExpandableFile?.(key)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        if (event.repeat) return;
+        model.getSelectedPaths().forEach((path) => model.getItem(path)?.deselect());
+        model.getItem(key)?.select();
+        const item = itemsByPath.get(key);
+        if (item !== undefined) onOpenItem?.(item);
+      }}
       onKeyDown={handleKeyDown}
       onDragStart={onDragStart}
       onDrag={onDrag}

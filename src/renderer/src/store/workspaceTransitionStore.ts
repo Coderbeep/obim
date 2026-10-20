@@ -14,6 +14,7 @@ export const WORKSPACE_TRANSITION_MESSAGE = "Wait for the workspace operation to
 let activeTransition: WorkspaceTransitionLease | null = null;
 let generation = 0;
 let backgroundCompletion: Promise<void> | null = null;
+let transitionCompletion: Promise<void> | null = null;
 const pendingActivity = new Set<Promise<unknown>>();
 
 export interface WorkspaceTransitionLease {
@@ -34,6 +35,10 @@ export const waitForBackgroundWorkspaceOperation = async () => {
   }
   return waited;
 };
+/** File watcher reads must wait for foreground moves as well as background link repair. */
+export const waitForWorkspaceTransition = async () => {
+  while (transitionCompletion) await transitionCompletion;
+};
 export const getWorkspaceTransitionGeneration = () => generation;
 
 /** Reserve disk mutations synchronously; background link repair keeps editing available. */
@@ -43,6 +48,10 @@ export const beginWorkspaceTransition = (
   background = false,
 ): WorkspaceTransitionLease | null => {
   if (activeTransition) return null;
+  let completeTransition!: () => void;
+  transitionCompletion = new Promise<void>((resolve) => {
+    completeTransition = resolve;
+  });
   let completeBackground: (() => void) | undefined;
   if (background)
     backgroundCompletion = new Promise<void>((resolve) => {
@@ -69,6 +78,8 @@ export const beginWorkspaceTransition = (
       if (activeTransition !== lease) return;
       activeTransition = null;
       backgroundCompletion = null;
+      transitionCompletion = null;
+      completeTransition();
       completeBackground?.();
       store.set(workspaceTransitionAtom, null);
     },

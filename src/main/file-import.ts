@@ -114,54 +114,57 @@ const getImportSources = async (requestedSources: FileImportSource[]) => {
  * Each item is fully staged before reserving an exclusive destination. Directory
  * publication can briefly expose children as they are linked into the new folder.
  */
-export const importExternalFiles = async (
+/** Caller must hold the workspace mutation queue. */
+export const runExternalFileImport = async (
   requestedSources: FileImportSource[],
   destinationDirectoryPath: string,
-): Promise<ExternalFileImportResult> =>
-  queueWorkspaceMutation(async () => {
-    const importedPaths: string[] = [];
-    const errors: string[] = [];
-    const destinationPath = path.resolve(destinationDirectoryPath);
+): Promise<ExternalFileImportResult> => {
+  const importedPaths: string[] = [];
+  const errors: string[] = [];
+  const destinationPath = path.resolve(destinationDirectoryPath);
 
-    let sources: ImportSource[];
+  let sources: ImportSource[];
+  try {
+    const destinationStat = await lstat(destinationPath);
+    if (!destinationStat.isDirectory()) throw new Error("Import destination is not a directory.");
+    const sourceResult = await getImportSources(requestedSources);
+    sources = sourceResult.sources;
+    errors.push(...sourceResult.errors);
+  } catch (error) {
+    return { importedPaths, errors: [error instanceof Error ? error.message : String(error)] };
+  }
+
+  for (const source of sources) {
+    const sourceName = source.kind === "path" ? path.basename(source.path) : source.name;
+    if (source.kind === "path" && source.isDirectory && isPathInside(destinationPath, source.path)) {
+      errors.push(`${sourceName}: a folder cannot be imported into itself.`);
+      continue;
+    }
+
+    const stagingPath = path.join(destinationPath, `.obim-import-${randomUUID()}`);
+
     try {
-      const destinationStat = await lstat(destinationPath);
-      if (!destinationStat.isDirectory()) throw new Error("Import destination is not a directory.");
-      const sourceResult = await getImportSources(requestedSources);
-      sources = sourceResult.sources;
-      errors.push(...sourceResult.errors);
+      if (source.kind === "path") {
+        await cp(source.path, stagingPath, {
+          recursive: source.isDirectory,
+          force: false,
+          errorOnExist: true,
+          filter: (sourcePath) => !isIgnoredWorkspaceEntry(path.basename(sourcePath)),
+        });
+      } else {
+        await writeFile(stagingPath, source.content, { flag: "wx" });
+      }
+      const finalPath = await publishStagedWorkspaceItem(stagingPath, path.join(destinationPath, sourceName));
+      importedPaths.push(finalPath);
     } catch (error) {
-      return { importedPaths, errors: [error instanceof Error ? error.message : String(error)] };
+      errors.push(`${sourceName}: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      await rm(stagingPath, { force: true, recursive: true }).catch(() => undefined);
     }
+  }
 
-    for (const source of sources) {
-      const sourceName = source.kind === "path" ? path.basename(source.path) : source.name;
-      if (source.kind === "path" && source.isDirectory && isPathInside(destinationPath, source.path)) {
-        errors.push(`${sourceName}: a folder cannot be imported into itself.`);
-        continue;
-      }
+  return { importedPaths, errors };
+};
 
-      const stagingPath = path.join(destinationPath, `.obim-import-${randomUUID()}`);
-
-      try {
-        if (source.kind === "path") {
-          await cp(source.path, stagingPath, {
-            recursive: source.isDirectory,
-            force: false,
-            errorOnExist: true,
-            filter: (sourcePath) => !isIgnoredWorkspaceEntry(path.basename(sourcePath)),
-          });
-        } else {
-          await writeFile(stagingPath, source.content, { flag: "wx" });
-        }
-        const finalPath = await publishStagedWorkspaceItem(stagingPath, path.join(destinationPath, sourceName));
-        importedPaths.push(finalPath);
-      } catch (error) {
-        errors.push(`${sourceName}: ${error instanceof Error ? error.message : String(error)}`);
-      } finally {
-        await rm(stagingPath, { force: true, recursive: true }).catch(() => undefined);
-      }
-    }
-
-    return { importedPaths, errors };
-  });
+export const importExternalFiles = (requestedSources: FileImportSource[], destinationDirectoryPath: string) =>
+  queueWorkspaceMutation(() => runExternalFileImport(requestedSources, destinationDirectoryPath));

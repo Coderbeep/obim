@@ -15,7 +15,7 @@ export const useActionRunner = () => {
   }, [store]);
 
   const openMoveToFolder = useCallback(
-    (targets: FileItem[], options?: { returnToCommands?: boolean }) => {
+    (targets: FileItem[], options?: { returnToCommands?: boolean; withPdfNotes?: boolean }) => {
       const topLevelTargets = filterTopLevelItems(targets);
       if (!topLevelTargets.length) return;
       store.set(isVisibleAtom, false);
@@ -23,6 +23,7 @@ export const useActionRunner = () => {
         view: "move-to-folder",
         targets: topLevelTargets,
         returnToCommands: options?.returnToCommands ?? false,
+        ...(options?.withPdfNotes ? { withPdfNotes: true } : {}),
       });
     },
     [store],

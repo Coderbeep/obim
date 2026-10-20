@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createStore, Provider } from "jotai";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -76,6 +76,7 @@ import {
 import { workspacePanesAtom } from "../src/renderer/src/store/editorPaneStore";
 import { createEditorTab, workspaceTabsByIdAtom } from "../src/renderer/src/store/editorTabStore";
 import { fileBuffersByPathAtom } from "../src/renderer/src/store/fileBufferStore";
+import { notificationsAtom } from "../src/renderer/src/store/NotificationsStore";
 import { fileTreeAtom } from "../src/renderer/src/store/fileExplorerStore";
 import { notePdfExportRequestAtom } from "../src/renderer/src/store/notePdfExportStore";
 import { focusModePaneIdAtom } from "../src/renderer/src/store/focusModeStore";
@@ -601,6 +602,29 @@ describe("action runner", () => {
 
     await waitFor(() => expect(actions.moveManyToDirectory).toHaveBeenCalledWith([active], "/notes/Archive"));
     expect(store.get(actionRunnerRequestAtom)).toBeNull();
+  });
+
+  it("closes the destination picker immediately while moving and reports a later failure", async () => {
+    const store = createStore();
+    const active = note("/notes/Inbox/Plan.md", "Inbox/Plan.md");
+    const archive = directory("/notes/Archive", "Archive");
+    store.set(fileTreeAtom, [archive]);
+    store.set(actionRunnerRequestAtom, { view: "move-to-folder", targets: [active], returnToCommands: false });
+    let finish!: (result: { moved: []; failures: { file: FileItem; error: string }[] }) => void;
+    actions.moveManyToDirectory.mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+    );
+    renderRunner(store);
+    fireEvent.click(await screen.findByRole("option", { name: /Archive/ }));
+    expect(store.get(actionRunnerRequestAtom)).toBeNull();
+    expect(screen.queryByText("Moving…")).toBeNull();
+    expect(actions.moveManyToDirectory).toHaveBeenCalledWith([active], archive.path);
+    await act(async () => {
+      finish({ moved: [], failures: [{ file: active, error: "Permission denied" }] });
+    });
+    expect(store.get(notificationsAtom).at(-1)?.message).toContain("Permission denied");
   });
 
   it("returns to actions with Escape when a move was started from the action list", async () => {

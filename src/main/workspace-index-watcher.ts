@@ -19,9 +19,11 @@ export const classifyWorkspaceIndexWatchEvent = (
   if (relative.split(/[\\/]/u).some((part) => part.startsWith("."))) return null;
   if (isMarkdownFile(null, relative)) return { kind: "refresh", path: path.join(workspacePath, relative) };
 
-  // A rename without an extension can be a directory move. Reconcile that
-  // uncommon case; ordinary non-Markdown content changes do not affect the index.
-  return event === "rename" && path.extname(relative) === "" ? { kind: "reconcile" } : null;
+  // Directory-only events can omit descendants, including for dotted PDF companions.
+  // Ordinary non-Markdown file content changes do not affect the index.
+  return event === "rename" && (path.extname(relative) === "" || /\.pdf\.notes(?:[\\/]|$)/i.test(relative))
+    ? { kind: "reconcile" }
+    : null;
 };
 
 export const shouldBroadcastWorkspaceChange = (filename: string | undefined) => {

@@ -802,8 +802,9 @@ describe("file action state boundaries", () => {
     expect(store.get(fileBuffersByPathAtom)["/notes/source.md"].editorText).toBe("typing after rename");
   });
 
-  it("shows background progress without a dialog and resumes autosave on the renamed path", async () => {
+  it("renames immediately without progress UI and resumes autosave on the renamed path", async () => {
     vi.useFakeTimers();
+    window.api.doesFileExist = vi.fn(async () => false);
     const file = note("/notes/Old.md");
     const store = createStore();
     store.set(fileTreeAtom, [file]);
@@ -834,7 +835,7 @@ describe("file action state boundaries", () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(250);
     });
-    expect(store.get(notificationsAtom).find((n) => n.busy)?.title).toBe("Updating links…");
+    expect(store.get(notificationsAtom)).toEqual([]);
     act(() => {
       store.set(fileBuffersByPathAtom, (buffers) => ({
         ...buffers,
@@ -860,7 +861,7 @@ describe("file action state boundaries", () => {
     expect(commandMocks.saveFile).toHaveBeenCalledWith("/notes/New.md", "[[New]] newer typing", nextVersion);
     expect(store.get(fileBuffersByPathAtom)["/notes/New.md"].editorText).toBe("[[New]] newer typing");
     expect(store.get(notificationsAtom).filter((n) => n.busy)).toHaveLength(0);
-    expect(store.get(notificationsAtom).map((n) => n.title)).toContain("Updated 1 link");
+    expect(store.get(notificationsAtom)).toEqual([]);
   });
 
   it("keeps typing during the prerequisite save and reports rename failures without a lingering spinner", async () => {

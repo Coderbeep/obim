@@ -4,6 +4,7 @@ import {
   IconCopy,
   IconFileExport,
   IconFileText,
+  IconFilePlus,
   IconFolder,
   IconFolderOpen,
   IconPencil,
@@ -14,6 +15,9 @@ import type { MouseEvent } from "react";
 
 import type { ContextMenuEntry } from "@renderer/shared/contextMenu";
 import { openContextMenuAtom } from "@renderer/store/contextMenuStore";
+import { fileTreeAtom } from "@renderer/store/fileExplorerStore";
+import { findDirectoryNode } from "../fileTreeUtils";
+import { PDF_NOTES_SUFFIX } from "@shared/explorer-pdf-notes";
 import { bookmarksAtom } from "@renderer/store/bookmarkStore";
 import {
   ACTION_LABELS,
@@ -24,7 +28,14 @@ import {
 } from "@renderer/shared/actionLabels";
 
 import { useFileOpenInNewPane } from "../useFileOpenInNewPane";
-import { useFileCopy, useFileOpen, useFileRemove, useFileRename, useManageFileBookmark } from "../fileActions";
+import {
+  useFileCopy,
+  useFileCreate,
+  useFileOpen,
+  useFileRemove,
+  useFileRename,
+  useManageFileBookmark,
+} from "../fileActions";
 import { getPathWithoutFilename } from "@shared/pathUtils";
 import { revealInSystemFileManager } from "../workspaceFileService";
 import { IconBookmarkX } from "../icons/IconBookmarkX";
@@ -34,14 +45,16 @@ import { createCopyMenuEntry } from "./copyMenuEntry";
 import { type FileMenuPlacement, type FileMenuTarget, useFileMenuTargets } from "./fileMenuTargets";
 import { useFileHistoryOpen } from "@renderer/features/git/useFileHistoryOpen";
 import { useActionRunner } from "@renderer/features/actions/useActionRunner";
-import { isMarkdownFile } from "@shared/mime-types";
+import { isMarkdownFile, isPdfFile } from "@shared/mime-types";
 import { useNotePdfExport } from "../useNotePdfExport";
 
-export const useFileMenu = () => {
+export const useFileMenu = (options: { explorer?: boolean } = {}) => {
   const openContextMenu = useSetAtom(openContextMenuAtom);
   const bookmarks = useAtomValue(bookmarksAtom);
+  const files = useAtomValue(fileTreeAtom);
   const resolveTargets = useFileMenuTargets();
   const { open } = useFileOpen();
+  const { createPdfNote } = useFileCreate();
   const openInNewPane = useFileOpenInNewPane();
   const { copyManyToDirectory } = useFileCopy();
   const { removeMany } = useFileRemove();
@@ -55,6 +68,11 @@ export const useFileMenu = () => {
   const openFileMenuAt = (target: FileMenuTarget, placement: FileMenuPlacement, targetOverride?: FileMenuTarget[]) => {
     const targets = targetOverride ?? resolveTargets(target);
     const multi = targets.length > 1;
+    const groupedPdf =
+      !multi &&
+      options.explorer &&
+      isPdfFile(target.mimeType, target.path) &&
+      findDirectoryNode(files, `${target.path}${PDF_NOTES_SUFFIX}`);
     const bookmarkable = targets.filter((item) => !item.isDirectory);
     const bookmarked = bookmarks.some((bookmark) => bookmark.path === target.path);
     const entries: ContextMenuEntry[] = [];
@@ -91,6 +109,18 @@ export const useFileMenu = () => {
       );
     }
 
+    if (!multi && options.explorer && isPdfFile(target.mimeType, target.path)) {
+      entries.push(
+        {
+          kind: "action",
+          id: "add-pdf-note",
+          label: "Add note",
+          icon: IconFilePlus,
+          onSelect: () => createPdfNote(target),
+        },
+        { kind: "separator" },
+      );
+    }
     entries.push(createCopyMenuEntry(targets, copyItems, copyAbsolutePaths, copyRelativePaths));
     if (!multi) {
       entries.push({
@@ -104,9 +134,10 @@ export const useFileMenu = () => {
     entries.push({
       kind: "action",
       id: "move-to-folder",
-      label: moveItemsToFolderLabel(targets.length),
+      label: groupedPdf ? "Move PDF and notes…" : moveItemsToFolderLabel(targets.length),
       icon: IconFolder,
-      onSelect: () => openMoveToFolder(targets),
+      onSelect: () =>
+        options.explorer ? openMoveToFolder(targets, { withPdfNotes: true }) : openMoveToFolder(targets),
     });
     entries.push({ kind: "separator" });
 
@@ -162,7 +193,7 @@ export const useFileMenu = () => {
         {
           kind: "action",
           id: "rename",
-          label: ACTION_LABELS.rename,
+          label: groupedPdf ? "Rename PDF and notes" : ACTION_LABELS.rename,
           icon: IconPencil,
           onSelect: () => startRenaming(target.path),
         },
@@ -171,7 +202,7 @@ export const useFileMenu = () => {
     entries.push({
       kind: "action",
       id: "trash",
-      label: moveItemsToTrashLabel(targets.length),
+      label: groupedPdf ? "Move PDF to Trash" : moveItemsToTrashLabel(targets.length),
       icon: IconTrash,
       danger: true,
       onSelect: () => removeMany(targets),

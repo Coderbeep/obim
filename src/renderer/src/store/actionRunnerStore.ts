@@ -9,6 +9,7 @@ export type ActionRunnerRequest =
   | {
       view: "move-to-folder";
       targets: FileItem[];
+      withPdfNotes?: boolean;
       returnToCommands: boolean;
     };
 

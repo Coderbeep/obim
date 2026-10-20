@@ -22,6 +22,7 @@ import type {
   WorkspaceFileExportResult,
 } from "@shared/file-operations";
 import type { LargeTextPreview } from "@shared/large-files";
+import type { AttachPdfNoteRequest, MovePdfNotesResult, MovePdfWithNotesRequest } from "@shared/explorer-pdf-notes";
 import {
   getRelativePathFromPath,
   isPathWithinBase,
@@ -32,6 +33,24 @@ import {
 import { tryCatch, tryCatchSync } from "@shared/tryCatch";
 
 const isNotesPath = (filePath: string) => isPathWithinBase(filePath, getWorkspacePath());
+
+export const movePdfNotes = async (
+  request: MovePdfWithNotesRequest | AttachPdfNoteRequest,
+  lease: WorkspaceTransitionLease,
+): Promise<MovePdfNotesResult> => {
+  try {
+    if ("notePath" in request) {
+      if (typeof window.api.attachPdfNote !== "function")
+        throw new Error("Restart obim to enable PDF notes operations.");
+      return await runWorkspaceMutation(() => window.api.attachPdfNote(request), lease);
+    }
+    if (typeof window.api.movePdfWithNotes !== "function")
+      throw new Error("Restart obim to enable PDF notes operations.");
+    return await runWorkspaceMutation(() => window.api.movePdfWithNotes(request), lease);
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error), revision: -1 };
+  }
+};
 
 /**
  * Returns false both when the path is absent and when the existence check itself fails.

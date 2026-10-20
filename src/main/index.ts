@@ -55,6 +55,7 @@ import "./workspace-session";
 import { installMainProcessLoggingGuards } from "./main-process-logging";
 import { importPdfArticle } from "./pdf-article-import";
 import { registerNotePdfExportIpc } from "./note-pdf-export";
+import { registerExplorerPdfNotesIpc } from "./explorer-pdf-notes-ipc";
 
 installMainProcessLoggingGuards();
 
@@ -63,6 +64,7 @@ app.commandLine.appendSwitch("enable-features", "OverlayScrollbar");
 
 registerGitFileStatusIpc();
 registerNotePdfExportIpc();
+registerExplorerPdfNotesIpc(() => ConfigManager.getConfigValue("mainDirectory"));
 
 app.whenReady().then(async () => {
   electronApp.setAppUserModelId("io.github.coderbeep.obim");

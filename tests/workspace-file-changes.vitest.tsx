@@ -1,3 +1,4 @@
+import { beginWorkspaceTransition } from "../src/renderer/src/store/workspaceTransitionStore";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { createStore, Provider } from "jotai";
 import type { PropsWithChildren } from "react";
@@ -74,5 +75,20 @@ describe("external workspace changes", () => {
     await waitFor(() => expect(store.get(fileBuffersByPathAtom)[path].version).toEqual(changedVersion));
     expect(store.get(fileSaveStatesByPathAtom)[path]).toBeUndefined();
     expect(store.get(notificationsAtom)).toHaveLength(0);
+  });
+  it("waits for a foreground grouped move before reading filesystem events", async () => {
+    const store = setup();
+    mocks.readTextFile.mockResolvedValue({ success: true, content: "Old", version: openedVersion });
+    const lease = beginWorkspaceTransition(store, "Moving PDF and notes");
+    if (!lease) throw new Error("Expected a transition lease");
+    try {
+      act(() => listener?.([{ kind: "rename", path }]));
+      await Promise.resolve();
+      expect(mocks.readTextFile).not.toHaveBeenCalled();
+    } finally {
+      act(() => lease.release());
+    }
+    await waitFor(() => expect(mocks.readTextFile).toHaveBeenCalledWith(path));
+    expect(store.get(notificationsAtom)).toEqual([]);
   });
 });

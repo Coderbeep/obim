@@ -49,6 +49,8 @@ export const reloadRevisionAtom = atom(0);
 
 export type FileExplorerRevealRequest = {
   relativePath: string;
+  preserveSelection?: boolean;
+  restoreFocus?: boolean;
 };
 
 export const fileExplorerRevealRequestAtom = atom<FileExplorerRevealRequest | null>(null);

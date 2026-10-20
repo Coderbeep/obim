@@ -26,6 +26,7 @@ const state = vi.hoisted(() => ({
   copyRelativePaths: vi.fn(),
   createDirectory: vi.fn(),
   createNewFile: vi.fn(),
+  createPdfNote: vi.fn(),
   open: vi.fn(),
   openInDefaultApp: vi.fn(),
   moveManyToDirectory: vi.fn(),
@@ -40,7 +41,7 @@ const state = vi.hoisted(() => ({
 
 vi.mock("@renderer/features/files/fileActions", () => ({
   useDirectoryCreate: () => ({ createDirectory: state.createDirectory }),
-  useFileCreate: () => ({ createNewFile: state.createNewFile }),
+  useFileCreate: () => ({ createNewFile: state.createNewFile, createPdfNote: state.createPdfNote }),
   useFileCopy: () => ({ copyManyToDirectory: state.copyManyToDirectory }),
   useFileMove: () => ({ moveManyToDirectory: state.moveManyToDirectory }),
   useFileOpen: () => ({ open: state.open }),
@@ -484,4 +485,30 @@ describe("file explorer menus", () => {
     act(() => result.current.openFileHeaderMenu({ preventDefault: vi.fn(), currentTarget: anchor } as never, pdf));
     expect(entryOrder(store.get(contextMenuRequestAtom)?.entries)).not.toContain("open-default-app");
   });
+});
+
+it("offers Add note and grouped move scope only from the explorer PDF menu", async () => {
+  const store = createStore();
+  const pdf = { ...file("/notes-root/Paper.pdf", "Paper.pdf"), mimeType: "application/pdf" };
+  store.set(fileTreeAtom, [pdf]);
+  const explorer = renderMenu(store, () => useFileMenu({ explorer: true }));
+  act(() => explorer.result.current.openFileMenuAt(pdf, { anchor: null, x: 0, y: 0 }));
+  const entries = store.get(contextMenuRequestAtom)!.entries;
+  const add = entries.find((entry) => entry.kind === "action" && entry.id === "add-pdf-note");
+  if (!add || add.kind !== "action") throw new Error("Missing Add note action");
+  await act(async () => {
+    await add.onSelect?.();
+  });
+  expect(state.createPdfNote).toHaveBeenCalledWith(pdf);
+  const move = entries.find((entry) => entry.kind === "action" && entry.id === "move-to-folder");
+  if (!move || move.kind !== "action") throw new Error("Missing move action");
+  act(() => {
+    void move.onSelect?.();
+  });
+  expect(store.get(actionRunnerRequestAtom)).toMatchObject({ view: "move-to-folder", withPdfNotes: true });
+  const ordinary = renderMenu(store, () => useFileMenu());
+  act(() => ordinary.result.current.openFileMenuAt(pdf, { anchor: null, x: 0, y: 0 }));
+  expect(
+    store.get(contextMenuRequestAtom)!.entries.some((entry) => entry.kind === "action" && entry.id === "add-pdf-note"),
+  ).toBe(false);
 });

@@ -93,7 +93,9 @@ const ActionRunner = () => {
   const openFileInNewPane = useFileOpenInNewPane();
   const { openNotePdfExport } = useNotePdfExport();
   const openDailyNote = useDailyNoteOpen();
-  const { moveManyToDirectory } = useFileMove();
+  const { moveManyToDirectory } = useFileMove({
+    withPdfNotes: request?.view === "move-to-folder" && request.withPdfNotes,
+  });
   const { startRenaming } = useFileRename();
   const { addBookmark, removeBookmark } = useManageFileBookmark();
   const { openFileHistory } = useFileHistoryOpen();
@@ -582,7 +584,7 @@ const ActionRunner = () => {
   const destinationResults = useMemo(
     () =>
       request?.view === "move-to-folder"
-        ? getMoveDestinations(fileTree, getWorkspacePath(), request.targets, query)
+        ? getMoveDestinations(fileTree, getWorkspacePath(), request.targets, query, request.withPdfNotes)
         : [],
     [fileTree, query, request],
   );
@@ -610,7 +612,7 @@ const ActionRunner = () => {
       return;
     }
 
-    setIsRunning(true);
+    close();
     try {
       const result = await moveManyToDirectory(targets, destination.path);
       const movedPaths = new Map(result.moved.map(({ file, movedPath }) => [file.path, movedPath]));
@@ -628,14 +630,12 @@ const ActionRunner = () => {
           timestamp: Date.now(),
         });
       }
-      close();
     } catch (error) {
       notify({
         id: crypto.randomUUID(),
         ...Notifications.FILE_MOVE_FAILED(0, targets.length, error instanceof Error ? error.message : String(error)),
         timestamp: Date.now(),
       });
-      setIsRunning(false);
     }
   };
 

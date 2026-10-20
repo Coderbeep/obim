@@ -6,14 +6,16 @@ import type {
 } from "@pierre/trees";
 
 import type { FileItem } from "@shared/file-item";
-import { isMarkdownFile } from "@shared/mime-types";
-import { basename, getExt, stripLastExt } from "@shared/pathUtils";
+import { getPdfNotesGroups, PDF_NOTES_SUFFIX } from "@shared/explorer-pdf-notes";
+import { isMarkdownFile, isPdfFile } from "@shared/mime-types";
+import { basename, getExt, getPathWithoutFilename, stripLastExt } from "@shared/pathUtils";
 
 export type TreeLookup = {
   byAbsolutePath: Map<string, string>;
   byTreePath: Map<string, FileItem>;
   directoryTreePaths: string[];
   paths: readonly string[];
+  pdfGroups?: ReadonlyMap<string, { pdf: FileItem; directory: FileItem }>;
 };
 
 export type FileTreeDropDestination = {
@@ -25,6 +27,19 @@ export type FileTreeDropDestination = {
 export type FileTreeMoveIntent = FileTreeDropDestination & {
   sourceItems: FileItem[];
   sourceTreePaths: string[];
+};
+
+export const getPdfAttachmentTarget = (treePath: string | null, lookup: TreeLookup): FileItem | null => {
+  const file = treePath ? lookup.byTreePath.get(treePath) : null;
+  return file && !file.isDirectory && isPdfFile(file.mimeType, file.path) ? file : null;
+};
+
+/** A PDF row accepts notes explicitly; invalid attachments must never fall back to its parent. */
+export const getPdfNoteDropItems = (draggedPaths: readonly string[], pdf: FileItem, lookup: TreeLookup) => {
+  const items = normalizeDraggedTreePaths(draggedPaths).map((key) => lookup.byTreePath.get(key));
+  if (!items.length || items.some((file) => !file || file.isDirectory || !isMarkdownFile(file.mimeType, file.path)))
+    return [];
+  return (items as FileItem[]).filter((file) => getPathWithoutFilename(file.path) !== `${pdf.path}${PDF_NOTES_SUFFIX}`);
 };
 
 export const EMPTY_LOOKUP: TreeLookup = {
@@ -98,7 +113,8 @@ export const getMovableTreePaths = (draggedPaths: readonly string[], targetTreeP
   normalizeDraggedTreePaths(draggedPaths).filter((treePath) => {
     const sourceItem = lookup.byTreePath.get(treePath);
     if (!sourceItem || treePath === targetTreePath) return false;
-    if (sourceItem.isDirectory && targetTreePath.startsWith(treePath)) return false;
+    if ((sourceItem.isDirectory || lookup.pdfGroups?.has(treePath)) && targetTreePath.startsWith(treePath))
+      return false;
     return getParentTreePath(treePath) !== targetTreePath;
   });
 
@@ -111,7 +127,7 @@ export const getTreeDropDestination = (
   if (treePath === null) return null;
   if (!treePath) return { absolutePath: rootDirectoryPath, directory: null, treePath: "" };
 
-  const directory = lookup.byTreePath.get(treePath);
+  const directory = lookup.pdfGroups?.get(treePath)?.directory ?? lookup.byTreePath.get(treePath);
   return directory?.isDirectory ? { absolutePath: directory.path, directory, treePath } : null;
 };
 
@@ -122,16 +138,20 @@ export const getTreeDropTargetFromHoveredPath = (
   if (!hoveredTreePath) return { directoryPath: null, kind: "root" };
 
   const hoveredItem = lookup.byTreePath.get(hoveredTreePath);
-  const directoryPath = hoveredItem?.isDirectory ? hoveredTreePath : getParentTreePath(hoveredTreePath);
+  const directoryPath =
+    hoveredItem?.isDirectory || lookup.pdfGroups?.has(hoveredTreePath)
+      ? hoveredTreePath
+      : getParentTreePath(hoveredTreePath);
   return directoryPath ? { directoryPath, kind: "directory" } : { directoryPath: null, kind: "root" };
 };
 
 export const getFileTreeMoveIntent = (
   draggedPaths: readonly string[],
-  target: Pick<FileTreeDropTarget, "directoryPath" | "kind">,
+  target: Pick<FileTreeDropTarget, "directoryPath" | "kind"> & Partial<Pick<FileTreeDropTarget, "hoveredPath">>,
   lookup: TreeLookup,
   rootDirectoryPath: string,
 ): FileTreeMoveIntent | null => {
+  if (getPdfAttachmentTarget(target.hoveredPath ?? null, lookup)) return null;
   const destination = getTreeDropDestination(target, lookup, rootDirectoryPath);
   if (!destination) return null;
 
@@ -176,6 +196,42 @@ export const buildTreeLookup = (items: FileItem[]): TreeLookup => {
 
   return { byAbsolutePath, byTreePath, directoryTreePaths, paths };
 };
+
+/** Replace only companion wrapper rows; all descendant paths remain real filesystem paths. */
+export const buildExplorerTreeLookup = (items: FileItem[]): TreeLookup => {
+  const lookup = buildTreeLookup(items);
+  const pdfGroups = new Map<string, { pdf: FileItem; directory: FileItem }>();
+  const hiddenPdfPaths = new Set<string>();
+  const hiddenEmptyDirectories = new Set<string>();
+  const directoriesWithChildren = new Set(lookup.paths.map(getParentTreePath));
+  for (const group of getPdfNotesGroups(items)) {
+    const pdfKey = lookup.byAbsolutePath.get(group.pdfPath);
+    const directoryKey = lookup.byAbsolutePath.get(group.notesDirectoryPath);
+    const pdf = pdfKey ? lookup.byTreePath.get(pdfKey) : undefined;
+    const directory = directoryKey ? lookup.byTreePath.get(directoryKey) : undefined;
+    if (!pdfKey || !directoryKey || !pdf || !directory?.isDirectory) continue;
+    if (!directoriesWithChildren.has(directoryKey)) {
+      hiddenEmptyDirectories.add(directoryKey);
+      lookup.byTreePath.delete(directoryKey);
+      lookup.byAbsolutePath.delete(directory.path);
+      continue;
+    }
+    hiddenPdfPaths.add(pdfKey);
+    lookup.byTreePath.delete(pdfKey);
+    lookup.byTreePath.set(directoryKey, pdf);
+    lookup.byAbsolutePath.set(pdf.path, directoryKey);
+    pdfGroups.set(directoryKey, { pdf, directory });
+  }
+  return {
+    ...lookup,
+    paths: lookup.paths.filter((key) => !hiddenPdfPaths.has(key) && !hiddenEmptyDirectories.has(key)),
+    directoryTreePaths: lookup.directoryTreePaths.filter((key) => !hiddenEmptyDirectories.has(key)),
+    pdfGroups,
+  };
+};
+
+export const getExplorerRowName = (file: FileItem, treePath: string, lookup: TreeLookup) =>
+  lookup.pdfGroups?.has(treePath) ? basename(file.path) : getMarkdownExplorerName(file);
 
 export const getTreePathName = (path: string) => basename(path.replace(/\/+$/, ""));
 

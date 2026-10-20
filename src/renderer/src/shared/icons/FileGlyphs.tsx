@@ -5,7 +5,7 @@ import { IconTask } from "./IconTask";
 
 export const FILE_GLYPH_SIZE = 16;
 
-const PDF_FILE_GLYPH_ID = "obim-file-pdf";
+export const PDF_FILE_GLYPH_ID = "obim-file-pdf";
 // This sprite also carries the colors into the explorer's shadow root.
 const FILE_GLYPH_SPRITE_SHEET = `<svg data-icon-sprite aria-hidden="true" width="0" height="0">
   <style>

@@ -40,7 +40,12 @@ import { RESET_LAYOUT_EVENT } from "@renderer/app/layoutPreferences";
 
 import { FileExplorerTree, type FileExplorerTreeHandle } from "./FileExplorerTree";
 import { FileExplorerActions, FileExplorerHeader } from "./FileExplorerTreeHeader";
-import { buildTreeLookup, normalizeTreePath, toRelativeDirectoryPath } from "./fileExplorerTreeUtils";
+import {
+  buildExplorerTreeLookup,
+  buildTreeLookup,
+  normalizeTreePath,
+  toRelativeDirectoryPath,
+} from "./fileExplorerTreeUtils";
 
 type ExplorerSectionKey = "files" | "bookmarks" | "recent";
 const EMPTY_GIT_CHANGES = [] as const;
@@ -146,19 +151,19 @@ const ExplorerSection = ({
   return (
     <section className={`file-explorer-section ${className ?? ""}`} data-expanded={expanded}>
       <div className="file-explorer-section-header">
-      <button
-        type="button"
-        className="file-explorer-section-heading"
-        aria-controls={contentId}
-        aria-expanded={expanded}
-        aria-label={`${title} section`}
-        onClick={onToggle}
-      >
-        <IconChevron className="file-explorer-section-chevron" size={12} aria-hidden="true" />
-        <span>{title}</span>
-        <span className="file-explorer-section-count">{count}</span>
-      </button>
-      {actions}
+        <button
+          type="button"
+          className="file-explorer-section-heading"
+          aria-controls={contentId}
+          aria-expanded={expanded}
+          aria-label={`${title} section`}
+          onClick={onToggle}
+        >
+          <IconChevron className="file-explorer-section-chevron" size={12} aria-hidden="true" />
+          <span>{title}</span>
+          <span className="file-explorer-section-count">{count}</span>
+        </button>
+        {actions}
       </div>
       <div
         id={contentId}
@@ -182,7 +187,7 @@ export const FileExplorer = memo(({ onSearch }: { onSearch: () => void }) => {
   const pendingRename = useAtomValue(pendingFileRenameAtom);
   const [expandedDirectories, setExpandedDirectories] = useAtom(expandedDirectoriesAtom);
   const [reloadRevision, setReloadRevision] = useAtom(reloadRevisionAtom);
-  const { importExternalFiles } = useExternalFileImport();
+  const { importExternalFiles, importPdfNotes } = useExternalFileImport();
   const { openBookmarkMenu } = useBookmarkMenu();
   const { openFileMenu } = useFileMenu();
   const [bookmarks, setBookmarks] = useAtom(bookmarksAtom);
@@ -201,7 +206,8 @@ export const FileExplorer = memo(({ onSearch }: { onSearch: () => void }) => {
   const treeLookup = useMemo(() => buildTreeLookup(fileTree), [fileTree]);
   const treePathsRef = useRef<Set<string>>(new Set());
   treePathsRef.current = new Set(treeLookup.paths.map((treePath) => normalizeTreePath(treePath).replace(/\/+$/u, "")));
-  const directoryPaths = treeLookup.directoryTreePaths.map(toRelativeDirectoryPath);
+  const visibleLookup = useMemo(() => buildExplorerTreeLookup(fileTree), [fileTree]);
+  const directoryPaths = visibleLookup.directoryTreePaths.map(toRelativeDirectoryPath);
   const fileCount = treeLookup.paths.length - treeLookup.directoryTreePaths.length;
   const allDirectoriesExpanded =
     directoryPaths.length > 0 && directoryPaths.every((path) => expandedDirectories.has(path));
@@ -279,7 +285,9 @@ export const FileExplorer = memo(({ onSearch }: { onSearch: () => void }) => {
     const loadFiles = async () => {
       setFileTreeLoadState("loading");
       try {
-        const result = await window["api"].getFilesRecursiveAsTree(directoryPath);
+        const result = await (typeof window.api.getExplorerSnapshot === "function"
+          ? window.api.getExplorerSnapshot()
+          : window.api.getFilesRecursiveAsTree(directoryPath));
         if (
           ignore ||
           store.get(pendingFileRenameAtom) ||
@@ -391,11 +399,7 @@ export const FileExplorer = memo(({ onSearch }: { onSearch: () => void }) => {
 
   return (
     <div className="file-explorer h-full flex flex-col flex-1 min-h-0">
-      <FileExplorerHeader
-        onSearch={onSearch}
-        workspaceName={basename(directoryPath)}
-        workspacePath={directoryPath}
-      />
+      <FileExplorerHeader onSearch={onSearch} workspaceName={basename(directoryPath)} workspacePath={directoryPath} />
       {loadError ? (
         <RecoveryState
           compact
@@ -423,7 +427,12 @@ export const FileExplorer = memo(({ onSearch }: { onSearch: () => void }) => {
           <ExplorerSection
             className="file-explorer-section-files"
             title="Files"
-            actions={<FileExplorerActions allDirectoriesExpanded={allDirectoriesExpanded} onToggleAllDirectories={toggleAllDirectories} />}
+            actions={
+              <FileExplorerActions
+                allDirectoriesExpanded={allDirectoriesExpanded}
+                onToggleAllDirectories={toggleAllDirectories}
+              />
+            }
             count={fileCount}
             expanded={expandedSections.files}
             onToggle={() => toggleSection("files")}
@@ -455,6 +464,7 @@ export const FileExplorer = memo(({ onSearch }: { onSearch: () => void }) => {
                 gitStatus={pierreGitStatus}
                 items={fileTree}
                 onExternalFileDrop={handleExternalFileDrop}
+                onExternalPdfNoteDrop={importPdfNotes}
                 onExpandedDirectoriesChange={setExpandedDirectories}
                 syncSelection
               />

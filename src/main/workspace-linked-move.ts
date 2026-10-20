@@ -1,9 +1,11 @@
 import { lstat, readFile, readdir, rename } from "fs/promises";
 import path from "path";
 import { rewriteNoteLinksWithCount } from "@shared/note-link-updates";
-import type { NoteLinkUpdate } from "@shared/file-operations";
+import type { NoteLinkMovePaths, NoteLinkUpdate } from "@shared/file-operations";
 import { atomicWriteWorkspaceFile, getUniqueWorkspacePath, queueWorkspaceMutation } from "./workspace-mutations";
 import { readWorkspaceTextFile } from "./workspace-files";
+import type { ExplorerMovedRoot } from "@shared/explorer-pdf-notes";
+import { PartialWorkspaceMoveError } from "./workspace-exclusive-move";
 
 export class RestoredLinkMoveError extends Error {
   constructor(
@@ -29,7 +31,17 @@ const collectLinkTargets = async (root: string): Promise<string[]> => {
 };
 
 /** Moves and repairs links in one mutation queue entry, restoring prior files if a write fails. */
-export const moveWorkspaceItemWithLinks = (root: string, source: string, requested: string, unique = false) =>
+export const moveWorkspaceItemWithLinks = (
+  root: string,
+  source: string,
+  requested: string,
+  unique = false,
+): Promise<{
+  output: string;
+  linkUpdates: NoteLinkUpdate[];
+  updatedLinkCount?: number;
+  linkMove?: NoteLinkMovePaths;
+} | null> =>
   queueWorkspaceMutation(async () => {
     const destination = unique ? await getUniqueWorkspacePath(requested) : requested;
     const destinationAvailable = async () => {
@@ -52,95 +64,110 @@ export const moveWorkspaceItemWithLinks = (root: string, source: string, request
       return { output: destination, linkUpdates: [] };
     }
     if (!(await destinationAvailable())) return null;
-    const before = await collectLinkTargets(root);
-    const remap = (file: string) =>
-      file === source || file.startsWith(`${source}${path.sep}`) ? destination + file.slice(source.length) : file;
-    const after = before.map(remap);
-    const relative = (file: string) => path.relative(root, file).split(path.sep).join("/");
-    const beforePaths = before.map(relative);
-    const afterPaths = after.map(relative);
-    let updatedLinkCount = 0;
-    const changes: { beforePath: string; path: string; previousContent: string; content: string }[] = [];
-    for (let index = 0; index < before.length; index++) {
-      // PDFs are link destinations, never text snapshots to rewrite.
-      if (!/\.(md|markdown)$/i.test(before[index])) continue;
-      const previousContent = await readFile(before[index], "utf8");
-      const { content, count } = rewriteNoteLinksWithCount(previousContent, {
-        beforePaths,
-        afterPaths,
-        sourceBefore: beforePaths[index],
-        sourceAfter: afterPaths[index],
-      });
-      updatedLinkCount += count;
-      if (content !== previousContent)
-        changes.push({ beforePath: before[index], path: after[index], previousContent, content });
-    }
-    // Abort before moving if an external editor has changed a snapshot used for a rewrite.
-    for (const change of changes) {
-      if ((await readFile(change.beforePath, "utf8")) !== change.previousContent)
-        throw new Error("A linked note changed on disk. Try the operation again.");
-    }
-    if (!(await destinationAvailable()))
-      throw new Error("Destination file appeared while updating links. Try the operation again.");
-    const written: typeof changes = [];
-    await rename(source, destination);
-    try {
-      for (const change of changes) {
-        await atomicWriteWorkspaceFile(change.path, change.content, false, async () => {
-          if ((await readFile(change.path, "utf8")) !== change.previousContent)
-            throw new Error("A linked note changed on disk. Try the operation again.");
-        });
-        written.push(change);
-      }
-      const linkUpdates: NoteLinkUpdate[] = await Promise.all(
-        changes.map(async (change) => {
-          const snapshot = await readWorkspaceTextFile(change.path);
-          if (snapshot.content !== change.content)
-            throw new Error("A linked note changed on disk. Try the operation again.");
-          return {
-            path: change.path.split(path.sep).join("/"),
-            previousContent: change.previousContent,
-            content: change.content,
-            version: snapshot.version,
-          };
-        }),
-      );
-      return { output: destination, linkUpdates, updatedLinkCount, linkMove: { beforePaths, afterPaths } };
-    } catch (error) {
-      const failures: unknown[] = [];
-      for (const change of written.reverse()) {
-        try {
-          await atomicWriteWorkspaceFile(change.path, change.previousContent, false, async () => {
-            if ((await readFile(change.path, "utf8")) !== change.content)
-              throw new Error(`Cannot restore externally changed note: ${change.path}`);
-          });
-        } catch (rollbackError) {
-          failures.push(rollbackError);
-        }
-      }
-      try {
+    return runLinkedWorkspaceMove(root, [{ source, destination }], async () => {
+      if (!(await destinationAvailable()))
+        throw new Error("Destination file appeared while updating links. Try the operation again.");
+      await rename(source, destination);
+      return async () => {
         await rename(destination, source);
+      };
+    });
+  });
+
+/** Executes one combined link mapping; the caller must already own the mutation queue. */
+export const runLinkedWorkspaceMove = async (
+  root: string,
+  roots: readonly ExplorerMovedRoot[],
+  relocate: () => Promise<() => Promise<void>>,
+) => {
+  const before = await collectLinkTargets(root);
+  const remap = (file: string) => {
+    const moved = roots.find(({ source }) => file === source || file.startsWith(`${source}${path.sep}`));
+    return moved ? moved.destination + file.slice(moved.source.length) : file;
+  };
+  const after = before.map(remap);
+  const relative = (file: string) => path.relative(root, file).split(path.sep).join("/");
+  const beforePaths = before.map(relative);
+  const afterPaths = after.map(relative);
+  let updatedLinkCount = 0;
+  const changes: { beforePath: string; path: string; previousContent: string; content: string }[] = [];
+  for (let index = 0; index < before.length; index++) {
+    // PDFs are link destinations, never text snapshots to rewrite.
+    if (!/\.(md|markdown)$/i.test(before[index])) continue;
+    const previousContent = await readFile(before[index], "utf8");
+    const { content, count } = rewriteNoteLinksWithCount(previousContent, {
+      beforePaths,
+      afterPaths,
+      sourceBefore: beforePaths[index],
+      sourceAfter: afterPaths[index],
+    });
+    updatedLinkCount += count;
+    if (content !== previousContent)
+      changes.push({ beforePath: before[index], path: after[index], previousContent, content });
+  }
+  // Abort before moving if an external editor has changed a snapshot used for a rewrite.
+  for (const change of changes) {
+    if ((await readFile(change.beforePath, "utf8")) !== change.previousContent)
+      throw new Error("A linked note changed on disk. Try the operation again.");
+  }
+  const written: typeof changes = [];
+  const restoreRoots = await relocate();
+  try {
+    for (const change of changes) {
+      await atomicWriteWorkspaceFile(change.path, change.content, false, async () => {
+        if ((await readFile(change.path, "utf8")) !== change.previousContent)
+          throw new Error("A linked note changed on disk. Try the operation again.");
+      });
+      written.push(change);
+    }
+    const linkUpdates: NoteLinkUpdate[] = await Promise.all(
+      changes.map(async (change) => {
+        const snapshot = await readWorkspaceTextFile(change.path);
+        if (snapshot.content !== change.content)
+          throw new Error("A linked note changed on disk. Try the operation again.");
+        return {
+          path: change.path.split(path.sep).join("/"),
+          previousContent: change.previousContent,
+          content: change.content,
+          version: snapshot.version,
+        };
+      }),
+    );
+    return { output: roots[0].destination, linkUpdates, updatedLinkCount, linkMove: { beforePaths, afterPaths } };
+  } catch (error) {
+    const failures: unknown[] = [];
+    for (const change of written.reverse()) {
+      try {
+        await atomicWriteWorkspaceFile(change.path, change.previousContent, false, async () => {
+          if ((await readFile(change.path, "utf8")) !== change.content)
+            throw new Error(`Cannot restore externally changed note: ${change.path}`);
+        });
       } catch (rollbackError) {
         failures.push(rollbackError);
       }
-      if (failures.length)
-        throw new AggregateError(
-          [error, ...failures],
-          "Link update failed and could not be fully restored. Check the affected notes.",
-          { cause: error },
-        );
-      // Atomic restoration replaces inodes too; refresh open buffers' save versions.
-      const restored = await Promise.all(
-        written.map(async (change): Promise<NoteLinkUpdate> => {
-          const snapshot = await readWorkspaceTextFile(change.beforePath);
-          return {
-            path: change.beforePath.split(path.sep).join("/"),
-            previousContent: change.previousContent,
-            content: snapshot.content,
-            version: snapshot.version,
-          };
-        }),
-      );
-      throw new RestoredLinkMoveError(error, restored);
     }
-  });
+    try {
+      await restoreRoots();
+    } catch (rollbackError) {
+      failures.push(rollbackError);
+    }
+    if (failures.length)
+      throw new PartialWorkspaceMoveError(
+        [error, ...failures],
+        [...roots, ...written.map((change) => ({ source: change.beforePath, destination: change.path }))],
+      );
+    // Atomic restoration replaces inodes too; refresh open buffers' save versions.
+    const restored = await Promise.all(
+      written.map(async (change): Promise<NoteLinkUpdate> => {
+        const snapshot = await readWorkspaceTextFile(change.beforePath);
+        return {
+          path: change.beforePath.split(path.sep).join("/"),
+          previousContent: change.previousContent,
+          content: snapshot.content,
+          version: snapshot.version,
+        };
+      }),
+    );
+    throw new RestoredLinkMoveError(error, restored);
+  }
+};

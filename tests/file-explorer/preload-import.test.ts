@@ -28,7 +28,10 @@ vi.mock("electron", () => ({
 }));
 
 let previousContextIsolated: PropertyDescriptor | undefined;
-type PreloadApi = {
+type PreloadApi = Pick<
+  Window["api"],
+  "getExplorerSnapshot" | "createPdfNote" | "attachPdfNote" | "movePdfWithNotes" | "importPdfNotes"
+> & {
   abortGitRemoteReconciliation: () => Promise<unknown>;
   beginGitRemoteReconciliation: () => Promise<unknown>;
   commitGitChanges: (message: string) => Promise<unknown>;
@@ -226,4 +229,36 @@ test("preload copies image coordinates without exposing the native clipboard", a
   const api = state.exposed.get("api") as PreloadApi;
   await api.copyImageAt(120, 80);
   assert.deepEqual(state.invoke.mock.lastCall, ["copy-image-at", 120, 80]);
+});
+
+test("preload exposes the explorer backend independently of generic file commands", async () => {
+  const api = state.exposed.get("api") as PreloadApi;
+  const snapshot = { revision: 12, items: [], pdfNotesGroups: [] };
+  state.invoke.mockResolvedValueOnce(snapshot);
+  assert.equal(await api.getExplorerSnapshot(), snapshot);
+  assert.deepEqual(state.invoke.mock.lastCall, ["get-explorer-snapshot"]);
+  const create = { pdfPath: "/notes/Paper.pdf", filename: "Summary.md", content: "plain Markdown" };
+  await api.createPdfNote(create);
+  assert.deepEqual(state.invoke.mock.lastCall, ["create-pdf-note", create]);
+  const attach = { pdfPath: create.pdfPath, notePath: "/notes/Note.md" };
+  await api.attachPdfNote(attach);
+  assert.deepEqual(state.invoke.mock.lastCall, ["attach-pdf-note", attach]);
+  const move = { pdfPath: create.pdfPath, destinationDirectoryPath: "/notes/Archive", newFilename: "New.pdf" };
+  await api.movePdfWithNotes(move);
+  assert.deepEqual(state.invoke.mock.lastCall, ["move-pdf-with-notes", move]);
+});
+
+test("preload serializes PDF note imports through the dedicated PDF destination command", async () => {
+  const file = { name: "Summary.md", arrayBuffer: vi.fn() } as unknown as File;
+  state.getPathForFile.mockReturnValueOnce("/outside/Summary.md");
+  const api = state.exposed.get("api") as PreloadApi;
+  await api.importPdfNotes([file], "/notes-root/Paper.pdf");
+  assert.deepEqual(state.invoke.mock.lastCall, [
+    "import-pdf-notes",
+    {
+      pdfPath: "/notes-root/Paper.pdf",
+      sources: [{ kind: "path", path: "/outside/Summary.md" }],
+    },
+  ]);
+  assert.equal((file.arrayBuffer as ReturnType<typeof vi.fn>).mock.calls.length, 0);
 });

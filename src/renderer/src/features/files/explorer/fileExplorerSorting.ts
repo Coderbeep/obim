@@ -1,6 +1,7 @@
 import type { FileTreeSortEntry } from "@pierre/trees";
 import type { ExplorerSortPreference } from "@renderer/store/explorerSortStore";
 import type { FileItem } from "@shared/file-item";
+import { basename } from "@shared/pathUtils";
 import { getFileHandlingMode } from "@shared/mime-types";
 
 const ARCHIVE_EXTENSIONS = new Set([
@@ -77,6 +78,15 @@ const compareSiblings = (
   preference: ExplorerSortPreference,
   files: ReadonlyMap<string, FileItem>,
 ): number => {
+  // Expandable PDF rows occupy a companion directory slot but keep PDF ordering.
+  const physicalLeft = files.get(left.path);
+  const physicalRight = files.get(right.path);
+  left = physicalLeft
+    ? { ...left, basename: basename(physicalLeft.path), isDirectory: physicalLeft.isDirectory }
+    : left;
+  right = physicalRight
+    ? { ...right, basename: basename(physicalRight.path), isDirectory: physicalRight.isDirectory }
+    : right;
   if (left.isDirectory !== right.isDirectory) return left.isDirectory ? -1 : 1;
   const direction = preference.direction === "ascending" ? 1 : -1;
   if (preference.by === "type") {

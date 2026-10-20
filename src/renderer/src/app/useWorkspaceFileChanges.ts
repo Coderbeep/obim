@@ -1,4 +1,4 @@
-import { waitForBackgroundWorkspaceOperation } from "@renderer/store/workspaceTransitionStore";
+import { waitForWorkspaceTransition } from "@renderer/store/workspaceTransitionStore";
 import { useEffect } from "react";
 import { useStore } from "jotai";
 
@@ -27,7 +27,7 @@ export const useWorkspaceFileChanges = (enabled: boolean) => {
       const affectedPaths = openPaths.filter((filePath) => changes.some((change) => matchesChange(filePath, change)));
 
       for (const filePath of affectedPaths) {
-        void waitForBackgroundWorkspaceOperation()
+        void waitForWorkspaceTransition()
           .then(() => waitForPendingFileSaves(filePath))
           .then(() => readTextFile(filePath))
           .then((result) => {

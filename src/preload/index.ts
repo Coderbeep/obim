@@ -13,7 +13,23 @@ if (!process.contextIsolated) {
   throw new Error("contextIsolation must be enabled in the BrowserWindow");
 }
 
+const serializeExternalFiles = (files: readonly File[]) =>
+  Promise.all(
+    files.map(async (file) => {
+      const filePath = webUtils.getPathForFile(file);
+      return filePath
+        ? { kind: "path", path: filePath }
+        : { kind: "buffer", name: file.name, content: new Uint8Array(await file.arrayBuffer()) };
+    }),
+  );
+
 contextBridge.exposeInMainWorld("api", {
+  getExplorerSnapshot: () => ipcRenderer.invoke("get-explorer-snapshot"),
+  createPdfNote: (request) => ipcRenderer.invoke("create-pdf-note", request),
+  attachPdfNote: (request) => ipcRenderer.invoke("attach-pdf-note", request),
+  importPdfNotes: async (files: readonly File[], pdfPath: string) =>
+    ipcRenderer.invoke("import-pdf-notes", { sources: await serializeExternalFiles(files), pdfPath }),
+  movePdfWithNotes: (request) => ipcRenderer.invoke("move-pdf-with-notes", request),
   getFiles: (directoryPath) => ipcRenderer.invoke("get-files", directoryPath),
   openFile: (filePath) => ipcRenderer.invoke("open-file", filePath),
   readBinaryFile: (filePath) => ipcRenderer.invoke("read-binary-file", filePath),
@@ -72,14 +88,7 @@ contextBridge.exposeInMainWorld("api", {
     return () => ipcRenderer.removeListener("git-file-status-changed", listener);
   },
   importExternalFiles: async (files: readonly File[], destinationDirectoryPath) => {
-    const sources = await Promise.all(
-      files.map(async (file) => {
-        const filePath = webUtils.getPathForFile(file);
-        return filePath
-          ? { kind: "path", path: filePath }
-          : { kind: "buffer", name: file.name, content: new Uint8Array(await file.arrayBuffer()) };
-      }),
-    );
+    const sources = await serializeExternalFiles(files);
     return ipcRenderer.invoke("import-external-files", sources, destinationDirectoryPath);
   },
   copyImageAt: (x: number, y: number) => ipcRenderer.invoke("copy-image-at", x, y),
