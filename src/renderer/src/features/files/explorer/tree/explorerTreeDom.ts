@@ -2,6 +2,7 @@ import type { FileTree as FileTreeModel } from "@pierre/trees";
 
 export type ExplorerTreeEventTarget = {
   clickedIcon: boolean;
+  clickedPdfNotesToggle: boolean;
   rowPath: string;
 };
 
@@ -18,16 +19,18 @@ const escapeCssString = (value: string) =>
 /** Reads @pierre/trees' shadow-DOM row identity from a composed event. */
 export const getExplorerTreeEventTarget = (event: Event): ExplorerTreeEventTarget | null => {
   let clickedIcon = false;
+  let clickedPdfNotesToggle = false;
   let rowPath: string | null = null;
 
   for (const target of event.composedPath()) {
     if (!(target instanceof HTMLElement)) continue;
     if (target.dataset.type === "context-menu-trigger") return null;
     if (target.dataset.itemSection === "icon") clickedIcon = true;
+    if (target.dataset.obimPdfNotesToggle === "true") clickedPdfNotesToggle = true;
     if (!rowPath && target.dataset.type === "item" && target.dataset.itemPath) rowPath = target.dataset.itemPath;
   }
 
-  return rowPath ? { clickedIcon, rowPath } : null;
+  return rowPath ? { clickedIcon, clickedPdfNotesToggle, rowPath } : null;
 };
 
 export const getExplorerTreeRowSelector = (rowPath: string) =>

@@ -166,6 +166,43 @@ describe("ExplorerTree", () => {
     expect(openInNewTab).toHaveBeenCalledWith(0);
   });
 
+  it("opens a grouped PDF from its icon or title and discloses only through Notes", () => {
+    const open = vi.fn();
+    const openInNewTab = vi.fn();
+    const { model, createItem } = createModel();
+    const pdf = createItem("Paper.pdf.notes/", true);
+    const { getByTestId } = render(
+      <ExplorerTree
+        model={model as never}
+        itemsByPath={new Map([["Paper.pdf.notes/", "pdf"]])}
+        isExpandableFile={() => true}
+        onOpenItem={open}
+        onOpenItemInNewTab={openInNewTab}
+      />,
+    );
+    const { icon, label, row } = appendRow(getByTestId("tree"), "Paper.pdf.notes/");
+    const notes = document.createElement("span");
+    notes.dataset.obimPdfNotesToggle = "true";
+    row.append(notes);
+
+    fireEvent.click(icon);
+    fireEvent.click(label);
+    expect(open).toHaveBeenCalledTimes(2);
+    expect(open).toHaveBeenLastCalledWith("pdf");
+    expect("toggle" in pdf && pdf.toggle).not.toHaveBeenCalled();
+
+    fireEvent.click(notes);
+    fireEvent.click(notes, { shiftKey: true });
+    fireEvent.click(notes, { metaKey: true });
+    fireEvent.click(notes, { ctrlKey: true });
+    expect("toggle" in pdf && pdf.toggle).toHaveBeenCalledOnce();
+    expect(open).toHaveBeenCalledTimes(2);
+    auxClick(notes, 1);
+    expect(openInNewTab).not.toHaveBeenCalled();
+    auxClick(icon, 1);
+    expect(openInNewTab).toHaveBeenCalledWith("pdf");
+  });
+
   it("does not consume middle-button events when no matching action exists", () => {
     const { model } = createModel();
     const { getByTestId, rerender } = render(<ExplorerTree model={model as never} itemsByPath={new Map()} />);

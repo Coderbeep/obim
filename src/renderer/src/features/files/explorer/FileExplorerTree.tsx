@@ -50,6 +50,7 @@ export type FileExplorerTreeHandle = {
 
 const ExternalDropRootClass = "obim-external-drop-root";
 const ExternalDropTargetClass = "obim-external-drop-target";
+const PdfNotesDescription = "Contains PDF notes. Right Arrow shows notes; Left Arrow hides them. Enter opens the PDF.";
 const RootDropTarget = {
   directoryPath: null,
   flattenedSegmentPath: null,
@@ -83,14 +84,16 @@ export const FileExplorerTree = forwardRef<FileExplorerTreeHandle, FileExplorerT
   const pasteTargetPathRef = useRef<string | null>(null);
   const rootDirectoryPath = getWorkspacePath();
 
-  const { expandedTreePaths, lookupRef, model, onDropCompleteRef, toggleAllDirectories } = useFileExplorerModel({
-    enableFileMove,
-    expandedDirectories,
-    gitStatus,
-    items,
-    onExpandedDirectoriesChange,
-    syncSelection,
-  });
+  const { expandedTreePaths, lookup, lookupRef, model, onDropCompleteRef, toggleAllDirectories } = useFileExplorerModel(
+    {
+      enableFileMove,
+      expandedDirectories,
+      gitStatus,
+      items,
+      onExpandedDirectoriesChange,
+      syncSelection,
+    },
+  );
 
   useImperativeHandle(ref, () => ({ toggleAllDirectories }), [toggleAllDirectories]);
 
@@ -175,38 +178,59 @@ export const FileExplorerTree = forwardRef<FileExplorerTreeHandle, FileExplorerT
           const file = row.dataset.itemPath ? lookupRef.current.byTreePath.get(row.dataset.itemPath) : null;
           const displayName =
             file && row?.dataset.itemPath ? getExplorerRowName(file, row.dataset.itemPath, lookupRef.current) : null;
+          const grouped = Boolean(row.dataset.itemPath && lookupRef.current.pdfGroups?.has(row.dataset.itemPath));
+
+          if (!grouped) {
+            delete row.dataset.obimPdfGroup;
+            row
+              .querySelectorAll("[data-obim-pdf-glyph], [data-obim-pdf-notes-toggle]")
+              .forEach((node) => node.remove());
+            if (row.getAttribute("aria-description") === PdfNotesDescription) row.removeAttribute("aria-description");
+          }
 
           if (displayName === null) {
             if (file && row.getAttribute("aria-label") !== basename(file.path))
               row.setAttribute("aria-label", basename(file.path));
             delete row.dataset.obimMarkdownFile;
-            delete row.dataset.obimPdfGroup;
-            row.querySelector("[data-obim-pdf-glyph]")?.remove();
             return;
           }
 
-          const grouped = Boolean(row.dataset.itemPath && lookupRef.current.pdfGroups?.has(row.dataset.itemPath));
           if (grouped) {
             row.dataset.obimPdfGroup = "true";
             delete row.dataset.obimMarkdownFile;
-            const label = row.querySelector("[data-item-section='decoration'] > span");
-            if (label && !label.querySelector("[data-obim-pdf-glyph]")) {
+            const iconSection = row.querySelector("[data-item-section='icon']");
+            if (iconSection && !iconSection.querySelector("[data-obim-pdf-glyph]")) {
               const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
               icon.dataset.obimPdfGlyph = "true";
               icon.setAttribute("viewBox", "0 0 16 16");
               icon.setAttribute("width", "16");
               icon.setAttribute("height", "16");
               icon.setAttribute("aria-hidden", "true");
-              icon.style.cssText = "flex-shrink:0;margin-right:5px;vertical-align:middle";
+              icon.style.cssText = "flex-shrink:0";
               const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
               use.setAttribute("href", `#${PDF_FILE_GLYPH_ID}`);
               icon.append(use);
-              label.prepend(icon);
+              iconSection.append(icon);
             }
+            let notesToggle = row.querySelector<HTMLElement>("[data-obim-pdf-notes-toggle]");
+            if (!notesToggle) {
+              // The row is already a treeitem button. Keep one keyboard focus point;
+              // its aria-expanded state and the tree's arrow keys expose disclosure.
+              notesToggle = document.createElement("span");
+              notesToggle.dataset.obimPdfNotesToggle = "true";
+              notesToggle.textContent = "Notes";
+              notesToggle.setAttribute("aria-hidden", "true");
+              row.insertBefore(
+                notesToggle,
+                row.querySelector(":scope > [data-item-section='git'], :scope > [data-item-section='action']"),
+              );
+            }
+            const toggleTitle = `${row.getAttribute("aria-expanded") === "true" ? "Hide" : "Show"} notes for ${displayName}`;
+            if (notesToggle.title !== toggleTitle) notesToggle.title = toggleTitle;
+            if (row.getAttribute("aria-description") !== PdfNotesDescription)
+              row.setAttribute("aria-description", PdfNotesDescription);
           } else {
             row.dataset.obimMarkdownFile = "true";
-            delete row.dataset.obimPdfGroup;
-            row.querySelectorAll("[data-obim-pdf-glyph]").forEach((icon) => icon.remove());
           }
           if (file && row.title !== file.relativePath) row.title = file.relativePath;
           if (row.getAttribute("aria-label") !== displayName) row.setAttribute("aria-label", displayName);
@@ -244,7 +268,7 @@ export const FileExplorerTree = forwardRef<FileExplorerTreeHandle, FileExplorerT
       const handleRenameBlur = (event: Event) => restoreMarkdownExtension(event.target);
       observer = new MutationObserver(syncMarkdownRows);
       observer.observe(eventTarget, {
-        attributeFilter: ["data-item-path"],
+        attributeFilter: ["data-item-path", "aria-expanded"],
         attributes: true,
         childList: true,
         subtree: true,
@@ -351,6 +375,7 @@ export const FileExplorerTree = forwardRef<FileExplorerTreeHandle, FileExplorerT
       className={className}
       dragSourceTreePathRef={dragSourceTreePathRef}
       enableFileMove={enableFileMove}
+      itemsByPath={lookup.byTreePath}
       lookupRef={lookupRef}
       model={model}
       onDropCompleteRef={onDropCompleteRef}
@@ -371,6 +396,7 @@ const FileExplorerTreeSurface = ({
   className,
   dragSourceTreePathRef,
   enableFileMove,
+  itemsByPath,
   lookupRef,
   model,
   onDropCompleteRef,
@@ -384,6 +410,7 @@ const FileExplorerTreeSurface = ({
   className?: string;
   dragSourceTreePathRef: FileExplorerDndState["dragSourceTreePathRef"];
   enableFileMove: boolean;
+  itemsByPath: Map<string, FileItem>;
   lookupRef: FileExplorerModelState["lookupRef"];
   model: FileExplorerModelState["model"];
   onDropCompleteRef: FileExplorerModelState["onDropCompleteRef"];
@@ -640,7 +667,7 @@ const FileExplorerTreeSurface = ({
   return (
     <ExplorerTree
       model={model}
-      itemsByPath={lookupRef.current.byTreePath}
+      itemsByPath={itemsByPath}
       isExpandableFile={(key) => Boolean(lookupRef.current.pdfGroups?.has(key))}
       className={className}
       onOpenItem={onOpenItem}

@@ -104,6 +104,53 @@ const FILE_EXPLORER_TREE_UNSAFE_CSS = `${TREE_UNSAFE_CSS}
 
   [data-obim-pdf-group='true'][data-item-git-status] > [data-item-section='git'] { visibility: visible; }
 
+  [data-obim-pdf-group='true'] > [data-item-section='icon'] > :not([data-obim-pdf-glyph]) {
+    display: none;
+  }
+
+  [data-obim-pdf-group='true'] > [data-item-section='decoration'] {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  [data-obim-pdf-group='true'] > [data-item-section='decoration'] > span {
+    display: block;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  [data-obim-pdf-notes-toggle] {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    min-width: 41px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 4px;
+    font: 500 10px/1 var(--font-sans);
+    color: var(--text-secondary);
+    background: var(--surface-2);
+    box-shadow: inset 0 0 0 1px var(--border-subtle);
+  }
+
+  [data-obim-pdf-notes-toggle]:hover {
+    color: var(--text-primary);
+    background: var(--surface-hover);
+  }
+
+  [aria-expanded='true'] > [data-obim-pdf-notes-toggle] {
+    color: var(--text-primary);
+    background: var(--surface-selected);
+    box-shadow: inset 0 0 0 1px var(--border-default);
+  }
+
+  [data-obim-pdf-group='true']:has([data-item-rename-input]) > [data-obim-pdf-notes-toggle] {
+    display: none;
+  }
+
   [data-item-section='content']:has([data-item-rename-input]) {
     flex: 1 1 0;
   }
@@ -240,13 +287,7 @@ export const useFileExplorerModel = ({
           const type = noteTypes[file.path];
           return type ? [[treePath, type] as const] : [];
         }),
-      ) +
-      [...(lookup.pdfGroups?.keys() ?? [])]
-        .map(
-          (key) =>
-            `[data-item-section='spacing-item'][data-ancestor-path=${JSON.stringify(key)}] { margin-inline-end: ${FILE_GLYPH_SIZE + 4}px; }`,
-        )
-        .join("\n"),
+      ),
     [lookup, noteTypes],
   );
   const lookupRef = useRef<TreeLookup>(lookup);

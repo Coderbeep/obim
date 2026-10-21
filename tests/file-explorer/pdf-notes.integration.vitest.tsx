@@ -146,7 +146,7 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-it("expands using the chevron, opens using the PDF title or Enter, and opens notes at their real paths", async () => {
+it("expands using Notes, opens using the PDF icon, title or Enter, and opens notes at their real paths", async () => {
   const { container, store } = setup();
   await waitFor(() => expect(row(container, "Paper.pdf.notes/")?.getAttribute("aria-label")).toBe("Paper.pdf"));
   const pdfRow = row(container, "Paper.pdf.notes/")!;
@@ -154,9 +154,26 @@ it("expands using the chevron, opens using the PDF title or Enter, and opens not
   expect(row(container, "Paper.pdf")).toBeUndefined();
   expect(row(container, "Paper.pdf.notes/Summary.md")).toBeUndefined();
   expect(store.get(fileTreeAtom).find((item) => item.path === pdf.path)).not.toHaveProperty("children");
+  const toggle = pdfRow.querySelector<HTMLElement>("[data-obim-pdf-notes-toggle]")!;
+  expect(toggle.textContent).toBe("Notes");
+  expect(toggle.title).toBe("Show notes for Paper.pdf");
+  expect(pdfRow.getAttribute("aria-description")).toContain("Right Arrow shows notes");
+  expect(pdfRow.querySelector("[data-item-section='icon'] [data-obim-pdf-glyph] use")?.getAttribute("href")).toBe(
+    "#obim-file-pdf",
+  );
+  expect(pdfRow.querySelector("[data-item-section='decoration'] [data-obim-pdf-glyph]")).toBeNull();
   click(pdfRow.querySelector("[data-item-section='icon']")!);
+  expect(state.open).toHaveBeenLastCalledWith(pdf, { focusEditor: true });
+  expect(pdfRow.getAttribute("aria-expanded")).toBe("false");
+  click(toggle);
   await waitFor(() => expect(row(container, "Paper.pdf.notes/Summary.md")).toBeDefined());
-  expect(state.open).not.toHaveBeenCalled();
+  expect(state.open).toHaveBeenCalledTimes(1);
+  await waitFor(() => expect(toggle.title).toBe("Hide notes for Paper.pdf"));
+  await waitFor(() =>
+    expect(container.querySelector("file-tree-container")?.shadowRoot?.activeElement?.getAttribute("role")).toBe(
+      "tree",
+    ),
+  );
   expect(store.get(expandedDirectoriesAtom)).toContain("Paper.pdf.notes");
   expect(pdfRow.querySelector("[data-obim-pdf-glyph] use")?.getAttribute("href")).toBe("#obim-file-pdf");
   expect(pdfRow.getAttribute("data-item-git-status")).toBe("modified");
@@ -166,7 +183,7 @@ it("expands using the chevron, opens using the PDF title or Enter, and opens not
   expect(store.get(explorerSelectionPathsAtom)).toEqual([pdf.path]);
   act(() => state.model.focusPath("Paper.pdf.notes/"));
   key(pdfRow, "Enter");
-  expect(state.open).toHaveBeenCalledTimes(2);
+  expect(state.open).toHaveBeenCalledTimes(3);
   expect(pdfRow.getAttribute("aria-expanded")).toBe("true");
   click(row(container, "Paper.pdf.notes/Summary.md")!);
   expect(state.open).toHaveBeenLastCalledWith(note, { focusEditor: true });
@@ -174,8 +191,23 @@ it("expands using the chevron, opens using the PDF title or Enter, and opens not
   act(() => state.model.focusPath("Paper.pdf.notes/"));
   key(pdfRow, "ArrowLeft");
   await waitFor(() => expect(row(container, "Paper.pdf.notes/Summary.md")).toBeUndefined());
+  await waitFor(() => expect(toggle.title).toBe("Show notes for Paper.pdf"));
   key(pdfRow, "ArrowRight");
   await waitFor(() => expect(row(container, "Paper.pdf.notes/Summary.md")).toBeDefined());
+});
+
+it("opens a PDF on the first click after an initially empty explorer receives its files", async () => {
+  const { container, store } = setup(false, undefined, []);
+  act(() => store.set(fileTreeAtom, files()));
+  await waitFor(() =>
+    expect(row(container, "Paper.pdf.notes/")?.querySelector("[data-obim-pdf-notes-toggle]")).toBeTruthy(),
+  );
+
+  click(row(container, "Paper.pdf.notes/")!.querySelector("[data-item-section='icon']")!);
+
+  expect(state.open).toHaveBeenCalledOnce();
+  expect(state.open).toHaveBeenCalledWith(pdf, { focusEditor: true });
+  expect(row(container, "Paper.pdf.notes/")?.getAttribute("aria-expanded")).toBe("false");
 });
 
 it("reveals real note paths, preserves PDF sorting, and exposes an ordinary folder after external PDF deletion", async () => {
@@ -193,6 +225,9 @@ it("reveals real note paths, preserves PDF sorting, and exposes an ordinary fold
     ),
   );
   await waitFor(() => expect(row(container, "Paper.pdf.notes/")?.getAttribute("data-obim-pdf-group")).toBeNull());
+  expect(row(container, "Paper.pdf.notes/")?.querySelector("[data-obim-pdf-notes-toggle]")).toBeNull();
+  expect(row(container, "Paper.pdf.notes/")?.querySelector("[data-obim-pdf-glyph]")).toBeNull();
+  expect(row(container, "Paper.pdf.notes/")?.getAttribute("aria-description")).toBeNull();
   expect(row(container, "Paper.pdf.notes/Summary.md")).toBeDefined();
   expect(row(container, "Paper.pdf.notes/")?.getAttribute("aria-label")).toBe("Paper.pdf.notes");
   expect(store.get(explorerSelectionPathsAtom)).toEqual([note.path]);
@@ -459,6 +494,10 @@ it("preserves all selected notes while revealing a multi-note attachment", async
       file("Alone.pdf", "application/pdf"),
     ),
   );
+  // Finish the mocked drop before publishing the separate simulated filesystem refresh.
+  await act(async () => {
+    await state.attach.mock.results[0].value;
+  });
   const movedA = file("Alone.pdf.notes/a.md");
   const movedSummary = file("Alone.pdf.notes/Summary.md");
   act(() => {
@@ -491,10 +530,14 @@ it("keeps empty companions on disk while their PDFs have no chevron, and still e
   const { container, store } = setup(false, undefined, physical);
   await waitFor(() => expect(row(container, "Paper.pdf")).toBeDefined());
   expect(row(container, "Paper.pdf")?.querySelector('[data-icon-name="file-tree-icon-chevron"]')).toBeNull();
+  expect(row(container, "Paper.pdf")?.querySelector("[data-obim-pdf-notes-toggle]")).toBeNull();
   expect(row(container, "Paper.pdf.notes/")).toBeUndefined();
   act(() => store.set(fileTreeAtom, [pdf, directory("Paper.pdf.notes", [directory("Paper.pdf.notes/assets", [])])]));
   await waitFor(() => expect(row(container, "Paper.pdf.notes/")).toBeDefined());
-  click(row(container, "Paper.pdf.notes/")!.querySelector("[data-item-section='icon']")!);
+  await waitFor(() =>
+    expect(row(container, "Paper.pdf.notes/")?.querySelector("[data-obim-pdf-notes-toggle]")).toBeTruthy(),
+  );
+  click(row(container, "Paper.pdf.notes/")!.querySelector("[data-obim-pdf-notes-toggle]")!);
   await waitFor(() => expect(row(container, "Paper.pdf.notes/assets/")).toBeDefined());
 });
 

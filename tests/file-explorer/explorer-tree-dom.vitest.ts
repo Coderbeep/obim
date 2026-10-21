@@ -21,10 +21,12 @@ describe("explorer tree DOM boundary", () => {
 
     expect(getExplorerTreeEventTarget(eventWithPath(label, icon, row, document.body))).toEqual({
       clickedIcon: true,
+      clickedPdfNotesToggle: false,
       rowPath: "Projects/plan.md",
     });
     expect(getExplorerTreeEventTarget(eventWithPath(label, row))).toEqual({
       clickedIcon: false,
+      clickedPdfNotesToggle: false,
       rowPath: "Projects/plan.md",
     });
   });
@@ -56,7 +58,23 @@ describe("explorer tree DOM boundary", () => {
 
     expect(getExplorerTreeEventTarget(eventWithPath(icon, inner, outer))).toEqual({
       clickedIcon: true,
+      clickedPdfNotesToggle: false,
       rowPath: "nearest.md",
+    });
+  });
+
+  it("distinguishes the PDF notes disclosure from the file icon and label", () => {
+    const toggle = document.createElement("span");
+    const label = document.createElement("span");
+    const row = document.createElement("button");
+    toggle.dataset.obimPdfNotesToggle = "true";
+    row.dataset.type = "item";
+    row.dataset.itemPath = "Paper.pdf.notes/";
+
+    expect(getExplorerTreeEventTarget(eventWithPath(label, toggle, row))).toEqual({
+      clickedIcon: false,
+      clickedPdfNotesToggle: true,
+      rowPath: "Paper.pdf.notes/",
     });
   });
 

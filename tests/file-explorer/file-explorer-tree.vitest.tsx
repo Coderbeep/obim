@@ -72,6 +72,7 @@ vi.mock("../../src/renderer/src/features/files/explorer/useFileExplorerModel", (
     state.modelOptions(options);
     return {
       expandedTreePaths: ["A/"],
+      lookup: state.lookupRef.current,
       lookupRef: state.lookupRef,
       model: state.model,
       onDropCompleteRef: { current: () => {} },

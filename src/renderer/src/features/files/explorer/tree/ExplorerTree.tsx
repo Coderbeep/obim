@@ -50,7 +50,7 @@ export const ExplorerTree = <T,>({
       const item = treePath ? model.getItem(treePath) : null;
       if (!item || !("toggle" in item)) return;
 
-      if (treePath && isExpandableFile?.(treePath) && !target?.clickedIcon) {
+      if (treePath && isExpandableFile?.(treePath) && !target?.clickedPdfNotesToggle) {
         if (captureWasHandled || event.shiftKey || event.metaKey || event.ctrlKey) return;
         event.preventDefault();
         event.stopPropagation();
@@ -102,11 +102,13 @@ export const ExplorerTree = <T,>({
     (event: React.MouseEvent<HTMLElement>) => {
       if (!onOpenItemInNewTab || event.button !== 1) return;
 
-      const treePath = getExplorerTreeEventTarget(event.nativeEvent)?.rowPath;
+      const target = getExplorerTreeEventTarget(event.nativeEvent);
+      const treePath = target?.rowPath;
       if (!treePath || !itemsByPath.has(treePath)) return;
 
       event.preventDefault();
       event.stopPropagation();
+      if (target?.clickedPdfNotesToggle) return;
       onOpenItemInNewTab(itemsByPath.get(treePath) as T);
     },
     [itemsByPath, onOpenItemInNewTab],
